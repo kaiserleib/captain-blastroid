@@ -11,10 +11,17 @@ export interface BalanceRun {
 /** Hard stop per run, level seconds. The level is ~180 s plus the boss. */
 export const BALANCE_MAX_T = 320;
 
-export function playBalance(makeBot: () => Bot, runs: number, seedPrefix = 'bal'): BalanceRun[] {
+export function playBalance(
+  makeBot: () => Bot,
+  runs: number,
+  seedPrefix = 'bal',
+  levelId = 'kessler',
+): BalanceRun[] {
   const out: BalanceRun[] = [];
   for (let i = 0; i < runs; i++) {
-    const r = runSim(`${seedPrefix}${i}`, makeBot(), BALANCE_MAX_T);
+    // Level 1 keeps its historical seeds so reports stay comparable.
+    const seed = levelId === 'kessler' ? `${seedPrefix}${i}` : `${levelId}-${seedPrefix}${i}`;
+    const r = runSim(seed, makeBot(), BALANCE_MAX_T, { levelId });
     out.push({ result: r.result, stats: r.stats });
   }
   return out;
@@ -94,7 +101,11 @@ function loadoutLine(label: string, sel: readonly RunStats[], at: 'boss' | 'end'
   return `  ${label}: ${mean(counts).toFixed(1)} weapons, avg level ${avgLvl.toFixed(2)} · held: ${per}`;
 }
 
-export function formatBalanceReport(botName: string, runs: readonly BalanceRun[]): string {
+export function formatBalanceReport(
+  botName: string,
+  runs: readonly BalanceRun[],
+  levelLabel = 'Level 1',
+): string {
   const n = runs.length;
   const st = runs.map((r) => r.stats);
   const wins = runs.filter((r) => r.result.victory);
@@ -115,7 +126,7 @@ export function formatBalanceReport(botName: string, runs: readonly BalanceRun[]
     for (const [k, v] of Object.entries(r.hitCauses)) causes[k] = (causes[k] ?? 0) + v;
 
   const lines = [
-    `══ Balance report · ${botName} · ${n} seeds · Level 1 (Kestrel, fresh save) ══`,
+    `══ Balance report · ${botName} · ${n} seeds · ${levelLabel} (Kestrel, fresh save) ══`,
     '',
     'Outcomes',
     `  reach boss ${pct(boss.length, n)} · clear ${pct(wins.length, n)} · death ${pct(deaths.length, n)} · timeout ${pct(timeouts.length, n)}`,
@@ -169,9 +180,9 @@ export function formatBalanceReport(botName: string, runs: readonly BalanceRun[]
         .map(([k, v]) => `${k} ${v}`)
         .join(', ') || '-'
     }`,
-    `  peak enemy shots: waves ${Math.max(...st.map((r) => r.peakEnemyShotsLevel))} · boss P2 ${Math.max(...st.map((r) => r.peakEnemyShotsBoss))}`,
+    `  peak enemy shots: waves ${Math.max(...st.map((r) => r.peakEnemyShotsLevel))} · boss ${Math.max(...st.map((r) => r.peakEnemyShotsBoss))}`,
     timeouts.length > 0
-      ? `  timeouts: ${timeouts.map((r) => `[${r.stats.seed} ${r.stats.weaponsAtBoss} ph${r.stats.bossPhaseAtEnd}]`).join(' ')}`
+      ? `  timeouts: ${timeouts.map((r) => `[${r.stats.seed} ${r.stats.weaponsAtBoss} ${r.stats.bossPhaseAtEnd}]`).join(' ')}`
       : '  timeouts: none',
     '',
     'Engine',

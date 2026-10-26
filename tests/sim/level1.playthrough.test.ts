@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { LEVEL_ORDER, getLevel } from '../../src/content/levels';
 import { dodgerBot, godBot, idleBot } from './bots';
 import { runSim, type SimRun } from './harness';
 
@@ -7,6 +8,8 @@ const env =
   (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
 const FULL = env.SIM === '1';
 const GOD_SEEDS = FULL ? 10 : 3;
+/** God seeds per sector in the every-level pass. */
+const LEVEL_SEEDS = FULL ? 5 : 1;
 
 /** The debug-boosted loadout the god runs start with, so the boss falls in ~20 s. */
 const BOOSTED = [
@@ -63,6 +66,30 @@ describe('level 1 god playthrough', () => {
   }, 30_000);
 });
 
+describe('every sector: god playthrough', () => {
+  for (const levelId of LEVEL_ORDER) {
+    for (let i = 0; i < LEVEL_SEEDS; i++) {
+      it(`${levelId} seed god${i}: boss spawned → defeated → levelComplete → one runOver{victory}`, () => {
+        const r = runSim(`${levelId}-god${i}`, godBot(), 400, { levelId, loadout: BOOSTED });
+        expect(r.result.outcome).toBe('victory');
+        const spawned = indexOf(r, 'bossSpawned');
+        const defeated = indexOf(r, 'bossDefeated');
+        const complete = indexOf(r, 'levelComplete');
+        expect(spawned).toBeGreaterThanOrEqual(0);
+        expect(defeated).toBeGreaterThan(spawned);
+        expect(complete).toBeGreaterThan(defeated);
+        const overs = r.events.filter((e) => e.type === 'runOver');
+        expect(overs).toHaveLength(1);
+        expect(overs[0]!.data).toContain('victory:true');
+        // The first toast names the sector.
+        const toast = r.events.find((e) => e.type === 'toast');
+        expect(toast?.data).toContain(getLevel(levelId).name);
+        expectNoDroppedSpawns(r);
+      }, 30_000);
+    }
+  }
+});
+
 describe('idle bot', () => {
   const seeds = FULL ? 10 : 3;
   for (let i = 0; i < seeds; i++) {
@@ -72,6 +99,20 @@ describe('idle bot', () => {
       expect(r.result.endT).toBeGreaterThan(20);
       expect(r.result.outcome).not.toBe('victory');
       expectNoDroppedSpawns(r);
+    }, 30_000);
+  }
+});
+
+describe('determinism per sector', () => {
+  // A short slice of each in the default suite; full length under SIM=1.
+  const secs = FULL ? 300 : 25;
+  for (const levelId of LEVEL_ORDER) {
+    it(`${levelId}: same seed + bot gives the same hash (dodger, ${secs} s)`, () => {
+      const a = runSim(`det-${levelId}`, dodgerBot(), secs, { levelId });
+      const b = runSim(`det-${levelId}`, dodgerBot(), secs, { levelId });
+      expect(a.eventCount).toBeGreaterThan(20);
+      expect(b.hash).toBe(a.hash);
+      expect(b.events).toEqual(a.events);
     }, 30_000);
   }
 });

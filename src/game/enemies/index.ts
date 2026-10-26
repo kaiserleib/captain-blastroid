@@ -1,18 +1,37 @@
 import { ENEMIES } from '../../content/enemies';
 import { flags } from '../../debug/flags';
 import '../../gfx/reference.sprites';
-import { registerEnemyDefs } from '../../sim/spawn';
 import type { DrawLayer, System } from '../../sim/world';
 import { enemiesLayer, enemyShotsLayer } from './draw';
 import './enemies.sprites';
 import { updateEnemies } from './enemySystem';
+import { registerRoster } from './roster';
 import { enemySandboxLayer, enemySandboxSystem } from './sandbox';
 
-registerEnemyDefs(ENEMIES);
+// Level 1's roster; later sectors reuse it, so the level's enemyHpMul applies.
+registerRoster(ENEMIES, { hpScaled: true });
 
-export type { BehaviorParams, EnemyDef, EnemyFireDef, PatternDef } from '../../content/enemies';
+export type {
+  BehaviorParams,
+  CustomParams,
+  EnemyDef,
+  EnemyFireDef,
+  PatternDef,
+} from '../../content/enemies';
 export { computeAvoidance, type Steer } from './avoidance';
-export { runBehavior } from './behaviors';
+export { registerBehavior, runBehavior, type BehaviorFn } from './behaviors';
+export {
+  enemyDrawFn,
+  enemyHpMul,
+  registerEnemyDraw,
+  registerRoster,
+  rosterDef,
+  rosterIds,
+  scaleHp,
+  setEnemyHpMul,
+  type EnemyDrawFn,
+  type RosterOptions,
+} from './roster';
 export { ENEMY_SPRITE_IDS } from './enemies.sprites';
 export { enemyDef, updateEnemy, updateEnemies } from './enemySystem';
 export {
@@ -28,12 +47,16 @@ export {
   burst,
   canFire,
   emitEnemyShotSfx,
+  enemyShotSpeedMul,
   fan,
+  fireAt,
   firePattern,
   muzzleY,
   ring,
+  setEnemyShotSpeedMul,
   SHOT_LARGE,
   SHOT_SMALL,
+  shootDir,
   shotStyle,
   type ShotStyle,
 } from './patterns';

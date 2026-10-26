@@ -1,11 +1,14 @@
 import { flags } from '../../debug/flags';
 import { getLevel, type LevelDef } from '../../content/levels';
+import { clamp } from '../../engine/math';
 import { getSave } from '../../meta';
 import type { Pickup, WeaponInstance } from '../../sim/types';
 import type { System, World } from '../../sim/world';
+import { setEnemyHpMul, setEnemyShotSpeedMul } from '../enemies';
 import { spawnAsteroidStream } from '../obstacles';
 import { collectPickup, spawnDrop, spraySalvage } from '../pickups';
-import { fireEvent, stopField } from './events';
+import { emitToast, fireEvent, stopField, tickScrollRamp } from './events';
+import { levelSystems } from './registry';
 import { logLine, type DirectorState } from './state';
 import {
   buildSchedule,
@@ -23,6 +26,12 @@ export const OUTRO = {
   /** levelComplete + the results delay. */
   runOverAt: 5.5,
 } as const;
+
+/** `guaranteeWeapon`: the capsule appears this far ahead of the ship, kept this far inside the edges. */
+export const SUPPLY_DROP = { ahead: 60, margin: 16 } as const;
+
+/** When every schematic of a level is found, the boss pays this much more salvage instead. */
+export const NO_SCHEMATIC_SALVAGE_MUL = 1.5;
 
 /** `?t=` debug start: a plausible mid-level loadout. */
 export const DEBUG_LOADOUT: readonly { id: string; level: number }[] = [
@@ -67,11 +76,16 @@ export function startDirector(
     outroStep: 0,
     bossX: w.width / 2,
     bossY: 80,
+    scroll: { active: false, from: 0, to: 0, over: 0, t: 0 },
+    guaranteeDone: level.guaranteeWeapon !== undefined && startT > level.guaranteeWeapon.by,
+    systems: levelSystems(level.id),
     fires: level.timeline.map(() => 0),
     log: [],
     offs: [],
   };
   states.set(w, st);
+  setEnemyHpMul(w, level.enemyHpMul ?? 1);
+  setEnemyShotSpeedMul(w, level.enemyShotSpeedMul ?? 1);
   // Console/bot access in dev: `__director.world`, `__director.state`.
   if (import.meta.env.DEV && typeof window !== 'undefined') {
     (window as unknown as { __director: unknown }).__director = { world: w, state: st };
@@ -132,7 +146,8 @@ function onBossDefeated(w: World, st: DirectorState, x: number, y: number): void
   const save = getSave();
   const schematic = pickSchematic(st.level.schematicOnClear, save, w.run.schematics);
   if (schematic !== null) spawnDrop(w, 'schematic', x, y, schematic);
-  spraySalvage(w, x, y, st.level.bossSalvage);
+  const salvage = st.level.bossSalvage * (schematic === null ? NO_SCHEMATIC_SALVAGE_MUL : 1);
+  spraySalvage(w, x, y, Math.round(salvage));
   logLine(st, `${st.t.toFixed(1)} bossDefeated schematic=${schematic ?? 'none'}`);
 }
 
@@ -242,9 +257,31 @@ function updateOutro(w: World, st: DirectorState, dt: number): void {
   }
 }
 
+/** If the player still holds one weapon at `by`, drop the level's capsule ahead of them (once). */
+function checkGuarantee(w: World, st: DirectorState): void {
+  const g = st.level.guaranteeWeapon;
+  if (st.guaranteeDone || g === undefined || st.t < g.by) return;
+  st.guaranteeDone = true;
+  const p = w.player;
+  if (!p.alive || p.weapons.length > 1) return;
+  const m = SUPPLY_DROP.margin;
+  const x = clamp(p.x, m, w.width - m);
+  const y = clamp(p.y - SUPPLY_DROP.ahead, m, w.height - m);
+  if (spawnDrop(w, 'weapon', x, y, g.weapon) === null) return;
+  emitToast(w, 'SUPPLY DROP');
+  logLine(st, `${st.t.toFixed(1)} supplyDrop ${g.weapon}`);
+}
+
 export function updateDirector(w: World, dt: number): void {
   let st = states.get(w);
   if (st === undefined) st = startDirector(w, getLevel(w.run.levelId));
+  stepTimeline(w, st, dt);
+  tickScrollRamp(w, st, dt);
+  const sys = st.systems;
+  for (let i = 0; i < sys.length; i++) (sys[i] as System).update(w, dt);
+}
+
+function stepTimeline(w: World, st: DirectorState, dt: number): void {
   if (st.phase === 'done') return;
   if (st.phase === 'outro') {
     updateOutro(w, st, dt);
@@ -255,6 +292,7 @@ export function updateDirector(w: World, dt: number): void {
   st.t += dt;
   updateField(w, st);
   fireDue(w, st);
+  checkGuarantee(w, st);
 }
 
 /** Slot: after cleanup, before fx. Idle under `?sandbox`, which spawns by hand. */

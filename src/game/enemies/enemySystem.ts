@@ -1,16 +1,17 @@
-import { AVOIDANCE, ENEMIES, ENEMY_FAIRNESS, type EnemyDef } from '../../content/enemies';
+import { AVOIDANCE, ENEMY_FAIRNESS, type EnemyDef } from '../../content/enemies';
 import type { Enemy } from '../../sim/types';
 import type { System, World } from '../../sim/world';
 import { computeAvoidance, type Steer } from './avoidance';
-import { runBehavior } from './behaviors';
+import { checkBehavior, runBehavior } from './behaviors';
 import { tickFormationSpawns } from './formations';
 import { canFire, firePattern, shotStyle, tickBursts } from './patterns';
+import { applyHpMul, rosterDef } from './roster';
 
 const steer: Steer = { x: 0, y: 0 };
 
-/** Roster def for an enemy, or undefined for ones T11 doesn't drive (boss parts, `dummy`). */
+/** Registered roster def for an enemy, or undefined for ones it doesn't drive (boss parts, `dummy`). */
 export function enemyDef(e: Enemy): EnemyDef | undefined {
-  return ENEMIES[e.defId];
+  return rosterDef(e.defId);
 }
 
 function updateFire(w: World, e: Enemy, def: EnemyDef, dt: number): void {
@@ -28,8 +29,13 @@ function updateFire(w: World, e: Enemy, def: EnemyDef, dt: number): void {
  * toward desired + steer, which also eases them back once clear.
  */
 export function updateEnemy(w: World, e: Enemy, def: EnemyDef, dt: number): void {
-  if (e.t === 0 && e.fireT === 0 && def.fire !== null) {
-    e.fireT = Math.max(def.fire.firstDelay, ENEMY_FAIRNESS.minAge);
+  if (e.t === 0) {
+    // First tick: the spawn hook (e.t only advances below, so this runs once).
+    if (e.fireT === 0 && def.fire !== null) {
+      e.fireT = Math.max(def.fire.firstDelay, ENEMY_FAIRNESS.minAge);
+    }
+    checkBehavior(def.behavior);
+    applyHpMul(w, e);
   }
   const ox = e.vx;
   const oy = e.vy;
@@ -56,7 +62,7 @@ export function updateEnemies(w: World, dt: number): void {
   for (let i = 0; i < n; i++) {
     const e = items[i] as Enemy;
     if (!e.active) continue;
-    const def = ENEMIES[e.defId];
+    const def = rosterDef(e.defId);
     if (def === undefined) continue;
     updateEnemy(w, e, def, dt);
   }

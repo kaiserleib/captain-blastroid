@@ -65,13 +65,25 @@ export interface CrossingParams {
   speed: number;
 }
 
+/**
+ * A behavior registered by a sector folder with `registerBehavior(name, fn)`
+ * (game/enemies). `p` is handed to the function as-is (numbers only, so the
+ * def stays plain data).
+ */
+export interface CustomParams {
+  kind: 'custom';
+  behavior: string;
+  p?: Readonly<Record<string, number>>;
+}
+
 export type BehaviorParams =
   | StraightParams
   | SineDiveParams
   | SwoopParams
   | HoldAndStrafeParams
   | ShadowPlayerParams
-  | CrossingParams;
+  | CrossingParams
+  | CustomParams;
 
 export type BehaviorId = BehaviorParams['kind'];
 

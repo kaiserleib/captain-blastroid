@@ -1,27 +1,42 @@
-// T16: bosses. Level 1's Rock Hauler, on a generic multi-part rig.
-import { BOSS_PART_DEFS } from '../../content/bosses';
+// T16: bosses on a generic multi-part rig; T21: the boss registry. Level 1's
+// Rock Hauler registers here; sector bosses register from game/levels/<id>.
+import { BOSS_PART_DEFS, ROCK_HAULER } from '../../content/bosses';
 import { flags } from '../../debug/flags';
 import { registerBossDamage, registerTargetFilter } from '../../sim/hooks';
-import { registerEnemyDefs } from '../../sim/spawn';
 import type { System } from '../../sim/world';
-import './boss.sprites';
-import { bossDamageHook, bossTargetFilter, updateBoss } from './bossSystem';
+import { BOSS_SPRITE_IDS } from './boss.sprites';
+import { bossDamageHook, bossTargetFilter, registerBoss, updateBoss } from './bossSystem';
+import { drawRockHauler } from './draw';
+import { RockHauler } from './rockHauler';
 import { installBossSandbox, runBossSandbox } from './sandbox';
 
-registerEnemyDefs(BOSS_PART_DEFS);
 registerBossDamage(bossDamageHook);
 registerTargetFilter(bossTargetFilter);
+registerBoss(ROCK_HAULER.id, {
+  create: () => new RockHauler(),
+  draw: drawRockHauler,
+  displayName: ROCK_HAULER.name,
+  parts: BOSS_PART_DEFS,
+  spriteIds: BOSS_SPRITE_IDS,
+});
 
 export { BOSS_SPRITE_IDS } from './boss.sprites';
 export {
   activeBoss,
   attachBoss,
   bossDamageHook,
+  bossDisplayName,
   bossHp,
+  bossIds,
   bossMaxHp,
+  bossRegistration,
   bossTargetFilter,
+  drawActiveBoss,
+  registerBoss,
   spawnBoss,
   updateBoss,
+  type BossController,
+  type BossRegistration,
 } from './bossSystem';
 export { bossLayer } from './draw';
 export { BossRig, type PartSlot } from './parts';

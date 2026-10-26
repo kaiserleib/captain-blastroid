@@ -2,6 +2,7 @@ import { flags } from '../../debug/flags';
 import { damageEnemy } from '../../sim/damage';
 import type { World } from '../../sim/world';
 import { activeBoss } from './bossSystem';
+import { RockHauler } from './rockHauler';
 
 // `?sandbox`: K requests the Rock Hauler (the same event the director sends);
 // Shift+K wrecks both clamp turrets to jump to phase 2.
@@ -30,7 +31,7 @@ export function runBossSandbox(w: World): void {
       continue;
     }
     const b = activeBoss(w);
-    if (b === null) continue;
+    if (!(b instanceof RockHauler)) continue;
     for (const s of b.turrets) {
       if (b.rig.alive(s) && s.enemy !== null) damageEnemy(w, s.enemy, s.enemy.hp, 'player');
     }

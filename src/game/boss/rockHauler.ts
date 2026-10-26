@@ -6,6 +6,7 @@ import type { World } from '../../sim/world';
 import { aimAt, burst, emitEnemyShotSfx, ring, SHOT_LARGE, SHOT_SMALL } from '../enemies';
 import { spawnRock } from '../obstacles';
 import { spawnDrop } from '../pickups';
+import type { BossController } from './bossSystem';
 import { BossRig, type PartSlot } from './parts';
 
 // Rock Hauler: descend → phase 1 (strafe, clamp-turret bursts, a rock flung
@@ -23,6 +24,8 @@ export const Phase = {
 } as const;
 export type PhaseId = (typeof Phase)[keyof typeof Phase];
 
+const PHASE_NAMES = ['entry', 'fight', 'opening', 'exposed', 'dying', 'done'] as const;
+
 const DEG = Math.PI / 180;
 const SPARKS = 12;
 /** Seconds between armor pings: a stream of deflected shots shouldn't become a buzz. */
@@ -31,7 +34,8 @@ const DEFEAT_P = { defId: '', x: 0, y: 0 };
 const SFX_P = { id: '', x: 0 as number | undefined };
 const SHAKE_P = { mag: 0, dur: 0 };
 
-export class RockHauler {
+export class RockHauler implements BossController {
+  readonly defId: string;
   readonly def: RockHaulerDef;
   readonly rig: BossRig;
   phase: PhaseId = Phase.Entry;
@@ -67,6 +71,7 @@ export class RockHauler {
 
   constructor(def: RockHaulerDef = ROCK_HAULER) {
     this.def = def;
+    this.defId = def.id;
     this.rig = new BossRig(def.parts);
     this.core = this.rig.slots.find((s) => s.spec.role === 'core') as PartSlot;
     this.turrets = this.rig.slots.filter((s) => s.spec.role === 'turret');
@@ -87,6 +92,14 @@ export class RockHauler {
 
   get done(): boolean {
     return this.phase === Phase.Done;
+  }
+
+  targetable(_part: Enemy, slot: PartSlot): boolean {
+    return !this.invulnerable() && slot.targetable;
+  }
+
+  phaseName(): string {
+    return PHASE_NAMES[this.phase];
   }
 
   /** Damage hook for one of our parts. True = we handled (absorbed) the hit. */

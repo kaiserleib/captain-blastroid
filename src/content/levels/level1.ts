@@ -27,6 +27,8 @@ export const LEVEL1: LevelDef = {
   podFallbackSalvage: 30,
   rockTheme: 'kessler',
   schematicOnClear: ['bulwark', 'dart'],
+  // Replaces T18's "only after a forced formation clear" as the safety net.
+  guaranteeWeapon: { by: 45, weapon: 'spread' },
 
   asteroidField: [
     { from: 0, to: 16, rate: 0.6, rateTo: 1.1, sizes: SMALL, speed: [14, 32] },

@@ -7,6 +7,7 @@ import type {
   TimelineEvent,
   XSpec,
 } from '../../content/levels';
+import { SHIPS } from '../../content/ships';
 import type { Rng } from '../../engine/rng';
 
 /** One firing of a timeline event (repeats expand into several). */
@@ -91,13 +92,23 @@ export function resolveX(spec: XSpec, rng: Rng, halfWidth = 0, width = 240): num
   return rng.range(lo, hi);
 }
 
-/** The first ship in `order` that hasn't been found (save or this run) or built. */
+function isShip(id: string): boolean {
+  return Object.prototype.hasOwnProperty.call(SHIPS, id);
+}
+
+/**
+ * The first ship in `order` that hasn't been found (save or this run) or
+ * built. Ids that aren't ships (yet) are skipped, so a level can list ships
+ * another ticket adds.
+ */
 export function pickSchematic(
   order: readonly string[],
   found: { schematics: readonly string[]; shipsBuilt: readonly string[] },
   runSchematics: readonly string[],
+  exists: (id: string) => boolean = isShip,
 ): string | null {
   for (const id of order) {
+    if (!exists(id)) continue;
     if (found.schematics.includes(id) || found.shipsBuilt.includes(id)) continue;
     if (runSchematics.includes(id)) continue;
     return id;

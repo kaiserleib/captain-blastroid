@@ -1,5 +1,5 @@
 import { Background, createBackgroundPair, isThemeId, themeForLevel } from '../backgrounds';
-import { attachAudio, playSong } from '../audio';
+import { attachAudio, playSong, songOr } from '../audio';
 import { PLAYFIELD_H } from '../engine/display';
 import { randomSeedString } from '../engine/rng';
 import type { Scene, ScenePointer } from '../engine/scene';
@@ -7,7 +7,7 @@ import { flags } from '../debug/flags';
 import { Fx, FX_SPRITE_IDS } from '../gfx/fx';
 import { warm } from '../gfx/spriteCache';
 import { getLevel, levelIdForNumber } from '../content/levels';
-import { directorSystem, startDirector } from '../game/director';
+import { directorSystem, levelLayers, startDirector } from '../game/director';
 import { createHudDemoSystem, Hud, hudDemoEnabled } from '../game/hud';
 import {
   initPlayer,
@@ -19,9 +19,17 @@ import {
 import { computePlayerStats, getSave } from '../meta';
 import { anomalyLayer, asteroidLayer, obstaclesSystem } from '../game/obstacles';
 import { ENEMY_SPRITE_IDS, enemyLayers, enemySystem } from '../game/enemies';
-import { BOSS_SPRITE_IDS, bossLayer, bossSystem } from '../game/boss';
+import { bossIds, bossLayer, bossRegistration, bossSystem } from '../game/boss';
+// Sector registrations (rosters, behaviors, bosses, scripts, level systems and layers).
+import '../game/levels';
 import { input } from '../input';
-import { PICKUP_SPRITE_IDS, pickupsLayer, pickupsSystem, powerupFxLayer } from '../game/pickups';
+import {
+  PICKUP_SPRITE_IDS,
+  pickupsLayer,
+  pickupsSystem,
+  podOverlayLayer,
+  powerupFxLayer,
+} from '../game/pickups';
 import { dronesLayer, playerShotsLayer, WEAPON_SPRITE_IDS, weaponSystem } from '../game/weapons';
 import type { Renderer } from '../gfx/renderer';
 import { cleanupSystem } from '../sim/cleanup';
@@ -48,11 +56,12 @@ let gameplayWarmed = false;
 function warmGameplaySprites(): void {
   if (gameplayWarmed || typeof document === 'undefined') return;
   gameplayWarmed = true;
+  const bossSprites = bossIds().flatMap((id) => bossRegistration(id)?.spriteIds ?? []);
   warm([
     ...PICKUP_SPRITE_IDS,
     ...WEAPON_SPRITE_IDS,
     ...ENEMY_SPRITE_IDS,
-    ...BOSS_SPRITE_IDS,
+    ...bossSprites,
     ...FX_SPRITE_IDS,
   ]);
 }
@@ -98,6 +107,7 @@ export class GameScene implements Scene {
     this.bg.layer,
     input.stickLayer,
     pickupsLayer,
+    podOverlayLayer,
     powerupFxLayer,
     ...this.fx.layers,
     this.hud.layer,
@@ -111,6 +121,8 @@ export class GameScene implements Scene {
   ];
 
   private readonly hasPlayerLayer: boolean;
+  /** `registerLevelLayer` layers of the level playing now (swapped in by enter). */
+  private levelLayers: readonly DrawLayer[] = [];
   // Acted on after the tick's systems, never mid-tick (T17).
   private pauseWanted = false;
   private runOver: boolean | null = null;
@@ -126,7 +138,8 @@ export class GameScene implements Scene {
     const save = getSave();
     const shipId = d.shipId ?? save.selectedShip;
     const pilotId = d.pilotId ?? save.selectedPilot;
-    const levelId = d.levelId ?? levelIdForNumber(flags.level) ?? undefined;
+    // `?level=N` (dev) wins over the hangar's choice so any sector is one URL away.
+    const levelId = levelIdForNumber(flags.level) ?? d.levelId;
     this.world = createWorld(d.seed ?? flags.seed ?? randomSeedString(), {
       ...d,
       shipId,
@@ -143,12 +156,13 @@ export class GameScene implements Scene {
     this.background.setTheme(theme, w.run.seed);
     this.background.prebuild();
     w.scrollSpeed = level.scrollSpeed;
+    this.useLevelLayers(levelLayers(level.id));
     startDirector(w, level, { startT: flags.t ?? 0, debugLoadout: true });
     // Detached by exit()'s events.clear().
-    attachAudio(this.world.events);
+    attachAudio(this.world.events, { bossSong: level.bossMusic ?? 'boss' });
     this.fx.attach(this.world);
     this.hud.attach(w);
-    playSong(level.music);
+    playSong(songOr(level.music, 'level1'));
     this.pauseWanted = false;
     this.runOver = null;
     w.events.on('pauseRequested', () => {
@@ -157,6 +171,17 @@ export class GameScene implements Scene {
     w.events.on('runOver', (e) => {
       this.runOver ??= e.victory;
     });
+  }
+
+  private useLevelLayers(next: readonly DrawLayer[]): void {
+    const old = this.levelLayers;
+    for (let i = this.layers.length - 1; i >= 0; i--) {
+      if (old.includes(this.layers[i] as DrawLayer)) this.layers.splice(i, 1);
+    }
+    this.levelLayers = next;
+    this.layers.push(...next);
+    // Stable sort: equal z keeps the base layers first.
+    this.layers.sort((a, b) => a.z - b.z);
   }
 
   /** Opens the pause overlay now (visibility loss: no tick will run until the page is back). */
