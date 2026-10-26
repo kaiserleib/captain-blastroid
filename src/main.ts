@@ -4,6 +4,7 @@ import { Display } from './engine/display';
 import { Loop } from './engine/loop';
 import { SceneManager } from './engine/scene';
 import { CanvasRenderer } from './gfx/renderer';
+import { attachInput, input } from './input';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
 
@@ -17,17 +18,21 @@ display.onResize((l) => {
 });
 
 const scenes = new SceneManager();
+attachInput(display);
+input.onPointer = (e) => scenes.pointer(e);
 const overlay = flags.debug ? new DebugOverlay() : null;
 
 const loop = new Loop({
   update(dt) {
     if (!overlay) {
       scenes.update(dt);
+      input.endTick();
       return;
     }
     const t0 = performance.now();
     scenes.update(dt);
     overlay.recordTick(performance.now() - t0);
+    input.endTick();
   },
   render(alpha) {
     scenes.render(renderer, alpha);

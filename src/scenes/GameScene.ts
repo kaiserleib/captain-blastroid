@@ -2,6 +2,7 @@ import { PLAYFIELD_H } from '../engine/display';
 import { randomSeedString } from '../engine/rng';
 import type { Scene } from '../engine/scene';
 import { flags } from '../debug/flags';
+import { input } from '../input';
 import type { Renderer } from '../gfx/renderer';
 import { createWorld, type DrawLayer, type System, type World } from '../sim/world';
 
@@ -25,7 +26,7 @@ export class GameScene implements Scene {
    * pickups → collision → cleanup → director → fx
    */
   readonly systems: System[] = [
-    // input (T01)
+    input.system,
     // player (T08)
     // weapons (T09)
     // enemies (T11)
@@ -44,10 +45,13 @@ export class GameScene implements Scene {
    * anomalies 10, pickups 20, asteroids 30, enemies 40, enemy shots 50,
    * player shots 55, player 60, fx 70, stick 95, HUD 100.
    */
-  readonly layers: DrawLayer[] = [];
+  readonly layers: DrawLayer[] = [input.stickLayer];
+
+  private readonly hasPlayerLayer: boolean;
 
   constructor() {
     this.layers.sort((a, b) => a.z - b.z);
+    this.hasPlayerLayer = this.layers.some((l) => l.name === 'player');
   }
 
   enter(data?: unknown): void {
@@ -77,7 +81,7 @@ export class GameScene implements Scene {
     for (let i = 0; i < this.layers.length; i++) this.layers[i]?.draw(w, r, alpha);
 
     // Placeholder until T08's player layer exists, so scaling is visible.
-    if (this.layers.length === 0) {
+    if (!this.hasPlayerLayer) {
       const p = w.player;
       r.rect(p.x - 6, p.y - 8, 12, 16, PLACEHOLDER_SHIP_COLOR);
     }
