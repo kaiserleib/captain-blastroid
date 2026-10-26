@@ -78,7 +78,11 @@ export type TimelineEvent = EventBase &
     | { spawn: SpawnEvent }
     | { escapePod: { x: XSpec } }
     | { drop: DropEvent }
-    | { toast: string }
+    | {
+        toast: string;
+        /** Shown instead when the level's next pod would be a salvage cache (all its pilots rescued). */
+        ifNoPod?: string;
+      }
     | { bossWarning: true }
     | { boss: string }
   );

@@ -111,7 +111,7 @@ export const LEVEL1: LevelDef = {
 
     // Escape pod with only rammers around it, so nothing shoots it down (the 90 s
     // gunboats leave at ~96 and their shots clear before the pod arrives).
-    { t: 99, toast: 'ESCAPE POD AHEAD' },
+    { t: 99, toast: 'ESCAPE POD AHEAD', ifNoPod: 'SALVAGE CACHE AHEAD' },
     { t: 100, escapePod: { x: 'rand' } },
     { t: 103, formation: { type: 'column', enemy: 'gnat', count: 4, x: 30 } },
     { t: 103, formation: { type: 'column', enemy: 'gnat', count: 4, x: 210 } },

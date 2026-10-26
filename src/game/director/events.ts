@@ -20,6 +20,8 @@ const ENTRY_Y = -16;
 const DEFAULT_SIDE_Y = 90;
 /** Pods and drops stay away from the edges so they're reachable. */
 const POD_HALF_WIDTH = 24;
+/** The cache bursts upward, so it opens below the top edge or half of it leaves unseen. */
+const CACHE_Y = 40;
 
 function fmt(n: number): string {
   return n.toFixed(1);
@@ -76,16 +78,21 @@ function fireSpawn(w: World, st: DirectorState, s: SpawnEvent): void {
   logLine(st, `${fmt(st.t)} spawn ${s.enemy} x=${fmt(x)} y=${fmt(y)}${e ? '' : ' (pool full)'}`);
 }
 
+/** The pilot this level's pod would carry now, or null when it would be a salvage cache. */
+function podPilot(w: World, st: DirectorState): string | null {
+  const pilot = nextRescuablePilot(getSave(), st.level.id);
+  return pilot !== null && w.run.pilotsRescued.includes(pilot) ? null : pilot;
+}
+
 function firePod(w: World, st: DirectorState, xSpec: number | 'rand'): void {
   const x = resolveX(xSpec, w.rng, POD_HALF_WIDTH, w.width);
-  let pilot = nextRescuablePilot(getSave(), st.level.id);
-  if (pilot !== null && w.run.pilotsRescued.includes(pilot)) pilot = null;
+  const pilot = podPilot(w, st);
   if (pilot !== null) {
     spawnEscapePod(w, pilot, x);
     logLine(st, `${fmt(st.t)} escapePod ${pilot} x=${fmt(x)}`);
   } else {
     // Everyone here is rescued: a salvage cache takes the pod's place.
-    spraySalvage(w, x, 0, st.level.podFallbackSalvage);
+    spraySalvage(w, x, CACHE_Y, st.level.podFallbackSalvage);
     logLine(st, `${fmt(st.t)} salvageCache x=${fmt(x)}`);
   }
 }
@@ -109,8 +116,9 @@ export function fireEvent(w: World, st: DirectorState, ev: TimelineEvent): void 
     spawnDrop(w, d.kind, x, -8, d.payload ?? '', d.amount ?? 0);
     logLine(st, `${fmt(st.t)} drop ${d.kind} x=${fmt(x)}`);
   } else if ('toast' in ev) {
-    emitToast(w, ev.toast);
-    logLine(st, `${fmt(st.t)} toast ${ev.toast}`);
+    const text = ev.ifNoPod !== undefined && podPilot(w, st) === null ? ev.ifNoPod : ev.toast;
+    emitToast(w, text);
+    logLine(st, `${fmt(st.t)} toast ${text}`);
   } else if ('bossWarning' in ev) {
     w.events.emit('bossWarning', NO_PAYLOAD);
     logLine(st, `${fmt(st.t)} bossWarning`);

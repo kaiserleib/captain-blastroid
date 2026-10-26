@@ -265,4 +265,22 @@ describe('director (headless Level 1)', () => {
       fresh.pickups.items.some((p) => p.active && p.kind === 'escapePod' && p.payload === 'juno'),
     ).toBe(true);
   });
+
+  it('announces a salvage cache instead of a pod when no pilot is left to rescue', () => {
+    const toasts = (w: World): string[] => {
+      const out: string[] = [];
+      w.events.on('toast', (p) => out.push(p.text));
+      return out;
+    };
+    const { w } = makeWorld('pod', 98.9);
+    w.run.pilotsRescued.push('juno');
+    const cacheToasts = toasts(w);
+    run(w, 0.3);
+    expect(cacheToasts).toEqual(['SALVAGE CACHE AHEAD']);
+
+    const fresh = makeWorld('pod', 98.9).w;
+    const podToasts = toasts(fresh);
+    run(fresh, 0.3);
+    expect(podToasts).toEqual(['ESCAPE POD AHEAD']);
+  });
 });
