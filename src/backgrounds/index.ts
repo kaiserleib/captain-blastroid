@@ -1,7 +1,18 @@
 import type { DrawLayer, System, World } from '../sim/world';
+import { flags } from '../debug/flags';
 import type { Background } from './background';
+import { installBackgroundSandbox, runBackgroundSandbox } from './sandbox';
 
-export { Background, PARALLAX, STRIP_H, layerSeed, stripOffset } from './background';
+export {
+  Background,
+  PARALLAX,
+  SPEED_LINES,
+  STRIP_H,
+  layerSeed,
+  speedLineAlpha,
+  speedLineLength,
+  stripOffset,
+} from './background';
 export {
   THEMES,
   THEME_IDS,
@@ -12,6 +23,8 @@ export {
   type ThemeId,
 } from './themes';
 export type { SetPieceKind, SetPieceSpec } from './setpieces';
+
+installBackgroundSandbox();
 
 interface ScrollState {
   world: World | null;
@@ -28,7 +41,9 @@ export function createBackgroundPair(bg: Background): { system: System; layer: D
     name: 'background',
     update(w, dt) {
       st.world = w;
+      if (flags.sandbox) runBackgroundSandbox(w, bg);
       st.prevScrollY = w.scrollY;
+      // Read every tick, so scroll ramps (T21's `scroll` event) move the parallax too.
       w.scrollY += w.scrollSpeed * dt;
     },
   };
@@ -37,7 +52,7 @@ export function createBackgroundPair(bg: Background): { system: System; layer: D
     z: 0,
     draw(w, r, alpha) {
       const prev = st.world === w ? st.prevScrollY : w.scrollY;
-      bg.draw(r.ctx, prev + (w.scrollY - prev) * alpha, w.time, r.height);
+      bg.draw(r.ctx, prev + (w.scrollY - prev) * alpha, w.time, r.height, w.scrollSpeed);
     },
   };
   return { system, layer };

@@ -2,7 +2,15 @@ import { hashSeed } from '../engine/rng';
 import { bitmapToCanvas } from './bitmap';
 import { toCss } from './color';
 import { generateNebula, nebulaPalette } from './nebula';
-import { generateSetPiece, setPiecePalette, type SetPieceSpec } from './setpieces';
+import { createRng } from '../engine/rng';
+import {
+  generateSetPiece,
+  hasLights,
+  LIGHT_PHASES,
+  LIGHT_STEP,
+  setPiecePalette,
+  type SetPieceSpec,
+} from './setpieces';
 import {
   generateStars,
   generateStreaks,
@@ -20,9 +28,39 @@ export const STRIP_W = 240;
 /** Seconds per twinkle palette step. */
 export const TWINKLE_STEP = 0.3;
 
+/** Speed lines: none at or below `from` px/s, full strength from `full` up. */
+export const SPEED_LINES = {
+  from: 50,
+  full: 60,
+  count: 18,
+  minLen: 6,
+  maxLen: 14,
+  /** Extra length per px/s above `from`. */
+  lenPerSpeed: 0.2,
+  alpha: 0.22,
+} as const;
+
+/** Speed-line strength 0..1 for a scroll speed: 0 up to 50 px/s, fading in to 1 at 60. */
+export function speedLineAlpha(speed: number): number {
+  const t = (speed - SPEED_LINES.from) / (SPEED_LINES.full - SPEED_LINES.from);
+  return t <= 0 ? 0 : t >= 1 ? 1 : t;
+}
+
+/** Speed-line length in px for a scroll speed, before the per-line 0.7..1 jitter. */
+export function speedLineLength(speed: number): number {
+  const l = SPEED_LINES.minLen + (speed - SPEED_LINES.from) * SPEED_LINES.lenPerSpeed;
+  return l < SPEED_LINES.minLen
+    ? SPEED_LINES.minLen
+    : l > SPEED_LINES.maxLen
+      ? SPEED_LINES.maxLen
+      : l;
+}
+
 interface BuiltSetPiece {
-  canvas: HTMLCanvasElement;
+  /** One canvas, or one per light phase for pieces with blinking lights. */
+  frames: HTMLCanvasElement[];
   spec: SetPieceSpec;
+  parallax: number;
   /** Scroll distance at which the top edge enters the screen. */
   atScroll: number;
 }
@@ -45,6 +83,11 @@ export class Background {
   private nebulaStrip: HTMLCanvasElement | null = null;
   private streakStrip: HTMLCanvasElement | null = null;
   private pieces: BuiltSetPiece[] = [];
+  private speedCss = '';
+  // Speed lines: fixed x, strip y and length factor per line, built once per theme/seed.
+  private readonly lineX = new Uint8Array(SPEED_LINES.count);
+  private readonly lineY = new Uint16Array(SPEED_LINES.count);
+  private readonly lineLen = new Float32Array(SPEED_LINES.count);
 
   constructor(themeId: ThemeId = 'kessler', seed = '') {
     this.themeIdV = themeId;
@@ -87,22 +130,40 @@ export class Background {
     this.nebulaStrip = bitmapToCanvas(neb, nebulaPalette(t.nebula));
     const streaks = generateStreaks(layerSeed(s, id, 'streaks'), STRIP_W, STRIP_H, t.streaks);
     this.streakStrip = bitmapToCanvas(streaks, streakPalette(t.streaks));
-    this.pieces = t.setPieces.map((spec, i) => ({
-      canvas: bitmapToCanvas(
-        generateSetPiece(layerSeed(s, id, `piece${i}`), spec),
-        setPiecePalette(spec),
-      ),
-      spec,
-      atScroll: spec.at * t.scrollSpeed,
-    }));
+    this.pieces = t.setPieces.map((spec, i) => {
+      const bmp = generateSetPiece(layerSeed(s, id, `piece${i}`), spec);
+      const frames: HTMLCanvasElement[] = [];
+      const n = hasLights(spec) ? LIGHT_PHASES : 1;
+      for (let p = 0; p < n; p++) frames.push(bitmapToCanvas(bmp, setPiecePalette(spec, p)));
+      return {
+        frames,
+        spec,
+        parallax: spec.parallax ?? PARALLAX.setPiece,
+        atScroll: spec.at * t.scrollSpeed,
+      };
+    });
+    this.speedCss = toCss(t.streaks.head);
+    const rng = createRng(layerSeed(s, id, 'speedlines'));
+    for (let i = 0; i < SPEED_LINES.count; i++) {
+      this.lineX[i] = rng.int(0, STRIP_W - 1);
+      this.lineY[i] = rng.int(0, STRIP_H - 1);
+      this.lineLen[i] = rng.range(0.7, 1);
+    }
     this.built = true;
   }
 
   /**
    * Fills the whole logical buffer, HUD bands included, ignoring `offsetY` and shake.
    * `scrollY` should already be interpolated; `time` drives the twinkle cycle.
+   * `scrollSpeed` (px/s, usually `world.scrollSpeed`) only drives the speed lines.
    */
-  draw(ctx: CanvasRenderingContext2D, scrollY: number, time: number, height: number): void {
+  draw(
+    ctx: CanvasRenderingContext2D,
+    scrollY: number,
+    time: number,
+    height: number,
+    scrollSpeed = 0,
+  ): void {
     if (!this.built) this.prebuild();
     ctx.fillStyle = this.baseCss;
     ctx.fillRect(0, 0, STRIP_W, height);
@@ -112,17 +173,44 @@ export class Background {
     if (stars) drawTiled(ctx, stars, scrollY * PARALLAX.stars, height);
 
     // Set pieces sit behind the nebula so the haze passes in front of them.
-    const sp = scrollY * PARALLAX.setPiece;
+    const lightPhase = Math.floor(time / LIGHT_STEP) % LIGHT_PHASES;
     for (let i = 0; i < this.pieces.length; i++) {
       const p = this.pieces[i] as BuiltSetPiece;
-      const h = p.canvas.height;
-      const y = Math.floor(sp - p.atScroll * PARALLAX.setPiece) - h;
+      const canvas = p.frames.length > 1 ? p.frames[lightPhase < 0 ? 0 : lightPhase] : p.frames[0];
+      if (!canvas) continue;
+      const h = canvas.height;
+      const y = Math.floor((scrollY - p.atScroll) * p.parallax) - h;
       if (y >= height || y + h <= 0) continue;
-      ctx.drawImage(p.canvas, p.spec.x, y);
+      ctx.drawImage(canvas, p.spec.x, y);
     }
 
     if (this.nebulaStrip) drawTiled(ctx, this.nebulaStrip, scrollY * PARALLAX.nebula, height);
     if (this.streakStrip) drawTiled(ctx, this.streakStrip, scrollY * PARALLAX.streaks, height);
+    this.drawSpeedLines(ctx, scrollY, height, scrollSpeed);
+  }
+
+  private drawSpeedLines(
+    ctx: CanvasRenderingContext2D,
+    scrollY: number,
+    height: number,
+    speed: number,
+  ): void {
+    const a = speedLineAlpha(speed);
+    if (a <= 0) return;
+    const len = speedLineLength(speed);
+    const off = stripOffset(scrollY * PARALLAX.streaks);
+    const prevAlpha = ctx.globalAlpha;
+    ctx.globalAlpha = a * SPEED_LINES.alpha;
+    ctx.fillStyle = this.speedCss;
+    for (let i = 0; i < SPEED_LINES.count; i++) {
+      const l = Math.round(len * (this.lineLen[i] as number));
+      let y = (this.lineY[i] as number) + off;
+      if (y >= STRIP_H) y -= STRIP_H;
+      // The strip is taller than the buffer, so a line shows at most once.
+      if (y - l >= height) continue;
+      ctx.fillRect(this.lineX[i] as number, y - l, 1, l);
+    }
+    ctx.globalAlpha = prevAlpha;
   }
 }
 

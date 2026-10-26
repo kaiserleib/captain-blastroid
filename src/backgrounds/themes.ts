@@ -3,7 +3,7 @@ import type { NebulaSpec } from './nebula';
 import type { SetPieceSpec } from './setpieces';
 import type { StarSpec, StreakSpec } from './starfield';
 
-export const THEME_IDS = ['kessler', 'ion', 'horizon', 'pulsar', 'title'] as const;
+export const THEME_IDS = ['kessler', 'ion', 'horizon', 'pulsar', 'armada', 'title'] as const;
 export type ThemeId = (typeof THEME_IDS)[number];
 
 export interface BackgroundTheme {
@@ -126,37 +126,91 @@ export const THEMES: Readonly<Record<ThemeId, BackgroundTheme>> = {
         size: 48,
         colors: [snes(24, 16, 32), snes(40, 32, 56), snes(64, 48, 80), snes(88, 72, 88)],
       },
+      // A faint, distant accretion disk: the sector's black holes, writ large.
+      {
+        kind: 'disk',
+        at: 70,
+        x: 100,
+        size: 120,
+        colors: [snes(8, 0, 16), snes(48, 32, 24), snes(72, 56, 24), snes(88, 72, 32)],
+      },
     ],
   },
+  // Pink and gold stellar nursery: the nebula ramp warms from magenta to gold at its peaks.
   pulsar: {
     id: 'pulsar',
     scrollSpeed: 34,
-    base: snes(0, 0, 16),
+    base: snes(16, 0, 24),
     stars: {
-      colors: [snes(56, 64, 96), snes(104, 112, 144), snes(152, 160, 160)],
+      colors: [snes(80, 56, 80), snes(128, 104, 120), snes(160, 152, 144)],
       density: 40,
       twinkle: 0.16,
     },
     nebula: {
-      colors: [snes(8, 16, 48), snes(16, 32, 72), snes(48, 64, 88)],
-      coverage: 0.5,
+      colors: [snes(40, 8, 40), snes(72, 24, 64), snes(88, 64, 48)],
+      coverage: 0.65,
       patch: 128,
     },
-    streaks: { head: snes(144, 152, 160), tail: snes(64, 72, 104), density: 1.6 },
+    streaks: { head: snes(160, 136, 128), tail: snes(88, 56, 80), density: 1.6 },
     setPieces: [
       {
         kind: 'station',
         at: 40,
         x: 30,
         size: 80,
-        colors: [snes(16, 16, 40), snes(48, 56, 88), snes(88, 88, 72)],
+        colors: [snes(24, 16, 32), snes(64, 48, 72), snes(88, 80, 40)],
       },
       {
         kind: 'planet',
         at: 110,
         x: 140,
         size: 110,
-        colors: [snes(8, 8, 32), snes(24, 32, 64), snes(48, 56, 80), snes(80, 88, 88)],
+        colors: [snes(24, 8, 24), snes(48, 24, 48), snes(72, 40, 56), snes(88, 64, 48)],
+      },
+    ],
+  },
+  // Sector 5: cold steel blues around a gas giant, with the Syndicate fleet at anchor.
+  armada: {
+    id: 'armada',
+    scrollSpeed: 24,
+    base: snes(8, 8, 24),
+    stars: {
+      colors: [snes(48, 56, 72), snes(88, 104, 120), snes(136, 152, 160)],
+      density: 30,
+      twinkle: 0.08,
+    },
+    nebula: {
+      colors: [snes(16, 24, 40), snes(32, 48, 64), snes(56, 72, 88)],
+      coverage: 0.4,
+      patch: 160,
+    },
+    streaks: { head: snes(128, 144, 160), tail: snes(56, 72, 88), density: 1 },
+    setPieces: [
+      // Already filling the right side at launch; at 0.1× it stays in view the whole approach.
+      {
+        kind: 'giant',
+        at: -100,
+        x: 110,
+        size: 180,
+        colors: [snes(16, 16, 32), snes(32, 40, 56), snes(56, 64, 80), snes(88, 80, 72)],
+      },
+      {
+        kind: 'fleet',
+        at: 4,
+        x: 0,
+        size: 72,
+        parallax: 0.2,
+        colors: [snes(8, 8, 16), snes(40, 48, 64), snes(72, 40, 24)],
+        light: snes(160, 40, 32),
+      },
+      {
+        kind: 'fleet',
+        at: 75,
+        x: 0,
+        size: 64,
+        parallax: 0.2,
+        colors: [snes(8, 8, 16), snes(40, 48, 64), snes(72, 40, 24)],
+        light: snes(160, 40, 32),
       },
     ],
   },
@@ -196,7 +250,15 @@ export function getTheme(id: ThemeId): BackgroundTheme {
   return THEMES[id];
 }
 
-/** Until T15's level defs carry a `theme`, a level id that names a theme uses it; anything else gets kessler. */
+const LEVEL_THEMES: Readonly<Record<string, ThemeId>> = {
+  kessler: 'kessler',
+  ionShoals: 'ion',
+  eventHorizon: 'horizon',
+  pulsarNursery: 'pulsar',
+  armada: 'armada',
+};
+
+/** A campaign level id maps to its sector's theme, a theme id to itself, anything else to kessler. */
 export function themeForLevel(levelId: string): ThemeId {
-  return isThemeId(levelId) ? levelId : 'kessler';
+  return LEVEL_THEMES[levelId] ?? (isThemeId(levelId) ? levelId : 'kessler');
 }

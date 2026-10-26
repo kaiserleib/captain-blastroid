@@ -152,7 +152,7 @@ function frame(now: number): void {
   const alpha = acc / STEP;
 
   const t0 = performance.now();
-  bg.draw(ctx!, prevScrollY + (scrollY - prevScrollY) * alpha, time, view.height);
+  bg.draw(ctx!, prevScrollY + (scrollY - prevScrollY) * alpha, time, view.height, speed);
   const ms = performance.now() - t0;
   samples.push(ms);
   if (samples.length > 120) samples.shift();

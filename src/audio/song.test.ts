@@ -112,8 +112,18 @@ describe('scheduleWindow', () => {
 });
 
 describe('songs', () => {
-  it('ships title, level1, boss and clear', () => {
-    expect(SONG_IDS.sort()).toEqual(['boss', 'clear', 'level1', 'title']);
+  it('ships the menu, level, boss and fanfare songs', () => {
+    expect([...SONG_IDS].sort()).toEqual([
+      'armada',
+      'armada_boss',
+      'boss',
+      'clear',
+      'horizon',
+      'ion',
+      'level1',
+      'pulsar',
+      'title',
+    ]);
   });
 
   it.each(SONG_IDS)('%s compiles with consistent pattern lengths', (id) => {
