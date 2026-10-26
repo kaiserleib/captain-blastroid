@@ -86,8 +86,9 @@ describe('sectors', () => {
       expect(id).toBe(LEVEL_ORDER[n - 1]);
       const l = getLevel(id);
       expect(l.number).toBe(n);
-      expect(l.timeline.some((e) => 'boss' in e && e.boss === 'rock_hauler')).toBe(true);
-      expect(l.timeline.filter((e) => 'escapePod' in e)).toHaveLength(1);
+      // Real sectors (T27–T30) bring their own boss, and may eject the pod from a script.
+      expect(l.timeline.filter((e) => 'boss' in e)).toHaveLength(1);
+      expect(l.timeline.filter((e) => 'escapePod' in e).length).toBeLessThanOrEqual(1);
       expect(l.guaranteeWeapon).toBeDefined();
       expect(rockThemeForLevel(id)).toBe(l.rockTheme);
     }
