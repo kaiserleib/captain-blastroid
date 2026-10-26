@@ -14,7 +14,7 @@ import { isPinned } from '../../sim/scroll';
 import { spawnAsteroid } from '../../sim/spawn';
 import type { Anomaly, Pickup } from '../../sim/types';
 import { createWorld, type World } from '../../sim/world';
-import { activeBoss, bossSystem } from '../boss';
+import { activeBoss, bossRegistration, bossSystem } from '../boss';
 import { enemyHpMul, shootDir } from '../enemies';
 import '../levels';
 import { attachPickups } from '../pickups';
@@ -86,7 +86,9 @@ describe('sectors', () => {
       expect(id).toBe(LEVEL_ORDER[n - 1]);
       const l = getLevel(id);
       expect(l.number).toBe(n);
-      expect(l.timeline.some((e) => 'boss' in e && e.boss === 'rock_hauler')).toBe(true);
+      // Each sector ends in a registered boss (stubs: the Rock Hauler).
+      const boss = l.timeline.find((e) => 'boss' in e);
+      expect(boss !== undefined && 'boss' in boss && bossRegistration(boss.boss)).toBeTruthy();
       expect(l.timeline.filter((e) => 'escapePod' in e)).toHaveLength(1);
       expect(l.guaranteeWeapon).toBeDefined();
       expect(rockThemeForLevel(id)).toBe(l.rockTheme);
