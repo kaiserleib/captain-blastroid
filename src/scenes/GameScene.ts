@@ -1,10 +1,12 @@
-import { Background, createBackgroundPair, themeForLevel } from '../backgrounds';
+import { Background, createBackgroundPair, isThemeId, themeForLevel } from '../backgrounds';
 import { attachAudio, playSong } from '../audio';
 import { PLAYFIELD_H } from '../engine/display';
 import { randomSeedString } from '../engine/rng';
 import type { Scene, ScenePointer } from '../engine/scene';
 import { flags } from '../debug/flags';
 import { Fx } from '../gfx/fx';
+import { getLevel, levelIdForNumber } from '../content/levels';
+import { directorSystem, startDirector } from '../game/director';
 import { createHudDemoSystem, Hud, hudDemoEnabled } from '../game/hud';
 import {
   initPlayer,
@@ -62,7 +64,7 @@ export class GameScene implements Scene {
     pickupsSystem, // pickups (T12)
     collisionSystem, // collision (T03)
     cleanupSystem, // cleanup (T03)
-    // director (T15)
+    directorSystem, // director (T15)
     this.fx.system, // fx (T13)
   ];
 
@@ -99,20 +101,28 @@ export class GameScene implements Scene {
     const save = getSave();
     const shipId = d.shipId ?? save.selectedShip;
     const pilotId = d.pilotId ?? save.selectedPilot;
-    this.world = createWorld(d.seed ?? flags.seed ?? randomSeedString(), { ...d, shipId, pilotId });
+    const levelId = d.levelId ?? levelIdForNumber(flags.level) ?? undefined;
+    this.world = createWorld(d.seed ?? flags.seed ?? randomSeedString(), {
+      ...d,
+      shipId,
+      pilotId,
+      levelId,
+    });
     const w = this.world;
     initPlayer(w, computePlayerStats(save, shipId, pilotId));
     warmPlayerSprites(shipId);
     installPlayerSandbox();
-    this.background.setTheme(themeForLevel(w.run.levelId), w.run.seed);
+    const level = getLevel(w.run.levelId);
+    const theme = isThemeId(level.theme) ? level.theme : themeForLevel(w.run.levelId);
+    this.background.setTheme(theme, w.run.seed);
     this.background.prebuild();
-    // Until T15's director sets the level's scroll speed.
-    if (w.scrollSpeed === 0) w.scrollSpeed = this.background.theme.scrollSpeed;
+    w.scrollSpeed = level.scrollSpeed;
+    startDirector(w, level, { startT: flags.t ?? 0, debugLoadout: true });
     // Detached by exit()'s events.clear().
     attachAudio(this.world.events);
     this.fx.attach(this.world);
     this.hud.attach(w);
-    playSong('level1');
+    playSong(level.music);
   }
 
   exit(): void {

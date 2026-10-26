@@ -19,3 +19,4 @@ export function getDef<T>(table: Readonly<Record<string, T>>, id: string, tableN
   if (def === undefined) throw new Error(`Unknown ${tableName} id "${id}"`);
   return def;
 }
+export * from './levels';
