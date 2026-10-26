@@ -44,6 +44,11 @@ export const LevPhase = {
 export type LevPhaseId = (typeof LevPhase)[keyof typeof LevPhase];
 
 const PHASE_NAMES = ['hull', 'bridge', 'launch', 'core', 'dying', 'done'] as const;
+const BAR_PARTS: ReadonlySet<string> = new Set(
+  LEVIATHAN_PARTS.filter(
+    (s) => s.kind === 'gen' || s.kind === 'gun' || s.kind === 'bridge' || s.kind === 'core',
+  ).map((s) => s.defId),
+);
 
 const L = LEVIATHAN;
 const SPARKS = 16;
@@ -172,6 +177,11 @@ export class Leviathan implements BossController, HullView {
 
   phaseName(): string {
     return PHASE_NAMES[this.phase];
+  }
+
+  /** The bar is the bridge fight (generators, guns, bridge, core): hull guns may scroll off unkilled. */
+  inHpBar(part: Enemy): boolean {
+    return BAR_PARTS.has(part.defId);
   }
 
   /** Screen y of slot i at the current anchor. */

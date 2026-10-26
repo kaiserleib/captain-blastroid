@@ -8,6 +8,7 @@ import type { Enemy, Pickup } from '../../../sim/types';
 import { createWorld, type World } from '../../../sim/world';
 import { activeBoss, attachBoss, spawnBoss, updateBoss, type PartSlot } from '../../boss';
 import { setEnemyShotSpeedMul, updateEnemies } from '../../enemies';
+import { HudState } from '../../hud/state';
 import { attachPickups } from '../../pickups';
 import '../index';
 import { ESCORT_DIVE, ESCORT_STRAFE, lineBurst, MINE_ARMED, MINE_DRIFT } from './behaviors';
@@ -252,6 +253,24 @@ function slotOf(b: Leviathan, kind: string, n = 0): PartSlot {
 const LOCK_T = (LEVIATHAN.lockY + 690 - LEVIATHAN.startY) / LEVIATHAN.hullSpeed;
 
 describe('Dreadnought Leviathan', () => {
+  it('HUD boss bar: hull guns scrolling off unkilled never shrink it (T31)', () => {
+    const w = world();
+    leviathan(w);
+    const hud = new HudState();
+    hud.onBossSpawned(LEVIATHAN.id);
+    const bar = LEVIATHAN_PARTS.filter((s) => ['gen', 'gun', 'bridge', 'core'].includes(s.kind));
+    const full = bar.reduce((n, s) => n + s.hp, 0);
+    let low = Infinity;
+    run(w, LOCK_T + 2, () => {
+      hud.update(w);
+      low = Math.min(low, hud.bossHp);
+    });
+    // Bow, battery and bays have all passed the bottom edge by the lock.
+    expect(count(w, 'ar_lev_flak') + count(w, 'ar_lev_deck')).toBe(0);
+    expect(hud.bossMaxHp).toBe(full);
+    expect(low).toBe(full);
+  });
+
   it('spawns the whole hull above the screen and scrolls it down at 20 px/s', () => {
     const w = world();
     const b = leviathan(w);

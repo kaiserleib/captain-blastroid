@@ -1,5 +1,5 @@
 import type { Enemy } from '../../sim/types';
-import { bossDisplayName as registeredBossName } from '../boss';
+import { activeBoss, bossDisplayName as registeredBossName } from '../boss';
 import type { World } from '../../sim/world';
 
 export const MAX_PIPS = 12;
@@ -125,9 +125,11 @@ export class HudState {
     let max = 0;
     let parts = 0;
     const items = w.enemies.items;
+    const boss = activeBoss(w);
     for (let i = 0; i < w.enemies.count; i++) {
       const e = items[i] as Enemy;
       if (!e.active || !e.isBoss) continue;
+      if (boss?.inHpBar !== undefined && !boss.inHpBar(e)) continue;
       parts++;
       hp += Math.max(0, e.hp);
       max += e.maxHp;

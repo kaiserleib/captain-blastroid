@@ -1,10 +1,20 @@
 // Bots for the headless harness. Each writes `world.input` once per tick, the
 // same MoveIntent path the real game's input system fills.
 import { ENEMY_FAIRNESS } from '../../src/content/enemies';
+import { BLACK_HOLE, PULSAR, PULSAR_DOUBLE_DELAY } from '../../src/content/obstacles';
 import { createRng, type Rng } from '../../src/engine/rng';
 import { activeBoss } from '../../src/game/boss';
+import { muzzleY } from '../../src/game/enemies';
+import { Lance } from '../../src/game/levels/eventHorizon/behaviors';
+import { Dive, divePoint, Perihelion } from '../../src/game/levels/eventHorizon/perihelion';
+import { Leviathan } from '../../src/game/levels/armada';
+import { mem, RayPhase } from '../../src/game/levels/pulsarNursery/behaviors';
+
+import { inPulsarGap } from '../../src/game/obstacles';
+import { ext, isFieldOnly } from '../../src/game/obstacles/anomalies/state';
+import { INVERSE_FALLOFF_MIN } from '../../src/sim/forces';
 import { isTargetable } from '../../src/sim/targeting';
-import type { Asteroid, Bullet, Enemy, Pickup } from '../../src/sim/types';
+import type { Anomaly, Asteroid, Bullet, Enemy, Pickup } from '../../src/sim/types';
 import type { World } from '../../src/sim/world';
 
 export interface Bot {
@@ -90,21 +100,65 @@ export const SKILLS = {
 
 export type SkillId = keyof typeof SKILLS;
 
+export interface DodgerOptions {
+  /**
+   * Reads the campaign hazards (T31): black-hole cores and curved shots,
+   * pulsar rings, Lancer and dive telegraphs, Warden Ray fans, homing
+   * missiles. Default true. `false` is T18's original Level 1 dodger, kept
+   * for blind-vs-aware comparisons.
+   */
+  hazards?: boolean;
+}
+
 /** Steers away from projected threats, drifts under targets, grabs pickups when the path is clear. */
-export function dodgerBot(skill: BotSkill = SKILLS.typical): Bot {
-  return new Dodger(skill, false);
+export function dodgerBot(skill: BotSkill = SKILLS.typical, o: DodgerOptions = {}): Bot {
+  return new Dodger(skill, false, o.hazards ?? true);
 }
 
 /** `dodgerBot` that can't die, to reach and finish the boss deterministically. */
-export function godBot(skill: BotSkill = SKILLS.expert): Bot {
-  return new Dodger(skill, true);
+export function godBot(skill: BotSkill = SKILLS.expert, o: DodgerOptions = {}): Bot {
+  return new Dodger(skill, true, o.hazards ?? true);
 }
 
 const SHOT_TTL = ENEMY_FAIRNESS.shotTtl;
 const DIRS = 16;
 const RINGS = [0, 8, 18, 32, 50];
+/** With pulsars up, gaps can be far off: sample wider (T29's ring-aware radii). */
+const RINGS_WIDE = [0, 8, 18, 32, 50, 72, 100, 130];
 const LOOK_STEPS = 4;
 const PREF = { x: 0, y: 0 };
+
+// Hazard model (T31). A human reads these off the screen, so the costs use
+// what the game shows: telegraphs, spokes, the hole's pull.
+/** Ring foresight beyond the shot look-ahead, s: the telegraph shows the next gaps 0.6–0.8 s early. */
+const RING_READ = 1.2;
+const RING_STEPS = 12;
+const RING_COST = 140;
+/** Extra weight on rings that arrive soon: with every way blocked, buy time. */
+const RING_SOON = 2;
+/** Keep-out from a black-hole core, px beyond its radius (the player drifts in). */
+const HOLE_KEEP = 34;
+/** Pickups this close to a core are being swallowed: not worth the sling zone. */
+const HOLE_PICKUP = 90;
+/** Hold-off from Lancer lines and dive paths, px beyond the attacker's radius. */
+const LANCE_PAD = 8;
+/** Perihelion's half-span (pods at ±30, r 9). */
+const DIVE_HALF = 40;
+const DIVE_SAMPLES = 24;
+/** Warden Ray fan: degrees of padding on each edge, and the cost inside it. */
+const RAY_PAD = 6;
+const RAY_COST = 70;
+/** Where the bot hangs during boss fights; lower under the dreadnought's deck guns. */
+const BOSS_Y = 270;
+const HULL_Y = 360;
+const MAX_SHOTS = 1024;
+const MAX_ROCKS = 256;
+
+interface Front {
+  /** Seconds from now until the ring leaves the core (negative: already out). */
+  start: number;
+  rot: number;
+}
 
 /**
  * Samples points on rings around the ship and picks the cheapest: projected
@@ -119,12 +173,24 @@ class Dodger implements Bot {
   private tx = 120;
   private ty = 330;
   private aimOff = 0;
+  // Per-plan scratch: gravity on each shot and rock (px/s²), by pool index.
+  private readonly sAx = new Float32Array(MAX_SHOTS);
+  private readonly sAy = new Float32Array(MAX_SHOTS);
+  private readonly rAx = new Float32Array(MAX_ROCKS);
+  private readonly rAy = new Float32Array(MAX_ROCKS);
+  private holes = 0;
+  private pulsars = 0;
+  private readonly fronts: Front[] = Array.from({ length: 4 }, () => ({ start: 0, rot: 0 }));
+  private readonly dive = new Float32Array((DIVE_SAMPLES + 1) * 2);
+  private diveOn = false;
+  private readonly pt = { x: 0, y: 0 };
 
   constructor(
     readonly skill: BotSkill,
     readonly god: boolean,
+    readonly hazards: boolean,
   ) {
-    this.name = `${god ? 'god' : 'dodger'}-${skill.name}`;
+    this.name = `${god ? 'god' : 'dodger'}-${skill.name}${hazards ? '' : '-blind'}`;
   }
 
   start(w: World): void {
@@ -156,12 +222,14 @@ class Dodger implements Bot {
     if (!p.alive) return;
     this.epoch = Math.floor(this.tick / 30);
     if (this.rng.chance(0.15)) this.aimOff = this.rng.range(-1, 1) * this.skill.aimNoise;
+    if (this.hazards) this.scan(w);
     const pref = this.preferred(w);
     let best = Infinity;
     let bx = p.x;
     let by = p.y;
-    for (let ri = 0; ri < RINGS.length; ri++) {
-      const rad = RINGS[ri] as number;
+    const radii = this.pulsars > 0 ? RINGS_WIDE : RINGS;
+    for (let ri = 0; ri < radii.length; ri++) {
+      const rad = radii[ri] as number;
       const nd = rad === 0 ? 1 : DIRS;
       for (let d = 0; d < nd; d++) {
         const a = (d / DIRS) * Math.PI * 2;
@@ -181,10 +249,37 @@ class Dodger implements Bot {
     this.ty = by;
   }
 
+  /** Once per plan: gravity on shots and rocks, what's on screen, the dive path. */
+  private scan(w: World): void {
+    this.holes = 0;
+    this.pulsars = 0;
+    for (let j = 0; j < w.anomalies.count; j++) {
+      const a = w.anomalies.items[j] as Anomaly;
+      if (!a.active) continue;
+      if (a.kind === 'pulsar') this.pulsars++;
+      else this.holes++;
+    }
+    if (this.holes > 0) {
+      gravityInto(w, w.enemyShots.items, w.enemyShots.count, 1, this.sAx, this.sAy);
+      gravityInto(w, w.asteroids.items, w.asteroids.count, BLACK_HOLE.rockMul, this.rAx, this.rAy);
+    }
+    this.diveOn = false;
+    const boss = activeBoss(w);
+    if (boss instanceof Perihelion && boss.dive !== Dive.None) {
+      this.diveOn = true;
+      for (let i = 0; i <= DIVE_SAMPLES; i++) {
+        divePoint(boss.path, i / DIVE_SAMPLES, this.pt);
+        this.dive[i * 2] = this.pt.x;
+        this.dive[i * 2 + 1] = this.pt.y;
+      }
+    }
+  }
+
   private preferred(w: World): { x: number; y: number } {
     const p = w.player;
     const out = PREF;
-    out.y = activeBoss(w) !== null ? 270 : 330;
+    const boss = activeBoss(w);
+    out.y = boss === null ? 330 : this.hazards && boss instanceof Leviathan ? HULL_Y : BOSS_Y;
     out.x = 120;
     // Pickups first, when greedy and the item is reachable (below y 110).
     if (this.rng.chance(this.skill.greed)) {
@@ -192,6 +287,13 @@ class Dodger implements Bot {
       for (let i = 0; i < w.pickups.count; i++) {
         const k = w.pickups.items[i] as Pickup;
         if (!k.active || k.y < 110 || k.y > 395) continue;
+        // A pod is worth the sling zone (the core costs still keep the ship off the hole).
+        if (
+          this.holes > 0 &&
+          k.kind !== 'escapePod' &&
+          nearCore(w, k.x, k.y, 'blackhole', HOLE_PICKUP)
+        )
+          continue;
         const weight = k.kind === 'salvage' ? 2.2 : 1;
         const d = Math.hypot(k.x - p.x, k.y - p.y) * weight;
         if (d < bestD && d < 170) {
@@ -224,6 +326,15 @@ class Dodger implements Bot {
         }
       }
     }
+    // Shoot past a hole, not into it: its core swallows shots fired straight through.
+    if (this.holes > 0 && boss === null) {
+      for (let j = 0; j < w.anomalies.count; j++) {
+        const a = w.anomalies.items[j] as Anomaly;
+        if (!a.active || a.kind !== 'blackhole' || a.r <= 0 || a.y > p.y - 20) continue;
+        const clear = a.r + 22;
+        if (Math.abs(out.x - a.x) < clear) out.x = a.x + (out.x < a.x ? -clear : clear);
+      }
+    }
     out.x = clamp(out.x, 12, 228);
     return out;
   }
@@ -243,6 +354,16 @@ class Dodger implements Bot {
       cost += wt * this.overlapShots(w.enemyShots.items, w.enemyShots.count, sx, sy, t);
       cost += wt * this.overlapRocks(w, sx, sy, t);
       cost += wt * this.overlapEnemies(w, sx, sy, t);
+      if (this.hazards) cost += wt * this.overlapHazards(w, sx, sy, t);
+    }
+    if (this.pulsars > 0) {
+      const ringLook = sk.lookahead + RING_READ;
+      for (let s = 1; s <= RING_STEPS; s++) {
+        const t0 = ((s - 1) / RING_STEPS) * ringLook;
+        const t1 = (s / RING_STEPS) * ringLook;
+        const k = reach <= 0 ? 1 : Math.min(1, t1 / reach);
+        cost += this.overlapRings(w, p.x + (cx - p.x) * k, p.y + (cy - p.y) * k, t0, t1);
+      }
     }
     return cost;
   }
@@ -250,10 +371,17 @@ class Dodger implements Bot {
   private overlapShots(items: readonly Bullet[], n: number, sx: number, sy: number, t: number) {
     let c = 0;
     const m = this.skill.margin + 4;
+    const bend = this.holes > 0 ? 0.5 * t * t : 0;
     for (let i = 0; i < n; i++) {
       const b = items[i] as Bullet;
       if (!b.active || SHOT_TTL - b.ttl < this.skill.shotReact) continue;
-      const d = Math.hypot(b.x + b.vx * t - sx, b.y + b.vy * t - sy) - b.r - m;
+      let bx = b.x + b.vx * t;
+      let by = b.y + b.vy * t;
+      if (bend > 0) {
+        bx += (this.sAx[i] as number) * bend;
+        by += (this.sAy[i] as number) * bend;
+      }
+      const d = Math.hypot(bx - sx, by - sy) - b.r - m;
       if (d < 0) c += 100 - d * 10;
     }
     return c;
@@ -262,10 +390,17 @@ class Dodger implements Bot {
   private overlapRocks(w: World, sx: number, sy: number, t: number): number {
     let c = 0;
     const m = this.skill.margin + 4;
+    const bend = this.holes > 0 ? 0.5 * t * t : 0;
     for (let i = 0; i < w.asteroids.count; i++) {
       const a = w.asteroids.items[i] as Asteroid;
       if (!a.active || !this.sees(a.id)) continue;
-      const d = Math.hypot(a.x + a.vx * t - sx, a.y + a.vy * t - sy) - a.r - m;
+      let ax = a.x + a.vx * t;
+      let ay = a.y + a.vy * t;
+      if (bend > 0) {
+        ax += (this.rAx[i] as number) * bend;
+        ay += (this.rAy[i] as number) * bend;
+      }
+      const d = Math.hypot(ax - sx, ay - sy) - a.r - m;
       if (d < 0) c += 60 - d * 6;
     }
     return c;
@@ -282,6 +417,157 @@ class Dodger implements Bot {
     }
     return c;
   }
+
+  /** Hole cores, Lancer lines, Perihelion's dive, Warden Ray fans, homing missiles. */
+  private overlapHazards(w: World, sx: number, sy: number, t: number): number {
+    let c = 0;
+    const pr = w.player.r + this.skill.margin;
+    if (this.holes > 0) {
+      for (let j = 0; j < w.anomalies.count; j++) {
+        const a = w.anomalies.items[j] as Anomaly;
+        if (!a.active || a.kind !== 'blackhole' || a.r <= 0 || isFieldOnly(a)) continue;
+        const d = Math.hypot(a.x + a.vx * t - sx, a.y + a.vy * t - sy) - a.r - pr;
+        if (d < 0) c += 200 - d * 10;
+        else if (d < HOLE_KEEP) c += 60 * (1 - d / HOLE_KEEP);
+      }
+    }
+    for (let i = 0; i < w.enemies.count; i++) {
+      const e = w.enemies.items[i] as Enemy;
+      if (!e.active) continue;
+      if (e.defId === 'hz_lancer' && (e.state === Lance.Telegraph || e.state === Lance.Dash)) {
+        // The shown line, out to the edge: it doesn't steer once locked.
+        const along = (sx - e.x) * e.ax + (sy - e.y) * e.ay;
+        if (along > -e.r) {
+          const off = Math.abs((sx - e.x) * e.ay - (sy - e.y) * e.ax);
+          const pad = e.r + pr + LANCE_PAD;
+          if (off < pad) c += 120 * (1 - off / pad) + 40;
+        }
+      } else if (e.defId === 'pn_ray') {
+        // The telegraph draws the fan's edges; keep out of it until the sweep ends.
+        const m = mem(e);
+        if (m.a !== RayPhase.Off) {
+          const deg = (Math.atan2(sy - muzzleY(e), sx - e.x) * 180) / Math.PI;
+          const lo = Math.min(m.far, m.near) - RAY_PAD;
+          const hi = Math.max(m.far, m.near) + RAY_PAD;
+          if (deg > lo && deg < hi) c += RAY_COST;
+        }
+      } else if (e.defId === 'ar_missile') {
+        // Homing: it turns toward wherever the ship goes, so keep its reach as a bubble.
+        const d = Math.hypot(e.x - sx, e.y - sy) - e.r - pr - Math.hypot(e.vx, e.vy) * t - 6;
+        if (d < 0) c += 80 - d * 6;
+      }
+    }
+    if (this.diveOn) {
+      const pad = DIVE_HALF + pr;
+      let near = Infinity;
+      for (let i = 0; i <= DIVE_SAMPLES; i++) {
+        const d = Math.hypot(
+          (this.dive[i * 2] as number) - sx,
+          (this.dive[i * 2 + 1] as number) - sy,
+        );
+        if (d < near) near = d;
+      }
+      if (near < pad) c += 150 * (1 - near / pad) + 30;
+    }
+    return c;
+  }
+
+  /** A ring (or its `double` echo) sweeping through (sx, sy) during [t0, t1] outside its gaps. */
+  private overlapRings(w: World, sx: number, sy: number, t0: number, t1: number): number {
+    let c = 0;
+    const band = PULSAR.ringThickness / 2 + w.player.r + this.skill.margin + 2;
+    // Hug the middle of a gap, not its edge: plans are only refreshed every few ticks.
+    const br = w.player.r + this.skill.margin + 6;
+    for (let i = 0; i < w.anomalies.count; i++) {
+      const a = w.anomalies.items[i] as Anomaly;
+      if (!a.active || a.kind !== 'pulsar') continue;
+      const core = Math.hypot(sx - a.x - a.vx * t1, sy - a.y - a.vy * t1) - a.r - band;
+      if (core < 0) c += 80 - core * 8;
+      const dx = sx - a.x;
+      const dy = sy - a.y;
+      const d = Math.hypot(dx, dy);
+      if (d > a.radius + band) continue;
+      const n = ringFronts(a, this.fronts);
+      const e = ext(a);
+      for (let f = 0; f < n; f++) {
+        const fr = this.fronts[f] as Front;
+        if (t1 < fr.start) continue;
+        const r0 = a.r + Math.max(0, t0 - fr.start) * a.strength;
+        const r1 = a.r + (t1 - fr.start) * a.strength;
+        if (r0 > a.radius || d + band < r0 || d - band > r1) continue;
+        if (!inPulsarGap(dx, dy, br, e.gaps, e.gapW, fr.rot))
+          c += RING_COST * (1 + RING_SOON / (1 + 3 * t0));
+      }
+    }
+    return c;
+  }
+}
+
+/**
+ * The rings a player can read right now: the live ring and its echo, plus,
+ * while the telegraph glows, the next pulse's (its spokes are showing).
+ */
+function ringFronts(a: Anomaly, out: Front[]): number {
+  const e = ext(a);
+  let n = 0;
+  const half = e.gaps > 0 ? Math.PI / e.gaps : 0;
+  const push = (start: number, rot: number) => {
+    const f = out[n++] as Front;
+    f.start = start;
+    f.rot = rot;
+  };
+  if (e.pulse >= 1) {
+    push(-e.clock, e.ringRot);
+    if (e.double) push(PULSAR_DOUBLE_DELAY - e.clock, e.ringRot + half);
+  }
+  const glowFrom = e.period - e.telegraph;
+  if (e.collapseDur <= 0 && e.telegraph > 0 && e.clock >= glowFrom) {
+    const next = e.period - e.clock;
+    push(next, e.nextRot);
+    if (e.double) push(next + PULSAR_DOUBLE_DELAY, e.nextRot + half);
+  }
+  return n;
+}
+
+/** Gravity each black hole puts on each body now (px/s²), as `updateBlackHole` applies it. */
+function gravityInto(
+  w: World,
+  items: readonly { active: boolean; x: number; y: number }[],
+  n: number,
+  mul: number,
+  ox: Float32Array,
+  oy: Float32Array,
+): void {
+  for (let i = 0; i < n && i < ox.length; i++) {
+    const b = items[i] as { active: boolean; x: number; y: number };
+    let ax = 0;
+    let ay = 0;
+    if (b.active) {
+      for (let j = 0; j < w.anomalies.count; j++) {
+        const a = w.anomalies.items[j] as Anomaly;
+        if (!a.active || a.kind !== 'blackhole') continue;
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        const d = Math.hypot(dx, dy);
+        if (d >= a.radius || d === 0) continue;
+        const f = (a.strength * mul * INVERSE_FALLOFF_MIN) / Math.max(INVERSE_FALLOFF_MIN, d) / d;
+        ax += dx * f;
+        ay += dy * f;
+      }
+    }
+    ox[i] = ax;
+    oy[i] = ay;
+  }
+}
+
+/** Within `pad` px of the edge of a black-hole or pulsar core. */
+function nearCore(w: World, x: number, y: number, kind: Anomaly['kind'], pad: number): boolean {
+  for (let j = 0; j < w.anomalies.count; j++) {
+    const a = w.anomalies.items[j] as Anomaly;
+    if (!a.active || a.kind !== kind || a.r <= 0) continue;
+    if (Math.hypot(x - a.x, y - a.y) < a.r + pad) return true;
+  }
+  return false;
 }
 
 function clamp(v: number, lo: number, hi: number): number {

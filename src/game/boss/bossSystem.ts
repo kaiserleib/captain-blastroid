@@ -32,6 +32,12 @@ export interface BossController {
   targetable(part: Enemy, slot: PartSlot): boolean;
   /** Short phase label for logs and the sim harness (`fight`, `exposed`, `dying`, ...). */
   phaseName(): string;
+  /**
+   * Whether the HUD boss bar counts this part. Default: every part. A boss
+   * whose optional parts can leave without dying (the Leviathan's hull guns
+   * scroll away) narrows it, so the bar only moves when the player deals damage.
+   */
+  inHpBar?(part: Enemy): boolean;
 }
 
 export interface BossRegistration<C extends BossController = BossController> {

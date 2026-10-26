@@ -3,7 +3,7 @@ import {
   type MagnetarDef,
   type MagnetarRingPattern,
 } from '../../../content/levels/pulsarNursery';
-import { PULSAR_FIRST_GAP_DEG, PULSAR_VARIANTS } from '../../../content/obstacles';
+import { PULSAR_FIRST_GAP_DEG } from '../../../content/obstacles';
 import { addKillScore, HIT_FLASH } from '../../../sim/damage';
 import { pinAnomaly, setScrollSpeed } from '../../../sim/scroll';
 import type { Anomaly, Enemy } from '../../../sim/types';
@@ -15,7 +15,6 @@ import {
   collapseAnomaly,
   pulsarGapAngles,
   pulsarGlow,
-  pulsarRingRadius,
   pulseIndex,
   setPulsarPattern,
   spawnPulsar,
@@ -30,10 +29,8 @@ import {
 //   phase 2  (3 pylons down, the shield falls) ring every 2 s, 3 × 50° gaps
 //            turning 60°, plus a 4-arm spiral between rings
 //   meltdown (core < 30%) every ring gets an echo 0.5 s later with its gaps
-//            turned half a gap spacing, so the player has to move between them
-// The echo is a second pulsar ("twin") rather than the `double` flag: on main
-// the shared echo hit test still turns by half a gap *width* while the echo is
-// drawn half a gap *spacing* round (see T29 Notes, Shared changes needed).
+//            turned half a gap spacing (the pulsar's `double` ring), so the
+//            player has to move between them
 
 export const MagPhase = {
   Entry: 0,
@@ -50,10 +47,14 @@ const PHASE_NAMES = ['entry', 'phase1', 'phase2', 'meltdown', 'dying', 'done'] a
 const DEG = Math.PI / 180;
 const SPARKS = 12;
 const PING_GAP = 0.12;
-/** The twin spawns this long after a main pulse: its pre-fired ring is still hidden under the hull. */
 /** Spiral shots leave from the containment collar's rim, px. */
 const SPIRAL_R = 18;
-const TWIN_WINDOW: readonly [number, number] = [0.55, 0.75];
+/**
+ * A `double` pattern takes hold only this soon after a main pulse, so the
+ * first echo leaves the core 0.5 s after its ring like every later one,
+ * instead of popping up mid-screen.
+ */
+const ECHO_LATEST = 0.4;
 
 const DEFEAT_P = { defId: '', x: 0, y: 0 };
 const SFX_P = { id: '', x: 0 as number | undefined };
@@ -78,12 +79,11 @@ export class Magnetar implements BossController {
   /** Seconds since each pylon last fired (muzzle flash). */
   readonly pylonFired: number[];
   pylonsLost = 0;
-  /** The core's pulsar and, in meltdown, its echo twin (ids guard recycled pool slots). */
+  /** The core's pulsar (the id guards a recycled pool slot). */
   pulsar: Anomaly | null = null;
   private pulsarId = -1;
-  twin: Anomaly | null = null;
-  private twinId = -1;
-  private wantTwin = false;
+  /** Main runs a `double` pattern (meltdown's echo). */
+  private echoOn = false;
   /** Pattern waiting for a safe moment (a shorter period must not fire before its telegraph). */
   private pending: MagnetarRingPattern | null = null;
   /** Pulses fired since the current pattern took hold. */
@@ -232,7 +232,6 @@ export class Magnetar implements BossController {
         this.dropShield(dt);
         this.firePylons(w, dt);
         this.fireSpiral(w, dt);
-        this.maybeSpawnTwin(w);
         break;
       case MagPhase.Dying:
         if (this.phaseT >= this.def.deathTime) {
@@ -316,12 +315,9 @@ export class Magnetar implements BossController {
     if (c === null || !this.rig.alive(this.core)) return;
     if (c.hp >= this.core.spec.hp * this.def.meltdownAt) return;
     this.setPhase(MagPhase.Meltdown);
-    this.wantTwin = true;
-    // Same period and turn as phase 2 (no wait needed), wider gaps.
-    if (this.pending === null) {
-      const a = this.main();
-      if (a !== null) this.program(a, this.def.ring.p3);
-    } else this.pending = this.def.ring.p3;
+    // Same period and turn as phase 2, wider gaps and the echo; `applyPending`
+    // starts it just after a pulse.
+    this.pending = this.def.ring.p3;
     emitToast(w, 'MELTDOWN');
     SHAKE_P.mag = 4;
     SHAKE_P.dur = 0.5;
@@ -376,12 +372,14 @@ export class Magnetar implements BossController {
 
   private program(a: Anomaly, p: MagnetarRingPattern): void {
     if (a === this.pulsar) this.spinNow = p.gapSpin;
+    this.echoOn = p.double === true;
     pinAnomaly(a);
     setPulsarPattern(a, {
       period: p.period,
       gaps: p.gaps,
       gapDeg: p.gapDeg,
       gapSpin: p.gapSpin,
+      double: this.echoOn,
       telegraph: this.def.ring.telegraph,
       ringSpeed: p.ringSpeed,
     });
@@ -394,9 +392,9 @@ export class Magnetar implements BossController {
     return a !== null && a.active && a.id === this.pulsarId ? a : null;
   }
 
+  /** The pulsar firing meltdown's echo rings (main itself, once `double` is on), else null. */
   echo(): Anomaly | null {
-    const a = this.twin;
-    return a !== null && a.active && a.id === this.twinId ? a : null;
+    return this.echoOn ? this.main() : null;
   }
 
   private trackPulsars(dt: number): void {
@@ -420,6 +418,7 @@ export class Magnetar implements BossController {
     const p = this.pending;
     if (a === null || p === null) return;
     if (this.sincePulse > p.period - this.def.ring.telegraph - 0.2) return;
+    if (p.double === true && !this.echoOn && this.sincePulse > ECHO_LATEST) return;
     if (p.offsetDeg !== undefined && !this.lands(a, p)) return;
     this.program(a, p);
     this.pending = null;
@@ -451,43 +450,6 @@ export class Magnetar implements BossController {
       a.x = a.prevX = x;
       a.y = a.prevY = y;
     }
-    const b = this.echo();
-    if (b !== null) {
-      b.x = b.prevX = x;
-      b.y = b.prevY = y;
-    }
-  }
-
-  /**
-   * Meltdown's echo: a second pulsar 0.5 s behind main with its gaps half a
-   * spacing round. Pulsars don't expose their rotation, so the twin gets it
-   * by pre-firing m pulses at the variant's spin (each turns its next ring
-   * by that much) before taking main's pattern; its clock trails by echoDelay.
-   */
-  private maybeSpawnTwin(w: World): void {
-    if (!this.wantTwin || this.echo() !== null || this.pending !== null) return;
-    const a = this.main();
-    if (a === null || this.pulsesOnPattern < 1) return;
-    if (
-      this.sincePulse < (TWIN_WINDOW[0] as number) ||
-      this.sincePulse > (TWIN_WINDOW[1] as number)
-    )
-      return;
-    const R = pulsarRingRadius(a);
-    if (R < 0 || pulsarGapAngles(a, GAPS) < 1) return;
-    const p = this.def.ring.p3;
-    const clock = (R - a.r) / a.strength;
-    const c = clock - this.def.ring.echoDelay;
-    if (c < 0) return;
-    const m = twinPrefire((GAPS[0] as number) / DEG, p);
-    const v = PULSAR_VARIANTS.magnetar;
-    PLACE.phase = m * v.period + c;
-    const b = spawnPulsar(w, this.rig.x, this.rig.y, PLACE);
-    if (b === null) return;
-    this.twin = b;
-    this.twinId = b.id;
-    this.program(b, p);
-    this.wantTwin = false;
   }
 
   // -------------------------------------------------------------------------
@@ -549,8 +511,6 @@ export class Magnetar implements BossController {
     addKillScore(w, this.def.score);
     const a = this.main();
     if (a !== null) collapseAnomaly(w, a, 0.6);
-    const b = this.echo();
-    if (b !== null) collapseAnomaly(w, b, 0.6);
     DEFEAT_P.defId = this.def.id;
     DEFEAT_P.x = this.rig.x;
     DEFEAT_P.y = this.rig.y;
@@ -564,29 +524,4 @@ export class Magnetar implements BossController {
     SFX_P.x = x;
     w.events.emit('sfx', SFX_P);
   }
-}
-
-/**
- * How many pulses (1..4·gaps) a fresh `magnetar` pulsar must pre-fire so its
- * next ring sits half a gap spacing round from main's next ring. `liveDeg`
- * is main's live ring's first gap; main's next ring turns by the pattern's
- * spin. A fresh pulsar's next ring after m pre-fires sits at
- * PULSAR_FIRST_GAP_DEG + m × the variant's spin.
- */
-export function twinPrefire(liveDeg: number, p: MagnetarRingPattern): number {
-  const spacing = 360 / p.gaps;
-  const target = liveDeg + p.gapSpin + spacing / 2;
-  const vSpin = PULSAR_VARIANTS.magnetar.gapSpin;
-  let best = 1;
-  let bestErr = Infinity;
-  for (let m = 1; m <= 4 * p.gaps; m++) {
-    let d = (PULSAR_FIRST_GAP_DEG + m * vSpin - target) % spacing;
-    if (d < 0) d += spacing;
-    const err = Math.min(d, spacing - d);
-    if (err < bestErr - 1e-6) {
-      bestErr = err;
-      best = m;
-    }
-  }
-  return best;
 }

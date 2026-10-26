@@ -88,7 +88,7 @@ export const ROSTER: Readonly<Record<string, EnemyDef>> = {
     avoidsAsteroids: false,
     contactDamage: 1,
     score: 150,
-    salvage: 4,
+    salvage: 7,
     dropTable: 'common',
   },
   pn_streaker: {
@@ -108,7 +108,7 @@ export const ROSTER: Readonly<Record<string, EnemyDef>> = {
     avoidsAsteroids: false,
     contactDamage: 1,
     score: 120,
-    salvage: 3,
+    salvage: 5,
     dropTable: 'common',
   },
   pn_ray: {
@@ -130,12 +130,12 @@ export const ROSTER: Readonly<Record<string, EnemyDef>> = {
         /** Beam cycle: telegraph, on (bullets every `gap` s), off. */
         firstDelay: 0.9,
         telegraph: 0.7,
-        on: 1.8,
+        on: 1.5,
         off: 2.2,
         gap: 0.08,
         /** Degrees swept while on; the sweep starts `lead`° behind the player's bearing. */
         sweep: 54,
-        lead: 12,
+        lead: 16,
         speed: 105,
       },
     },
@@ -143,7 +143,7 @@ export const ROSTER: Readonly<Record<string, EnemyDef>> = {
     avoidsAsteroids: true,
     contactDamage: 1,
     score: 600,
-    salvage: 12,
+    salvage: 18,
     dropTable: 'common',
   },
 };
@@ -162,6 +162,8 @@ export interface MagnetarRingPattern {
    * either side of straight down (see Magnetar `lands`).
    */
   offsetDeg?: number;
+  /** Each ring gets the pulsar's `double` echo (`PULSAR_DOUBLE_DELAY` later, half a spacing round). */
+  double?: boolean;
 }
 
 export interface MagnetarDef {
@@ -222,8 +224,8 @@ export interface MagnetarDef {
 const PYLON_R = 9;
 const CORE_R = 15;
 // Design: 300. The pylons orbit, so phase 1 runs long for anyone who doesn't lead
-// their shots; 240 puts the typical fight at ~60–90 s (T29 Notes).
-const CORE_HP = 240;
+// their shots. T29 cut it to 240; T31 to 180, so weak loadouts don't time out in meltdown.
+const CORE_HP = 180;
 
 function pylon(i: number): BossPartSpec {
   const a = Math.PI / 4 + (i * Math.PI) / 2;
@@ -266,7 +268,16 @@ export const MAGNETAR: MagnetarDef = {
     // 56° gaps leave 4° between a ring's gap and its echo's, so the half-second
     // hop between them is ~25 px even at the bottom of the screen (50° gaps
     // made it ~52 px: too tight to make after the first ring has passed).
-    p3: { period: 2, gaps: 3, gapDeg: 58, gapSpin: 60, ringSpeed: 160, offsetDeg: 30 },
+    p3: {
+      period: 2,
+      gaps: 3,
+      gapDeg: 58,
+      gapSpin: 60,
+      ringSpeed: 160,
+      offsetDeg: 30,
+      double: true,
+    },
+    // Fixed by the pulsar's `double` ring (PULSAR_DOUBLE_DELAY; a test keeps them equal).
     echoDelay: 0.5,
   },
   spiral: {
@@ -279,7 +290,7 @@ export const MAGNETAR: MagnetarDef = {
     afterMeltdown: 0.8,
   },
   shieldDrop: 1,
-  meltdownAt: 0.3,
+  meltdownAt: 0.25,
   deathTime: 2,
   shotSalvageMax: 20,
   pylonShake: { mag: 3, dur: 0.3 },
@@ -361,7 +372,7 @@ export const LEVEL: LevelDef = {
   enemyHpMul: 1.25,
   enemyShotSpeedMul: 1.15,
   guaranteeWeapon: { by: 30, weapon: 'spread' },
-  bossSalvage: 110,
+  bossSalvage: 180,
   podFallbackSalvage: 60,
   schematicOnClear: ['halcyon'],
   asteroidField: FIELD,
@@ -396,6 +407,8 @@ export const LEVEL: LevelDef = {
     { t: 40.5, formation: { type: 'stagger', enemy: 'gnat', count: 6, x: 'rand' } },
 
     // Turning pulsars, swoopers, the first Warden Ray.
+    // T31: a shield before the turning pulsars and the first Warden Ray.
+    { t: 43, drop: { kind: 'shield', x: 'rand' } },
     pulsarAt(45, 96, 'turning', 0, 7),
     { t: 47, spawn: { enemy: 'swooper', from: 'topLeft' }, repeat: { every: 0.5, times: 3 } },
     { t: 50, spawn: { enemy: 'pn_ray', x: 150 } },
@@ -435,6 +448,8 @@ export const LEVEL: LevelDef = {
     { t: 118, escapePod: { x: 120, hp: 2 } },
     { t: 121, spawn: { enemy: 'interceptor', x: 70 } },
     { t: 121.4, spawn: { enemy: 'interceptor', x: 170 } },
+    // T31: a second carrier. Without it the typical loadout reached Magnetar at L2.6 average.
+    { t: 124, spawn: { enemy: 'carrier', from: 'right', y: 96 } },
     { t: 126, spawn: { enemy: 'pn_drone', x: 40 } },
     { t: 126, spawn: { enemy: 'pn_drone', x: 200 } },
     { t: 130, formation: { type: 'line', enemy: 'gnat', count: 5, x: 120 } },

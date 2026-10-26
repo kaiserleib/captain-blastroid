@@ -34,5 +34,5 @@ registerLevelScript('pulsarNursery.streakers', (w, args) => {
 registerLevelSystem(LEVEL.id, gardenSystem);
 registerLevelLayer(LEVEL.id, sandboxLayer);
 
-export { Magnetar, MagPhase, twinPrefire } from './magnetar';
+export { Magnetar, MagPhase } from './magnetar';
 export { gardenPulsars } from './garden';

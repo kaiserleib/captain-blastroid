@@ -193,3 +193,74 @@ export function formatBalanceReport(
   ];
   return lines.join('\n');
 }
+
+export interface SummaryRow {
+  label: string;
+  runs: readonly BalanceRun[];
+}
+
+function median(values: readonly number[]): number {
+  return quantile(
+    [...values].sort((a, b) => a - b),
+    0.5,
+  );
+}
+
+/** One line per sector (`LEVEL=all`): the numbers the design's difficulty table tracks. */
+export function formatSummaryTable(botName: string, rows: readonly SummaryRow[]): string {
+  const head = [
+    'sector',
+    'boss%',
+    'clear%',
+    'deaths: level · boss by phase',
+    'salvage clear (all)',
+    'at boss',
+    'boss s',
+    'peak shots',
+    'pod%',
+  ];
+  const lines = rows.map(({ label, runs }) => {
+    const n = runs.length;
+    const st = runs.map((r) => r.stats);
+    const wins = runs.filter((r) => r.result.victory);
+    const deaths = runs.filter((r) => r.result.outcome === 'death');
+    const mid = deaths.filter((r) => !r.stats.reachedBoss).length;
+    const byPhase: Record<string, number> = {};
+    for (const r of deaths)
+      if (r.stats.reachedBoss) {
+        const ph = r.stats.bossPhaseAtEnd || '?';
+        byPhase[ph] = (byPhase[ph] ?? 0) + 1;
+      }
+    const phases = Object.entries(byPhase)
+      .map(([k, v]) => `${k} ${v}`)
+      .join(', ');
+    const boss = st.filter((r) => r.reachedBoss);
+    const count = (s: string) => (s === '' ? 0 : s.split(' ').length);
+    const pc = (k: number) => `${Math.round((100 * k) / Math.max(1, n))}`;
+    return [
+      label,
+      pc(boss.length),
+      pc(wins.length),
+      `${mid} · ${deaths.length - mid}${phases ? ` (${phases})` : ''}`,
+      `${wins.length ? median(wins.map((r) => r.stats.salvage)).toFixed(0) : '-'} (${median(st.map((r) => r.salvage)).toFixed(0)})`,
+      boss.length
+        ? `${mean(boss.map((r) => count(r.weaponsAtBoss))).toFixed(1)} × L${mean(boss.map((r) => r.avgLevelAtBoss)).toFixed(1)}`
+        : '-',
+      wins.length ? median(wins.map((r) => r.stats.bossTime)).toFixed(0) : '-',
+      `${Math.max(...st.map((r) => r.peakEnemyShotsLevel))} / ${Math.max(...st.map((r) => r.peakEnemyShotsBoss))}`,
+      pc(st.filter((r) => r.podRescued).length),
+    ];
+  });
+  const all = [head, ...lines];
+  const widths = head.map((_, c) => Math.max(...all.map((row) => (row[c] as string).length)));
+  const fmt = (row: string[]) => row.map((cell, c) => cell.padEnd(widths[c] as number)).join(' │ ');
+  return [
+    `══ Campaign summary · ${botName} · ${rows[0]?.runs.length ?? 0} seeds per sector ══`,
+    fmt(head),
+    widths.map((w) => '─'.repeat(w)).join('─┼─'),
+    ...lines.map(fmt),
+    '  boss% reached the boss · deaths before the boss · in the fight (boss phase at death)',
+    '  salvage: median on a clear (median over all runs) · at boss: weapons × average level',
+    '  boss s: median fight on clears · peak shots: waves / boss',
+  ].join('\n');
+}

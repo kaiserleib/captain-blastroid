@@ -53,6 +53,7 @@ describe('armada: fresh Kestrel, god bot', () => {
 
   it('the pod is Commodore Vale, ejected once (from a wreck or at 105 s)', () => {
     let pods = 0;
+    let rescued: string[] = [];
     const r = runSim('armada-pod', godBot(), 420, {
       levelId: 'armada',
       onTick: (w) => {
@@ -62,6 +63,7 @@ describe('armada: fresh Kestrel, god bot', () => {
           if (p.active && p.kind === 'escapePod') n++;
         }
         pods = Math.max(pods, n);
+        rescued = w.run.pilotsRescued;
       },
     });
     expect(pods).toBe(1);
@@ -71,6 +73,6 @@ describe('armada: fresh Kestrel, god bot', () => {
     );
     expect(ejected).toBeDefined();
     expect(ejected!.tick / 60).toBeLessThanOrEqual(105.1);
-    if (r.stats.podRescued) expect(r.events.some((e) => e.data.includes('vale'))).toBe(true);
+    if (r.stats.podRescued) expect(rescued).toEqual(['vale']);
   }, 60_000);
 });

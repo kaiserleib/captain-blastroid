@@ -190,9 +190,10 @@ The ship always starts weak, so later sectors get harder through **density, bull
 | Peak enemy shots, waves / boss | 36 / 36 | 40 / 45 | 45 / 50 | 45 / 55 | 55 / 70 |
 | First forced capsule | ~20 s (Spread) | ~12 s (Spread) | ~10 s (Seeker) | ~10 s (Spread) | ~8 s (Lance) |
 | `guaranteeWeapon` fallback | Spread by 45 s | Spread by 35 s | Seeker by 30 s | Spread by 30 s | Lance by 25 s |
-| Boss salvage | 50 | 70 | 90 | 110 | 150 |
+| Boss salvage | 50 | 70 | 120 | 180 | 220 |
 | Typical clear salvage (target) | 200–300 | 280–380 | 340–450 | 400–520 | 520–700 |
 | Typical-bot clear rate (target) | ~90% | **~90%** | ~80% | ~75% | ~70% |
+| Novice-bot clear rate (target, T31) | ~52% (measured) | ≥ 47% | ≥ 37% | ≥ 27% | ≥ 17% |
 
 - `enemyHpMul` applies to the Level 1 roster when reused, rounded, minimum 1 (a gnat stays 1 HP). New enemies are authored at their sector's numbers and ignore it.
 - **Guaranteed weapon** (`guaranteeWeapon: { by, weapon }`, a director rule). If the player still holds only one weapon at `by` seconds, the director drops a capsule of `weapon` ahead of the ship. This replaces Level 1's fragile "only if a forced formation was cleared" rule and fixes its known follow-up.
@@ -263,9 +264,9 @@ Rings get **gaps**, which makes them timing-and-position puzzles instead of unav
 
 | Variant | Period | Telegraph | Gaps × width | Spin / pulse | Ring speed | Max r |
 |---|---|---|---|---|---|---|
-| `steady` | 3.0 s | 0.8 s | 3 × 60° | 0° | 110 | 220 |
-| `turning` | 3.0 s | 0.8 s | 2 × 55° | 40° | 120 | 220 |
-| `quick` | 2.0 s | 0.6 s | 2 × 50° | 90° | 140 | 200 |
+| `steady` | 3.0 s | 1.0 s | 3 × 64° | 0° | 110 | 220 |
+| `turning` | 3.0 s | 1.0 s | 3 × 52° | 40° | 120 | 220 |
+| `quick` | 2.0 s | 0.8 s | 2 × 58° | 90° | 140 | 200 |
 | `magnetar` (boss) | set by boss | 0.7 s | set by boss | set by boss | 130 | 260 |
 
 The L4 music runs at 120 BPM, so a 3.0 s period is exactly six beats. Pulses land on the bar line, and the timeline places pulsars so their phase matches the music.
@@ -340,7 +341,7 @@ A dark violet void around a dying star, with black holes that **bend every bulle
 - **Arena:** at spawn a `massive` black hole is placed at (120, 150) and stays fixed (it doesn't scroll during the fight). It is removed on defeat.
 - **Parts:** 2 gun pods (80 HP each) and a core (260 HP, armored until both pods are gone).
 - **Phase 1 (orbit):** the boss circles the hole on an ellipse (rx 80, ry 50) with a 9 s period. The pods fire an aimed 3-way fan (±10°) every 1.6 s, and the hole bends both its shots and the player's. The player wins by leading shots around the hole.
-- **Phase 2 (slingshot):** every 6 s the boss telegraphs a dive for 0.8 s (a dotted line from its position, curving around the hole, toward the player's row). It slingshots around the hole at about 280 px/s, crosses the bottom third, and climbs back into orbit. During the dive it drops a 12-shot ring. Between dives the core fires a 6-way ring every 1.2 s, and the hole curves those shots too.
+- **Phase 2 (slingshot):** every 6 s the boss telegraphs a dive for 0.8 s (a dotted line from its position, curving around the hole, toward the player's row). It slingshots around the hole at about 280 px/s, crosses the bottom third, and climbs back into orbit. During the dive it drops a 12-shot ring. Between dives the core fires an 8-way ring every 1.2 s, and the hole curves those shots too.
 - **Defeat:** the hole collapses (a 0.5 s shrink plus a white flash). Corsair schematic, 90 salvage.
 
 ## Level 4: "Pulsar Nursery"
@@ -353,7 +354,7 @@ A pink-and-gold stellar nursery seeded with young pulsars. This sector is about 
 |---|---|---|---|---|---|
 | **Pulse Drone** | 4 | Dumb | Drifts down slowly (20 px/s) | Fires a 10-shot ring on the beat: every 3.0 s, phase-locked to the nearest pulsar's pulse | 2 |
 | **Streaker** | 3 | Dumb | Only during fast scroll. Enters from the bottom edge at 150 px/s upward, angled ±15°. | One aimed shot as it passes y=200 | 2 |
-| **Warden Ray** | 14 | Smart | Holds near the top. Sweeps a beam slowly from side to side (the beam is a line of spaced 3 px bullets released every 0.08 s along its heading). | The sweeping bullet line, 1.8 s on, 2.2 s off | 7 |
+| **Warden Ray** | 14 | Smart | Holds near the top. Sweeps a beam slowly from side to side (the beam is a line of spaced 3 px bullets released every 0.08 s along its heading). | The sweeping bullet line, 1.5 s on, 2.2 s off | 7 |
 
 **Timeline (scroll speed in brackets)**
 
@@ -374,11 +375,11 @@ A pink-and-gold stellar nursery seeded with young pulsars. This sector is about 
 | 182 s | Warning. Boss at 186 s. |
 
 **Boss: Magnetar** (a forge station built around a captive magnetar, about 96×96, radially symmetric).
-- **Parts:** 4 pylons on a ring (radius 34, rotating at 0.5 rad/s; 50 HP each) and the magnetar core (300 HP, shielded until three pylons fall).
+- **Parts:** 4 pylons on a ring (radius 34, rotating at 0.5 rad/s; 50 HP each) and the magnetar core (180 HP, shielded until three pylons fall).
 - It sits at y≈96 and doesn't strafe. Instead the **scroll speed** keeps changing during the fight: 30 → 50 → 30, in 12 s cycles, which drags the arena and the rocks.
 - **Phase 1:** the core pulses a `magnetar` ring every 3.0 s with 4 × 45° gaps, which turn 30° per pulse. Each pylon fires an aimed shot every 2 s (staggered).
 - **Phase 2 (3 pylons down):** the ring period drops to 2.0 s with 3 × 50° gaps, which turn 60° per pulse. The core adds a 4-arm spiral between rings (one 4-way ring every 0.2 s, turning 13°).
-- **Phase 3 (core < 30%):** "MELTDOWN". Two rings per period, 0.5 s apart, offset by half a gap, so the player has to move between them. 
+- **Phase 3 (core < 25%):** "MELTDOWN". Two rings per period, 0.5 s apart (the pulsar's `double` echo), the echo's gaps turned half a gap spacing, so the player has to move between them.
 - **Defeat:** Halcyon schematic, 110 salvage.
 
 ## Level 5: "The Armada"
@@ -413,10 +414,10 @@ The Syndicate fleet at anchor around a gas giant. It's UN Squadron's capital-shi
   2. **Forward battery (8–18 s):** 4 deck turrets (30 HP) in two rows firing fans, plus 2 armor plates.
   3. **Missile bays (18–26 s):** 2 bays (40 HP). Each launches 2 homing missiles (turn rate 1.6 rad/s, 70 px/s, 4 s ttl, shootable with 1 HP) every 4 s.
   4. **Shield generators (26–32 s):** 2 generators (50 HP). While either lives, the bridge is armored.
-  5. **Bridge (32 s+):** when the bridge reaches y≈110 the hull **stops scrolling** (the rig anchor stops and scroll goes to 0) and the fight locks in. Bridge: 400 HP, plus 2 bridge guns (40 HP).
+  5. **Bridge (32 s+):** when the bridge reaches y≈110 the hull **stops scrolling** (the rig anchor stops and scroll goes to 0) and the fight locks in. Bridge: 370 HP (bridge 250 + escape core 120), plus 2 bridge guns (40 HP).
 - Turrets that scroll off the bottom are simply gone. Destroying them is optional and pays salvage (10 each). Only the bridge must die. If both generators scroll past alive, they keep the bridge armored until a 25 s timeout, when they **overload** (explode by themselves) so the fight can't soft-lock.
-- **Bridge phase 1:** guns fire aimed 5-way fans every 1.4 s. The bridge fires a 16-shot ring every 2 s, turning 7° each time.
-- **Bridge phase 2 (< 50%):** the guns are wrecked or not, either way the bridge **launches its escape core**. The core (120 HP of the 400, shown on the same boss bar) detaches and strafes the top of the screen like the Rock Hauler, firing a dense 3-arm spiral. The hull wreck burns below, and rocks of debris fly off it.
+- **Bridge phase 1:** guns fire aimed 5-way fans every 2 s. The bridge fires a 20-shot ring every 2 s, turning 7° each time.
+- **Bridge phase 2 (< 50%):** the guns are wrecked or not, either way the bridge **launches its escape core**. The core (120 HP, shown on the same boss bar) detaches and strafes the top of the screen like the Rock Hauler, firing a dense 4-arm spiral. The hull wreck burns below, and rocks of debris fly off it.
 - **Defeat:** an extra-long (3 s) chain across the whole hull, the Paragon schematic and 150 salvage. On the first clear the results screen shows **CAMPAIGN COMPLETE**.
 
 ## Presentation per sector

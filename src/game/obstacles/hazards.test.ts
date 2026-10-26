@@ -182,7 +182,7 @@ describe('pulsar rings with gaps', () => {
     const out: number[] = [];
     step(w, Math.round(v.period * 60) + 2);
     expect(pulseIndex(a)).toBe(1);
-    expect(pulsarGapAngles(a, out)).toBe(2);
+    expect(pulsarGapAngles(a, out)).toBe(v.gaps);
     expect(out[0]).toBeCloseTo(90 * DEG, 5);
     // Into the telegraph for pulse 2: the next pattern, turned by gapSpin.
     step(w, Math.round((v.period - v.telegraph / 2) * 60));

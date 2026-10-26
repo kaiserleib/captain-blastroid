@@ -16,8 +16,10 @@ import {
   pulsarRingRadius,
   pulseIndex,
 } from '../../obstacles';
+import { pulsarEchoRot, pulsarRingRot } from '../../obstacles/anomalies/pulsar';
+import { PULSAR_DOUBLE_DELAY } from '../../../content/obstacles';
 import './index';
-import { Magnetar, MagPhase, twinPrefire } from './magnetar';
+import { Magnetar, MagPhase } from './magnetar';
 
 const DT = 1 / 60;
 
@@ -193,7 +195,7 @@ describe('Magnetar', () => {
     expect(b.spiralRot).not.toBe(0);
   });
 
-  it('meltdown under 30%: the toast, then an echo ring 0.5 s behind with gaps half a spacing round', () => {
+  it('meltdown under meltdownAt: the toast, then an echo ring 0.5 s behind with gaps half a spacing round', () => {
     const w = world();
     const toasts: string[] = [];
     w.events.on('toast', (p) => toasts.push(p.text));
@@ -201,46 +203,57 @@ describe('Magnetar', () => {
     wreckPylons(w, b, 4);
     run(w, 1.1);
     const core = b.core.enemy as Enemy;
-    damageEnemy(w, core, Math.ceil(MAGNETAR.parts[4]!.hp * 0.75), 'player');
+    damageEnemy(
+      w,
+      core,
+      Math.ceil(MAGNETAR.parts[4]!.hp * (1 - MAGNETAR.meltdownAt * 0.8)),
+      'player',
+    );
     run(w, 0.1);
     expect(b.phase).toBe(MagPhase.Meltdown);
     expect(toasts).toContain('MELTDOWN');
     run(w, 4.5);
     const a = b.main()!;
-    const e = b.echo();
-    expect(e).not.toBeNull();
-    // Wait for a main pulse, then check both rings 0.7 s in (neither glowing yet).
+    expect(b.echo()).toBe(a);
+    // Wait for a main pulse: the echo follows it out of the core 0.5 s later.
     const k = pulseIndex(a);
     while (pulseIndex(a) === k) step(w);
     const t0 = w.time;
-    let ke = pulseIndex(e!);
     let echoAt = -1;
     run(w, 0.8, () => {
-      if (pulseIndex(e!) !== ke) {
-        ke = pulseIndex(e!);
-        echoAt = w.time;
-      }
+      if (echoAt < 0 && pulsarEchoRadius(a) >= 0) echoAt = w.time;
     });
+    expect(MAGNETAR.ring.echoDelay).toBe(PULSAR_DOUBLE_DELAY);
     expect(echoAt - t0).toBeCloseTo(MAGNETAR.ring.echoDelay, 1);
     expect(pulsarRingRadius(a)).toBeGreaterThan(0);
-    expect(pulsarRingRadius(e!)).toBeGreaterThan(0);
-    expect(pulsarEchoRadius(a)).toBe(-1);
-    pulsarGapAngles(a, GAPS);
-    const ra = GAPS[0]!;
-    pulsarGapAngles(e!, GAPS);
-    const re = GAPS[0]!;
-    const off = (((((re - ra) * 180) / Math.PI) % 120) + 120) % 120;
+    const off = (((((pulsarEchoRot(a) - pulsarRingRot(a)) * 180) / Math.PI) % 120) + 120) % 120;
     expect(off).toBeCloseTo(60, 0);
+    // Ring and echo gaps straddle straight down (±30°), so the hop is short.
+    pulsarGapAngles(a, GAPS);
+    const down = (deg: number) => ((((deg - 90) % 120) + 180) % 120) - 60;
+    const ringOff = down((pulsarRingRot(a) * 180) / Math.PI);
+    expect(Math.abs(Math.abs(ringOff) - 30)).toBeLessThan(1);
   });
 
-  it('twinPrefire puts the echo half a spacing past the next ring', () => {
-    const p = MAGNETAR.ring.p2;
-    for (const live of [90, 120, 150, 180, 210, 240, 270, 300, 330, 0, 30, 60]) {
-      const m = twinPrefire(live, p);
-      const next = 90 + m * 30;
-      const off = (((next - (live + p.gapSpin)) % 120) + 120) % 120;
-      expect(off).toBeCloseTo(60, 6);
-    }
+  it('the first echo leaves the core 0.5 s after a pulse, never mid-screen', () => {
+    const w = world();
+    const b = fighting(w);
+    wreckPylons(w, b, 4);
+    run(w, 1.1);
+    damageEnemy(
+      w,
+      b.core.enemy as Enemy,
+      Math.ceil(MAGNETAR.parts[4]!.hp * (1 - MAGNETAR.meltdownAt * 0.8)),
+      'player',
+    );
+    let first = Infinity;
+    run(w, 6, () => {
+      const a = b.main();
+      if (a === null || first < Infinity) return;
+      const R = pulsarEchoRadius(a);
+      if (R >= 0) first = R;
+    });
+    expect(first).toBeLessThan(b.main()!.r + 12);
   });
 
   it('dies: dying phase, bossDefeated once, pulsars collapse, parts released, scroll back to 30', () => {
