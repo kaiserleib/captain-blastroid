@@ -2,9 +2,10 @@ import { Background, createBackgroundPair, themeForLevel } from '../backgrounds'
 import { attachAudio, playSong } from '../audio';
 import { PLAYFIELD_H } from '../engine/display';
 import { randomSeedString } from '../engine/rng';
-import type { Scene } from '../engine/scene';
+import type { Scene, ScenePointer } from '../engine/scene';
 import { flags } from '../debug/flags';
 import { Fx } from '../gfx/fx';
+import { createHudDemoSystem, Hud, hudDemoEnabled } from '../game/hud';
 import { input } from '../input';
 import { pickupsLayer, pickupsSystem, powerupFxLayer } from '../game/pickups';
 import type { Renderer } from '../gfx/renderer';
@@ -30,6 +31,7 @@ export class GameScene implements Scene {
   readonly background = new Background();
   private readonly bg = createBackgroundPair(this.background);
   readonly fx = new Fx();
+  readonly hud = new Hud();
 
   /**
    * Fixed order. Each ticket inserts its system at its slot:
@@ -64,11 +66,13 @@ export class GameScene implements Scene {
     pickupsLayer,
     powerupFxLayer,
     ...this.fx.layers,
+    this.hud.layer,
   ];
 
   private readonly hasPlayerLayer: boolean;
 
   constructor() {
+    if (hudDemoEnabled) this.systems.push(createHudDemoSystem());
     this.layers.sort((a, b) => a.z - b.z);
     this.hasPlayerLayer = this.layers.some((l) => l.name === 'player');
   }
@@ -84,11 +88,16 @@ export class GameScene implements Scene {
     // Detached by exit()'s events.clear().
     attachAudio(this.world.events);
     this.fx.attach(this.world);
+    this.hud.attach(w);
     playSong('level1');
   }
 
   exit(): void {
     this.world.events.clear();
+  }
+
+  onPointer(e: ScenePointer): void {
+    this.hud.onPointer(e);
   }
 
   update(dt: number): void {

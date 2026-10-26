@@ -9,14 +9,16 @@ import { setHitstopSink } from './gfx/fx';
 import { attachInput, input } from './input';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
+import { setHudViewport } from './game/hud';
 
 const canvas = document.getElementById('game');
 if (!(canvas instanceof HTMLCanvasElement)) throw new Error('#game canvas missing');
 
-const display = new Display(canvas);
+const display = new Display(canvas, flags.h);
 const renderer = new CanvasRenderer(display.ctx);
 display.onResize((l) => {
   renderer.offsetY = l.playfieldOffsetY;
+  setHudViewport(l);
 });
 
 const scenes = new SceneManager();

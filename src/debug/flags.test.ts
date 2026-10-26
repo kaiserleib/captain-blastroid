@@ -3,7 +3,7 @@ import { parseFlags } from './flags';
 
 describe('parseFlags', () => {
   it('parses every flag in dev', () => {
-    const f = parseFlags('?debug&god&sandbox&seed=ABCD2345&level=1&t=120', true);
+    const f = parseFlags('?debug&god&sandbox&seed=ABCD2345&level=1&t=120&h=520', true);
     expect(f).toEqual({
       debug: true,
       god: true,
@@ -11,6 +11,7 @@ describe('parseFlags', () => {
       seed: 'ABCD2345',
       level: 1,
       t: 120,
+      h: 520,
     });
     expect(Object.isFrozen(f)).toBe(true);
   });
@@ -23,6 +24,7 @@ describe('parseFlags', () => {
       seed: null,
       level: null,
       t: null,
+      h: null,
     });
   });
 

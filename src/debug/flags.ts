@@ -7,6 +7,8 @@ export interface DebugFlags {
   readonly level: number | null;
   /** Skip to this many seconds into the level. */
   readonly t: number | null;
+  /** Force the logical buffer height (400..520), for HUD screenshots. */
+  readonly h: number | null;
 }
 
 function num(v: string | null): number | null {
@@ -26,6 +28,7 @@ export function parseFlags(search: string, dev: boolean): DebugFlags {
     seed: seed ? seed : null,
     level: dev ? num(q.get('level')) : null,
     t: dev ? num(q.get('t')) : null,
+    h: dev ? num(q.get('h')) : null,
   });
 }
 
