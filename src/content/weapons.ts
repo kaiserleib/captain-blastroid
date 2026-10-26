@@ -33,6 +33,11 @@ export interface WeaponLevel {
   contactTick: number;
   /** Shot (or drone) sprite id for this level. */
   sprite: string;
+  /**
+   * Drones: seconds between sparks from each drone (0 = no sparks). The drones
+   * take turns, so the whole orbit fires every `sparkCooldown / count` s.
+   */
+  sparkCooldown: number;
 }
 
 export interface WeaponDef {
@@ -69,6 +74,7 @@ const BASE: WeaponLevel = {
   orbitSpeed: 0,
   contactTick: 0,
   sprite: '',
+  sparkCooldown: 0,
 };
 
 function lv(o: Partial<WeaponLevel>): WeaponLevel {
@@ -188,6 +194,8 @@ export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
     ),
   },
   // 1 drone r22 1 dmg/0.25 s; more drones; then larger radius; then more damage.
+  // From L3 (T26) each drone also fires a spark (DRONE_SPARK), so a drone-heavy
+  // loadout can still chip a boss it can't touch.
   orbitDrones: {
     id: 'orbitDrones',
     name: 'ORBIT DRONES',
@@ -206,12 +214,28 @@ export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
         sprite: 'drone',
       },
       { count: 2 },
-      { count: 3 },
-      { orbitRadius: 28 },
-      { damage: 2, count: 5, radius: 5, sprite: 'drone5' },
+      { count: 3, sparkCooldown: 0.9 },
+      { orbitRadius: 28, sparkCooldown: 0.7 },
+      { damage: 2, count: 5, radius: 5, sprite: 'drone5', sparkCooldown: 0.5 },
     ),
   },
 };
+
+/**
+ * The shot each drone fires from L3: weak, aimed once at the nearest targetable
+ * enemy within `range` (straight up if none), no homing.
+ */
+export const DRONE_SPARK: WeaponLevel = lv({
+  damage: 1,
+  count: 1,
+  speed: 220,
+  ttl: 1.6,
+  radius: 2,
+  sprite: 'pbullet_spark',
+});
+
+/** Drone spark auto-aim reach, px. */
+export const DRONE_SPARK_RANGE = 150;
 
 /** Display / sandbox key order (F1–F5). */
 export const WEAPON_ORDER: readonly WeaponId[] = [

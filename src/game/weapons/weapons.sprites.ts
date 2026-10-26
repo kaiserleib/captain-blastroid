@@ -70,6 +70,23 @@ defineSprite('pbullet_spread5', {
   ],
 });
 
+// Drone spark (T26): a small round 4×4 bead so it doesn't read as a blaster bolt.
+defineSprite('pbullet_spark', {
+  palette: SHOT,
+  frames: [
+    `
+    .aa.
+    awwa
+    awwc
+    .cc.`,
+    `
+    .ac.
+    awwc
+    awwc
+    .cd.`,
+  ],
+});
+
 // Pulse Lance: a long bolt with travelling bright bands (2-frame shimmer).
 defineSprite('pbullet_lance', {
   palette: SHOT,

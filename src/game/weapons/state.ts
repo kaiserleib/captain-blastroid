@@ -16,6 +16,10 @@ export interface WeaponsState {
   contactId: Int32Array;
   /** Seconds until that enemy can be hit by a drone again. */
   contactT: Float64Array;
+  /** Seconds until the next drone spark. */
+  sparkT: number;
+  /** Which drone fires the next spark (round robin, so they're staggered). */
+  sparkNext: number;
 }
 
 const states = new WeakMap<World, WeaponsState>();
@@ -30,6 +34,8 @@ function create(): WeaponsState {
     droneY: new Float64Array(MAX_DRONES),
     contactId: new Int32Array(MAX_CONTACTS).fill(-1),
     contactT: new Float64Array(MAX_CONTACTS),
+    sparkT: 0,
+    sparkNext: 0,
   };
 }
 

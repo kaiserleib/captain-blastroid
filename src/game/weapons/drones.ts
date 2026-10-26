@@ -1,7 +1,8 @@
-import type { WeaponLevel } from '../../content/weapons';
+import { DRONE_SPARK, DRONE_SPARK_RANGE, WEAPONS, type WeaponLevel } from '../../content/weapons';
 import { TAU } from '../../engine/math';
 import { damageEnemy } from '../../sim/damage';
 import { getSpatialHash } from '../../sim/spatialHash';
+import { targetFilterFor } from '../../sim/targeting';
 import {
   Layer,
   type Body,
@@ -11,7 +12,7 @@ import {
   type WeaponInstance,
 } from '../../sim/types';
 import type { World } from '../../sim/world';
-import { emitSfx } from './shots';
+import { emitSfx, fireShot } from './shots';
 import { MAX_CONTACTS, MAX_DRONES, weaponsState, type WeaponsState } from './state';
 
 /** Orbit angle of drone `i` of `n` when the lead drone is at `a`. */
@@ -95,6 +96,40 @@ export function updateDrones(
     h.qr = lv.radius;
     h.queryAt(Layer.Enemy, onDroneEnemy);
   }
+  if (lv.sparkCooldown > 0 && n > 0) tickSparks(w, p, s, lv.sparkCooldown, n, dt);
+}
+
+/**
+ * One shared timer, one drone per beat: each drone fires every `cooldown` s,
+ * but the orbit's sparks are spread evenly instead of leaving in a volley.
+ */
+function tickSparks(
+  w: World,
+  p: PlayerState,
+  s: WeaponsState,
+  cooldown: number,
+  n: number,
+  dt: number,
+): void {
+  s.sparkT -= dt * p.stats.fireRateMul;
+  if (s.sparkT > 0) return;
+  const k = s.sparkNext < n ? s.sparkNext : 0;
+  fireSpark(w, p, s.droneX[k] as number, s.droneY[k] as number);
+  s.sparkNext = k + 1;
+  s.sparkT += cooldown / n;
+  // A huge fireRateMul can't bank sparks into a burst.
+  if (s.sparkT < 0) s.sparkT = 0;
+}
+
+/** Angle (clockwise from straight up) of a spark from (x, y): at the nearest target in range, else 0. */
+export function sparkAngle(w: World, x: number, y: number): number {
+  const t = getSpatialHash(w).nearest(x, y, Layer.Enemy, DRONE_SPARK_RANGE, targetFilterFor(w));
+  if (t === null) return 0;
+  return Math.atan2(t.x - x, y - t.y);
+}
+
+function fireSpark(w: World, p: PlayerState, x: number, y: number): void {
+  fireShot(w, p, WEAPONS.orbitDrones, DRONE_SPARK, x, y, sparkAngle(w, x, y));
 }
 
 /** Shot-blocker hook: drones eat enemy shots they touch. */
