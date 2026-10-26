@@ -86,6 +86,26 @@ describe('save schema', () => {
     expect(s.highScores[0]?.score).toBe(140);
   });
 
+  it('caps high scores per level, keeping one sorted array', () => {
+    const entry = (score: number, level: string) => ({
+      score,
+      level,
+      pilot: 'blastroid',
+      ship: 'kestrel',
+      date: '',
+    });
+    const highScores = [
+      ...Array.from({ length: 12 }, (_, i) => entry(1000 + i * 10, 'kessler')),
+      ...Array.from({ length: 3 }, (_, i) => entry(1005 + i * 10, 'ionShoals')),
+    ];
+    const s = migrate({ ...createDefaultSave(), highScores });
+    expect(s.highScores.filter((h) => h.level === 'kessler')).toHaveLength(10);
+    expect(s.highScores.filter((h) => h.level === 'ionShoals')).toHaveLength(3);
+    const scores = s.highScores.map((h) => h.score);
+    expect(scores).toEqual([...scores].sort((a, b) => b - a));
+    expect(s.highScores.at(-1)?.score).toBe(1005);
+  });
+
   // Verbatim shape of a save written by the v1 build that shipped with Level 1.
   const V1_SAVE = JSON.stringify({
     version: 1,

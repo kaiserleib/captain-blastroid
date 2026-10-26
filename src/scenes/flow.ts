@@ -8,6 +8,7 @@ import { PauseOverlay } from './PauseOverlay';
 import { PilotSelectScene } from './PilotSelectScene';
 import { RecordsScene } from './RecordsScene';
 import { ResultsScene } from './ResultsScene';
+import { SectorSelectScene } from './SectorSelectScene';
 import { SettingsOverlay } from './SettingsOverlay';
 import { ShipSelectScene } from './ShipSelectScene';
 import { TitleScene } from './TitleScene';
@@ -37,6 +38,7 @@ export const flow = {
   hangar: (focus?: string): void => scenes().replace(new HangarScene(), focus),
   pilots: (): void => scenes().replace(new PilotSelectScene()),
   ships: (): void => scenes().replace(new ShipSelectScene()),
+  sectors: (): void => scenes().replace(new SectorSelectScene()),
   upgrades: (): void => scenes().replace(new UpgradesScene()),
   records: (): void => scenes().replace(new RecordsScene()),
   launch: (data: GameSceneData): void => scenes().replace(new GameScene(), data),

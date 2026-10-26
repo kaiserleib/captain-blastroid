@@ -62,7 +62,7 @@ export interface SaveData {
   selectedLevel: string;
   /** Missing = never cleared. Unknown ids are kept so an older build can't erase newer progress. */
   levels: Record<string, LevelRecord>;
-  /** Sorted by score, highest first; at most HIGH_SCORE_LIMIT. */
+  /** Sorted by score, highest first; at most HIGH_SCORE_LIMIT per level. */
   highScores: HighScore[];
   stats: SaveStats;
   settings: Settings;
@@ -158,7 +158,12 @@ function normalizeHighScores(v: unknown): HighScore[] {
     });
   }
   out.sort((a, b) => b.score - a.score);
-  return out.slice(0, HIGH_SCORE_LIMIT);
+  const perLevel = new Map<string, number>();
+  return out.filter((h) => {
+    const n = (perLevel.get(h.level) ?? 0) + 1;
+    perLevel.set(h.level, n);
+    return n <= HIGH_SCORE_LIMIT;
+  });
 }
 
 function normalizeLevels(v: unknown): Record<string, LevelRecord> {
