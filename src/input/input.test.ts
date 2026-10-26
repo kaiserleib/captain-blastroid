@@ -88,6 +88,19 @@ describe('InputManager modes', () => {
     expect(intent.x).toBe(0);
   });
 
+  it('keeps the stick base off the side edges so a touch there can still steer outward', () => {
+    const { im, intent } = make();
+    im.handlePointer('down', 3, 'touch', 2, 400);
+    // 16 CSS px = 8 logical.
+    expect(im.stick.baseX).toBe(8);
+    im.handlePointer('move', 3, 'touch', 0, 400);
+    im.writeIntent(intent);
+    expect(intent.x).toBeLessThan(-0.15);
+    im.handlePointer('up', 3, 'touch', 0, 400);
+    im.handlePointer('down', 4, 'touch', 479, 400);
+    expect(im.stick.baseX).toBe(240 - 8);
+  });
+
   it('secondary touches do not move the stick but still reach the UI', () => {
     const { im } = make();
     const seen: number[] = [];
@@ -111,8 +124,8 @@ describe('InputManager modes', () => {
   it('reads the stick radius scale from settings', () => {
     const { im, intent } = make();
     setInputSettingsProvider(() => ({ stickOpacity: 0.5, stickRadiusScale: 2 }));
-    im.handlePointer('down', 1, 'touch', 0, 0);
-    im.handlePointer('move', 1, 'touch', 40, 0);
+    im.handlePointer('down', 1, 'touch', 100, 0);
+    im.handlePointer('move', 1, 'touch', 140, 0);
     im.writeIntent(intent);
     // Radius is now 40 logical; 20 logical out is (20-3)/(40-3).
     expect(intent.x).toBeCloseTo(17 / 37);
