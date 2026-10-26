@@ -6,7 +6,7 @@ export default defineConfig({
     target: 'es2022',
     // Multi-page so the dev gallery ships alongside the game.
     rollupOptions: {
-      input: { main: 'index.html', gallery: 'tools/gallery.html' },
+      input: { main: 'index.html', gallery: 'tools/gallery.html', audio: 'tools/audio.html' },
     },
   },
 });

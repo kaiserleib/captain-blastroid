@@ -1,3 +1,4 @@
+import { installAudio } from './audio';
 import { DebugOverlay } from './debug/overlay';
 import { flags } from './debug/flags';
 import { Display } from './engine/display';
@@ -53,6 +54,8 @@ document.addEventListener('visibilitychange', syncLifecycle);
 window.addEventListener('pagehide', () => loop.pause());
 window.addEventListener('pageshow', syncLifecycle);
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+// Unlocks audio on the first gesture and suspends it with the page lifecycle.
+installAudio();
 
 scenes.replace(new BootScene(scenes));
 loop.start();

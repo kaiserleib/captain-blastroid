@@ -1,3 +1,4 @@
+import { attachAudio, playSong } from '../audio';
 import { PLAYFIELD_H } from '../engine/display';
 import { randomSeedString } from '../engine/rng';
 import type { Scene } from '../engine/scene';
@@ -53,6 +54,9 @@ export class GameScene implements Scene {
   enter(data?: unknown): void {
     const d = (data ?? {}) as GameSceneData;
     this.world = createWorld(d.seed ?? flags.seed ?? randomSeedString(), d);
+    // Detached by exit()'s events.clear().
+    attachAudio(this.world.events);
+    playSong('level1');
   }
 
   exit(): void {

@@ -1,5 +1,5 @@
 # T04 — Audio: procedural SFX + chiptune sequencer
-Status: todo
+Status: done (listening tests and iOS device check pending, see Notes)
 Wave: 1 · Depends on: T00 · Blocks: T18 (polish)
 
 ## Goal
@@ -20,7 +20,23 @@ All sound is synthesized with Web Audio. There are no files. That covers punchy,
 - [ ] Audio starts after the first tap on iOS Safari, with no console errors before the unlock.
 - [ ] Holding max-level weapons for 30 s doesn't clip or build up voices (check active voice count in `?debug`).
 - [ ] Music loops seamlessly, and tab switching doesn't desync it.
-- [ ] Unit tests: note parser, voice limiter.
+- [x] Unit tests: note parser, voice limiter.
 
 ## Out of scope
 Settings UI (T17 calls `setVolume`/`setMuted`).
+
+## Contract changes
+None to `sim/types.ts`, `sim/world.ts`, `engine/events.ts` or `gfx/renderer.ts`. New public API in `src/audio/index.ts`:
+- `installAudio()` (gesture unlock + visibility/pagehide lifecycle), `unlockAudio()`, `suspendAudio()` / `resumeAudio()` (game pause; tracked separately from page visibility), `setMuted`, `isMuted`, `setVolume(bus, v)`, `getVolume(bus)` with `Bus = 'master' | 'sfx' | 'music'`.
+- `playSfx(id, {pan?})`, `playSfxAt(id, x?)`, `activeVoices(id?)`, `SFX_IDS`.
+- `playSong(id)` (no-op if already playing), `fadeTo(id, seconds)` (crossfade), `stopMusic(fade?)`, `currentSong()`, `SONG_IDS` (`title`, `level1`, `boss`, `clear`).
+- `attachAudio(events)`: `sfx` → preset (pan from `x`), `bossWarning` → music fades out, `bossSpawned` → `boss`, `bossDefeated` → music out, `levelComplete` → `clear`.
+
+Edits outside `src/audio`: `main.ts` calls `installAudio()`; `GameScene.enter` calls `attachAudio(world.events)` and `playSong('level1')`; `vite.config.ts` adds `tools/audio.html` to the build input.
+
+## Notes
+- The gallery isn't merged yet, so the dev page is standalone: `tools/audio.html` (button per SFX and song, crossfades, volume/mute, pan test, 30 s all-weapons stress test with a live voice counter). Fold it into the gallery once T02 lands.
+- The `AudioContext` is created only inside the first gesture (pointerdown/pointerup/touchend/keydown, capture). Listeners stay until the context reports `running`, because iOS only counts some of these as activation. Before unlock, `playSfx` is a silent no-op and `playSong` is remembered and starts on unlock.
+- Music uses persistent per-channel oscillators driven by automation, scheduled 120 ms ahead from a 25 ms `setTimeout` against `ctx.currentTime`. Hiding the page suspends the context, which freezes the clock, so the song resumes in place. If the timer stalls while running, missed steps are skipped to stay on the grid.
+- Voice limiting: 3 per id, 30 ms per-id gap, 24 voices total. In Chrome the stress test held at 11–14 active voices (peak 18) for its whole run, with no console errors before or after unlock. Music peaked around 0.35 on the master bus.
+- Not verified, needs a human: whether the sounds and songs are any good (listening); iOS Safari unlock on a real device; music looping seamlessly by ear; tab-switch sync by ear (the clock-freeze on suspend/resume was checked programmatically). The `?debug` overlay doesn't show the voice count yet (it's T00's file): T18 can add `activeVoices()` to it, and the dev page shows it for now.

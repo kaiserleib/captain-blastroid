@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Captain Blastroid — Audio</title>
+    <style>
+      body {
+        margin: 16px;
+        background: #100818;
+        color: #f8f8f8;
+        font:
+          14px/1.4 ui-monospace,
+          monospace;
+      }
+      h2 {
+        margin: 20px 0 8px;
+        font-size: 15px;
+        color: #f8d878;
+      }
+      .grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      button {
+        font: inherit;
+        padding: 8px 10px;
+        background: #282048;
+        color: #f8f8f8;
+        border: 1px solid #5848a8;
+        border-radius: 4px;
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+      button:active,
+      button.on {
+        background: #5848a8;
+      }
+      label {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin: 4px 0;
+      }
+      input[type='range'] {
+        width: 180px;
+      }
+      #stats {
+        color: #78f878;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Audio</h1>
+    <p>Tap anything to unlock audio. <span id="stats"></span></p>
+    <main id="audio"></main>
+    <script type="module" src="./audio.ts"></script>
+  </body>
+</html>
