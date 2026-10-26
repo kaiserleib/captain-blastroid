@@ -28,13 +28,13 @@ Wave 4  T18 integration + balance   T19 mobile/PWA/Capacitor   T20 test bots │
 | [T05](T05-save-meta-platform.md) | Save data, meta progression model, platform adapters | T00 | done |
 | [T06](T06-pilot-portraits.md) | Sci-fi pilot portrait generator | T00 | done |
 | [T07](T07-backgrounds.md) | Parallax space backgrounds | T00 | done |
-| [T08](T08-player-ship.md) | Player ship: movement, shields, death, ship sprites | T01 T02 T03 | todo |
-| [T09](T09-weapons.md) | Weapons: 5 auto-fire weapons with levels | T02 T03 | todo |
-| [T10](T10-asteroids-obstacles.md) | Asteroids + indestructible anomaly framework | T02 T03 | todo |
-| [T11](T11-enemies.md) | Enemies: behaviors, smart avoidance, fire patterns | T02 T03 | todo |
-| [T12](T12-pickups-powerups.md) | Pickups, drops, magnet, repulsor | T02 T03 | todo |
-| [T13](T13-fx-juice.md) | Explosions, particles, shake, hitstop, haptics | T02 T03 | todo |
-| [T14](T14-hud.md) | In-game HUD | T02 | todo |
+| [T08](T08-player-ship.md) | Player ship: movement, shields, death, ship sprites | T01 T02 T03 | done |
+| [T09](T09-weapons.md) | Weapons: 5 auto-fire weapons with levels | T02 T03 | done |
+| [T10](T10-asteroids-obstacles.md) | Asteroids + indestructible anomaly framework | T02 T03 | done |
+| [T11](T11-enemies.md) | Enemies: behaviors, smart avoidance, fire patterns | T02 T03 | done |
+| [T12](T12-pickups-powerups.md) | Pickups, drops, magnet, repulsor | T02 T03 | done |
+| [T13](T13-fx-juice.md) | Explosions, particles, shake, hitstop, haptics | T02 T03 | done |
+| [T14](T14-hud.md) | In-game HUD | T02 | done |
 | [T15](T15-director-level1.md) | Wave director + Level 1 script | T10 T11 T12 | todo |
 | [T16](T16-boss-rock-hauler.md) | Boss: Rock Hauler | T09 T10 T11 | todo |
 | [T17](T17-menus-meta-flow.md) | Title, hangar, pilot/ship select, results, pause, settings | T05 T06 T14 | todo |
