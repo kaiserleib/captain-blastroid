@@ -1,0 +1,127 @@
+import { IRIS } from './palette';
+import type { PortraitOverrides } from './traits';
+
+export interface PortraitSpec {
+  seed: string;
+  overrides: PortraitOverrides;
+}
+
+export type NamedPilotId = 'blastroid' | 'juno' | 'grieg' | 'zzkar';
+
+/**
+ * Fixed portraits for the named roster, keyed by pilot id. Overrides pin every trait that
+ * makes the pilot recognizable; the seed only fills in background details.
+ */
+export const NAMED_PORTRAITS: Readonly<Record<NamedPilotId, PortraitSpec>> = {
+  blastroid: {
+    seed: 'CPTBLAST',
+    overrides: {
+      sex: 'm',
+      age: 'middle',
+      alien: false,
+      skin: 'light',
+      head: 'square',
+      eyes: 'normal',
+      irisColor: IRIS.blue,
+      nose: 'straight',
+      mouth: 'grin',
+      facialHair: 'none',
+      hair: 'swept',
+      hairColor: 'blonde',
+      headgear: 'helmetUp',
+      helmetColor: 'white',
+      visorTint: 'gold',
+      accessories: [],
+      uniform: 'cobalt',
+      suit: 'flightSuit',
+      shoulderPads: false,
+      tubes: false,
+      insignia: 'star',
+      patchColor: 'gold',
+      background: 'hangar',
+      bgTint: 'steel',
+    },
+  },
+  juno: {
+    seed: 'JUNOSPRK',
+    overrides: {
+      sex: 'f',
+      age: 'young',
+      alien: false,
+      skin: 'tan',
+      head: 'oval',
+      eyes: 'wide',
+      irisColor: IRIS.green,
+      nose: 'button',
+      mouth: 'smirk',
+      facialHair: 'none',
+      hair: 'undercut',
+      hairColor: 'cyan',
+      headgear: 'headset',
+      accessories: ['freckles'],
+      uniform: 'orange',
+      suit: 'flightSuit',
+      shoulderPads: false,
+      tubes: true,
+      insignia: 'bolt',
+      patchColor: 'yellow',
+      background: 'bulkhead',
+      bgTint: 'steel',
+    },
+  },
+  grieg: {
+    seed: 'OLDGRIEG',
+    overrides: {
+      sex: 'm',
+      age: 'old',
+      alien: false,
+      skin: 'pale',
+      head: 'heavy',
+      eyes: 'narrow',
+      irisColor: IRIS.gray,
+      nose: 'broad',
+      mouth: 'grim',
+      facialHair: 'fullBeard',
+      hair: 'bald',
+      hairColor: 'white',
+      headgear: 'none',
+      accessories: ['eyepatch', 'scar'],
+      uniform: 'olive',
+      suit: 'jacket',
+      shoulderPads: false,
+      tubes: false,
+      insignia: 'chevron',
+      patchColor: 'red',
+      background: 'bulkhead',
+      bgTint: 'rust',
+    },
+  },
+  zzkar: {
+    seed: 'ZZKAR',
+    overrides: {
+      sex: 'm',
+      age: 'middle',
+      alien: true,
+      skin: 'lavender',
+      antennae: true,
+      browRidge: true,
+      head: 'long',
+      eyes: 'large',
+      irisColor: IRIS.gold,
+      nose: 'none',
+      mouth: 'neutral',
+      facialHair: 'none',
+      hair: 'bald',
+      headgear: 'none',
+      accessories: [],
+      uniform: 'purple',
+      suit: 'armored',
+      shoulderPads: true,
+      tubes: true,
+      insignia: 'ring',
+      patchColor: 'cyan',
+      background: 'porthole',
+      bgTint: 'steel',
+    },
+  },
+};

@@ -1,5 +1,5 @@
 # T06 — Sci-fi pilot portrait generator
-Status: todo
+Status: done (needs a human side-by-side style check against siege-and-shuffle)
 Wave: 1 · Depends on: T00 · Blocks: T17
 
 ## Goal
@@ -25,10 +25,19 @@ A seeded, layered pixel-portrait generator in the style of `../siege-and-shuffle
 6. Deterministic: same seed + overrides always gives identical pixels (test via `getImageData` hash in a jsdom/canvas test, or by recording draw calls through a mock ctx).
 
 ## Acceptance criteria
-- [ ] Viewer page regenerates varied, appealing pilots. 20 random seeds show clear variety.
-- [ ] The four named pilots are distinct and recognizable side by side at 2×.
+- [x] Viewer page regenerates varied, appealing pilots. 20 random seeds show clear variety.
+- [x] The four named pilots are distinct and recognizable side by side at 2×.
 - [ ] Visually in the same family as siege-and-shuffle's portraits (same chunkiness and shading approach).
-- [ ] Determinism test passes. No `Math.random` inside the generator (the viewer may use it for new seeds).
+- [x] Determinism test passes. No `Math.random` inside the generator (the viewer may use it for new seeds).
 
 ## Out of scope
 Pilot select screen layout (T17).
+
+## Notes
+- Named pilot specs live in `src/portraits/named.ts` (`NAMED_PORTRAITS`, keyed `blastroid`, `juno`, `grieg`, `zzkar`) instead of `content/pilots.ts`, because T05 was writing that file concurrently. T05/T18 should link each pilot to `NAMED_PORTRAITS[id]`.
+- `src/portraits/palette.ts` has a local `snes()` quantizer (`TODO(T02)`), to be swapped for `gfx/palette.snes`.
+- Layers paint into a small software framebuffer (`pixels.ts`), so the generator can run a selective-outline pass and be tested without a canvas. `generatePortrait` then blits it to the ctx as one `fillRect` per horizontal color run.
+- Each trait rolls from its own `rng.fork(label)`, so overriding one trait never changes the others. The seed is pre-scrambled with one mulberry round because similar seeds otherwise produced correlated traits.
+- Lighting is flipped from siege (which lights from the right) to top-left, per art-direction rule 2.
+- The style-family box is left unticked: the portraits use siege's `drawRectHead` approach at similar feature density and look right in the viewer, but no one has compared them side by side yet.
+- Contract changes: none. `vite.config.ts` gains the `portraits` build input.

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Captain Blastroid — Pilot Portraits</title>
+    <style>
+      body {
+        margin: 16px;
+        background: #100818;
+        color: #f8f8f8;
+        font:
+          14px/1.4 ui-monospace,
+          monospace;
+      }
+      h1,
+      h2 {
+        font-size: 16px;
+        margin: 16px 0 8px;
+      }
+      canvas {
+        display: block;
+        image-rendering: pixelated;
+      }
+      .frame {
+        display: inline-block;
+        padding: 3px;
+        background: linear-gradient(#2848a8, #102068);
+        border: 2px solid #f8f8f8;
+        outline: 2px solid #808890;
+        border-radius: 3px;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      .card {
+        text-align: center;
+        cursor: pointer;
+      }
+      .card span {
+        display: block;
+        margin-top: 4px;
+        font-size: 12px;
+        color: #a8b0c8;
+      }
+      input,
+      button {
+        font: inherit;
+        background: #182050;
+        color: #f8f8f8;
+        border: 2px solid #5870c0;
+        padding: 6px 10px;
+      }
+      button {
+        cursor: pointer;
+      }
+      input {
+        width: 130px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+      #traits {
+        white-space: pre;
+        font-size: 12px;
+        color: #a8b0c8;
+        margin: 0;
+      }
+      #status {
+        color: #80f880;
+        min-height: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Pilot portrait generator</h1>
+    <div class="row">
+      <div class="frame"><canvas id="main" width="48" height="56"></canvas></div>
+      <div>
+        <div class="row">
+          <input id="seed" maxlength="16" aria-label="Seed" />
+          <button id="load">Load</button>
+          <button id="copy">Copy</button>
+        </div>
+        <div class="row" style="margin-top: 8px">
+          <button id="regen">Regenerate</button>
+          <button id="download">Download PNG (8×)</button>
+        </div>
+        <div id="status"></div>
+        <pre id="traits"></pre>
+      </div>
+    </div>
+
+    <h2>Roster (2×)</h2>
+    <div class="row" id="roster"></div>
+
+    <h2>20 random seeds (2×), click to inspect</h2>
+    <div class="row" id="grid"></div>
+    <button id="reroll" style="margin-top: 12px">Reroll grid</button>
+
+    <script type="module" src="./portraits.ts"></script>
+  </body>
+</html>
