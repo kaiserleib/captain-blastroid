@@ -57,7 +57,7 @@ export interface PulsarPattern {
   gaps: number;
   gapDeg: number;
   gapSpin: number;
-  /** A second ring 0.5 s after each pulse, its gaps turned by half a gap width. */
+  /** A second ring 0.5 s after each pulse, its gaps turned by half the gap spacing. */
   double?: boolean;
   /** Optional overrides; default: unchanged. */
   telegraph?: number;
@@ -130,7 +130,8 @@ export function pulsarRingRot(a: Anomaly): number {
 }
 export function pulsarEchoRot(a: Anomaly): number {
   const e = ext(a);
-  return e.ringRot + e.gapW / 2;
+  // Half the gap spacing: the echo's gaps sit between the first ring's, so the player must move.
+  return e.ringRot + Math.PI / Math.max(1, e.gaps);
 }
 export function pulsarNextRot(a: Anomaly): number {
   return ext(a).nextRot;
