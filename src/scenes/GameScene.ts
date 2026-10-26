@@ -4,6 +4,7 @@ import { PLAYFIELD_H } from '../engine/display';
 import { randomSeedString } from '../engine/rng';
 import type { Scene } from '../engine/scene';
 import { flags } from '../debug/flags';
+import { Fx } from '../gfx/fx';
 import { input } from '../input';
 import { pickupsLayer, pickupsSystem, powerupFxLayer } from '../game/pickups';
 import type { Renderer } from '../gfx/renderer';
@@ -28,6 +29,7 @@ export class GameScene implements Scene {
   /** T15 picks the level's theme with `background.setTheme(level.theme, seed)`. */
   readonly background = new Background();
   private readonly bg = createBackgroundPair(this.background);
+  readonly fx = new Fx();
 
   /**
    * Fixed order. Each ticket inserts its system at its slot:
@@ -48,7 +50,7 @@ export class GameScene implements Scene {
     collisionSystem, // collision (T03)
     cleanupSystem, // cleanup (T03)
     // director (T15)
-    // fx (T13)
+    this.fx.system, // fx (T13)
   ];
 
   /**
@@ -56,7 +58,13 @@ export class GameScene implements Scene {
    * anomalies 10, pickups 20, asteroids 30, enemies 40, enemy shots 50,
    * player shots 55, player 60, fx 70, stick 95, HUD 100.
    */
-  readonly layers: DrawLayer[] = [this.bg.layer, input.stickLayer, pickupsLayer, powerupFxLayer];
+  readonly layers: DrawLayer[] = [
+    this.bg.layer,
+    input.stickLayer,
+    pickupsLayer,
+    powerupFxLayer,
+    ...this.fx.layers,
+  ];
 
   private readonly hasPlayerLayer: boolean;
 
@@ -75,6 +83,7 @@ export class GameScene implements Scene {
     if (w.scrollSpeed === 0) w.scrollSpeed = this.background.theme.scrollSpeed;
     // Detached by exit()'s events.clear().
     attachAudio(this.world.events);
+    this.fx.attach(this.world);
     playSong('level1');
   }
 
