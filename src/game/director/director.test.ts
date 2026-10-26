@@ -284,3 +284,11 @@ describe('director (headless Level 1)', () => {
     expect(podToasts).toEqual(['ESCAPE POD AHEAD']);
   });
 });
+
+describe('debug start past the boss', () => {
+  it('still summons the boss right away', () => {
+    const { w, rec } = makeWorld('late-start', 185);
+    run(w, 0.1);
+    expect(rec.bossRequestedAt).toHaveLength(1);
+  });
+});

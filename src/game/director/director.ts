@@ -59,13 +59,21 @@ export function startDirector(
   states.get(w)?.offs.forEach((off) => off());
   const startT = Math.max(0, opts.startT ?? 0);
   const schedule = buildSchedule(level.timeline);
+  let cursor = firstFireAt(schedule, startT);
+  // A `?t=` start past the boss still has to summon it, or the level never ends.
+  for (let i = 0; i < cursor; i++) {
+    if ('boss' in level.timeline[schedule[i]!.index]!) {
+      cursor = i;
+      break;
+    }
+  }
   const st: DirectorState = {
     level,
     t: startT,
     startT,
     phase: 'level',
     schedule,
-    cursor: firstFireAt(schedule, startT),
+    cursor,
     streams: level.asteroidField.map(() => null),
     segmentDone: level.asteroidField.map((s) => s.to <= startT),
     fieldStopped: false,
