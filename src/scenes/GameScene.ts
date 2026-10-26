@@ -26,6 +26,7 @@ import { cleanupSystem } from '../sim/cleanup';
 import { collisionSystem } from '../sim/collision';
 import { bulletsSystem } from '../sim/motion';
 import { createWorld, type DrawLayer, type System, type World } from '../sim/world';
+import { flow } from './flow';
 
 export interface GameSceneData {
   shipId?: string;
@@ -89,6 +90,9 @@ export class GameScene implements Scene {
   ];
 
   private readonly hasPlayerLayer: boolean;
+  // Acted on after the tick's systems, never mid-tick (T17).
+  private pauseWanted = false;
+  private runOver: boolean | null = null;
 
   constructor() {
     if (hudDemoEnabled) this.systems.push(createHudDemoSystem());
@@ -123,6 +127,20 @@ export class GameScene implements Scene {
     this.fx.attach(this.world);
     this.hud.attach(w);
     playSong(level.music);
+    this.pauseWanted = false;
+    this.runOver = null;
+    w.events.on('pauseRequested', () => {
+      this.pauseWanted = true;
+    });
+    w.events.on('runOver', (e) => {
+      this.runOver ??= e.victory;
+    });
+  }
+
+  /** Opens the pause overlay now (visibility loss: no tick will run until the page is back). */
+  pauseNow(): void {
+    this.pauseWanted = false;
+    if (this.runOver === null) flow.pause(this);
   }
 
   exit(): void {
@@ -138,6 +156,11 @@ export class GameScene implements Scene {
     w.tick++;
     w.time += dt;
     for (let i = 0; i < this.systems.length; i++) this.systems[i]?.update(w, dt);
+    if (this.runOver !== null) {
+      flow.results({ run: w.run, time: w.time, victory: this.runOver, abandoned: false });
+    } else if (this.pauseWanted) {
+      this.pauseNow();
+    }
   }
 
   render(r: Renderer, alpha: number): void {

@@ -9,6 +9,10 @@ export interface DebugFlags {
   readonly t: number | null;
   /** Force the logical buffer height (400..520), for HUD screenshots. */
   readonly h: number | null;
+  /** Boot with a crafted in-memory save (T17): `?save=fresh|mid|all`. */
+  readonly save: 'fresh' | 'mid' | 'all' | null;
+  /** Start with audio muted, for automated/browser checks. */
+  readonly mute: boolean;
 }
 
 function num(v: string | null): number | null {
@@ -21,6 +25,7 @@ function num(v: string | null): number | null {
 export function parseFlags(search: string, dev: boolean): DebugFlags {
   const q = new URLSearchParams(search);
   const seed = q.get('seed');
+  const save = q.get('save');
   return Object.freeze({
     debug: dev && q.has('debug'),
     god: dev && q.has('god'),
@@ -29,6 +34,8 @@ export function parseFlags(search: string, dev: boolean): DebugFlags {
     level: dev ? num(q.get('level')) : null,
     t: dev ? num(q.get('t')) : null,
     h: dev ? num(q.get('h')) : null,
+    save: dev && (save === 'fresh' || save === 'mid' || save === 'all') ? save : null,
+    mute: dev && q.has('mute'),
   });
 }
 
