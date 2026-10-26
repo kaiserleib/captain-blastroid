@@ -40,7 +40,7 @@ Wave 4  T18 integration + balance   T19 mobile/PWA/Capacitor   T20 test bots │
 | [T17](T17-menus-meta-flow.md) | Title, hangar, pilot/ship select, results, pause, settings | T05 T06 T14 | done |
 | [T18](T18-integration-balance.md) | End-to-end integration + balance pass | all of waves 1–3 | done |
 | [T19](T19-mobile-pwa-capacitor.md) | PWA, device perf, Capacitor wrapper | T18 | todo |
-| [T20](T20-test-bots-e2e.md) | Headless bot playthrough + Playwright smoke | T18 | todo |
+| [T20](T20-test-bots-e2e.md) | Headless bot playthrough + Playwright smoke | T18 | done |
 
 Wave 2 tickets can start as soon as their listed dependencies merge, without waiting for the whole of Wave 1.
 
