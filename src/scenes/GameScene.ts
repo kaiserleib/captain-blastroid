@@ -6,6 +6,14 @@ import type { Scene, ScenePointer } from '../engine/scene';
 import { flags } from '../debug/flags';
 import { Fx } from '../gfx/fx';
 import { createHudDemoSystem, Hud, hudDemoEnabled } from '../game/hud';
+import {
+  initPlayer,
+  installPlayerSandbox,
+  playerLayer,
+  playerSystem,
+  warmPlayerSprites,
+} from '../game/player';
+import { computePlayerStats, getSave } from '../meta';
 import { input } from '../input';
 import { pickupsLayer, pickupsSystem, powerupFxLayer } from '../game/pickups';
 import type { Renderer } from '../gfx/renderer';
@@ -42,7 +50,7 @@ export class GameScene implements Scene {
     // Owns world.scrollY (T07).
     this.bg.system,
     input.system,
-    // player (T08)
+    playerSystem, // player (T08)
     // weapons (T09)
     // enemies (T11)
     // boss (T16)
@@ -67,6 +75,7 @@ export class GameScene implements Scene {
     powerupFxLayer,
     ...this.fx.layers,
     this.hud.layer,
+    playerLayer,
   ];
 
   private readonly hasPlayerLayer: boolean;
@@ -79,8 +88,14 @@ export class GameScene implements Scene {
 
   enter(data?: unknown): void {
     const d = (data ?? {}) as GameSceneData;
-    this.world = createWorld(d.seed ?? flags.seed ?? randomSeedString(), d);
+    const save = getSave();
+    const shipId = d.shipId ?? save.selectedShip;
+    const pilotId = d.pilotId ?? save.selectedPilot;
+    this.world = createWorld(d.seed ?? flags.seed ?? randomSeedString(), { ...d, shipId, pilotId });
     const w = this.world;
+    initPlayer(w, computePlayerStats(save, shipId, pilotId));
+    warmPlayerSprites(shipId);
+    installPlayerSandbox();
     this.background.setTheme(themeForLevel(w.run.levelId), w.run.seed);
     this.background.prebuild();
     // Until T15's director sets the level's scroll speed.
