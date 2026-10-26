@@ -5,6 +5,7 @@ import { Display } from './engine/display';
 import { Loop } from './engine/loop';
 import { SceneManager } from './engine/scene';
 import { CanvasRenderer } from './gfx/canvasRenderer';
+import { setHitstopSink } from './gfx/fx';
 import { attachInput, input } from './input';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
@@ -45,6 +46,8 @@ const loop = new Loop({
     display.present();
   },
 });
+
+setHitstopSink((s) => loop.hitstop(s));
 
 // Pause whenever the page is hidden; resume() discards the elapsed time.
 function syncLifecycle(): void {
