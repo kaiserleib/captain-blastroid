@@ -10,6 +10,7 @@ export default defineConfig({
         main: 'index.html',
         gallery: 'tools/gallery.html',
         backgrounds: 'tools/backgrounds.html',
+        audio: 'tools/audio.html',
       },
     },
   },

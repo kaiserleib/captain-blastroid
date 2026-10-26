@@ -1,4 +1,5 @@
 import { Background, createBackgroundPair, themeForLevel } from '../backgrounds';
+import { attachAudio, playSong } from '../audio';
 import { PLAYFIELD_H } from '../engine/display';
 import { randomSeedString } from '../engine/rng';
 import type { Scene } from '../engine/scene';
@@ -68,6 +69,9 @@ export class GameScene implements Scene {
     this.background.prebuild();
     // Until T15's director sets the level's scroll speed.
     if (w.scrollSpeed === 0) w.scrollSpeed = this.background.theme.scrollSpeed;
+    // Detached by exit()'s events.clear().
+    attachAudio(this.world.events);
+    playSong('level1');
   }
 
   exit(): void {
