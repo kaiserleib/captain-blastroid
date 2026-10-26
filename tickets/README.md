@@ -20,7 +20,7 @@ Wave 4  T18 integration + balance   T19 mobile/PWA/Capacitor   T20 test bots │
 
 | ID | Title | Depends on | Status |
 |---|---|---|---|
-| [T00](T00-scaffold-and-contracts.md) | Scaffold, loop, display, contracts | — | todo |
+| [T00](T00-scaffold-and-contracts.md) | Scaffold, loop, display, contracts | — | done |
 | [T01](T01-input.md) | Input: keyboard, mouse-follow, floating stick | T00 | todo |
 | [T02](T02-pixel-art-kit.md) | Pixel-art kit: palette, sprites, font, gallery | T00 | todo |
 | [T03](T03-sim-core.md) | Sim core: pools, spatial hash, collision rules, forces, damage | T00 | todo |

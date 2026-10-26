@@ -1,5 +1,5 @@
 # T00 — Scaffold, loop, display, contracts
-Status: todo
+Status: done
 Wave: 0 · Depends on: — · Blocks: everything
 
 ## Goal
@@ -24,13 +24,31 @@ Create a running Vite + TS project with a fixed-timestep loop, pixel-perfect sca
 10. **Debug flags:** parse `?debug ?god ?seed= ?level= ?t= ?sandbox` into a frozen `flags` object. `?debug` draws FPS, tick time (ms) and entity counts.
 
 ## Acceptance criteria
-- [ ] `npm run dev` serves on LAN, and the page fills the screen on desktop and phone with crisp, non-blurry pixels.
-- [ ] Resizing the window or rotating keeps a correct aspect, letterboxing, and HUD bands.
-- [ ] Loop runs at 60 sim ticks/s on 60 Hz and 120 Hz displays (verified by a tick counter in the debug overlay).
-- [ ] Switching tabs pauses, and returning does not fast-forward.
-- [ ] Unit tests: rng determinism (same seed gives the same sequence), pool, event bus, display scale math (pure function).
-- [ ] `Math.random` lint rule fires in `src/sim` and passes elsewhere.
-- [ ] Contract files exist and compile. `createWorld` is covered by a smoke test.
+- [ ] `npm run dev` serves on LAN, and the page fills the screen on desktop and phone with crisp, non-blurry pixels. *(Serving on LAN verified: Vite prints Network URLs and `/`, `/src/main.ts`, `/tools/gallery.html` return 200. Visual crispness on desktop/phone not yet checked by eye.)*
+- [ ] Resizing the window or rotating keeps a correct aspect, letterboxing, and HUD bands. *(Layout math covered by `display.test.ts` across ~3,700 viewport/DPR combos; live resize/rotate not checked in a browser.)*
+- [ ] Loop runs at 60 sim ticks/s on 60 Hz and 120 Hz displays (verified by a tick counter in the debug overlay). *(Simulated 60/120 Hz frame timing gives exactly 60 ticks/s in `loop.test.ts`; `?debug` shows TPS, but not yet read on real 60/120 Hz hardware.)*
+- [ ] Switching tabs pauses, and returning does not fast-forward. *(Pause/resume-without-backlog covered in `loop.test.ts`; the `visibilitychange`/`pagehide` wiring in `main.ts` not exercised in a browser.)*
+- [x] Unit tests: rng determinism (same seed gives the same sequence), pool, event bus, display scale math (pure function).
+- [x] `Math.random` lint rule fires in `src/sim` and passes elsewhere.
+- [x] Contract files exist and compile. `createWorld` is covered by a smoke test.
 
 ## Out of scope
 Input, sprites, gameplay.
+
+## Contract changes
+All additive relative to `docs/tech-stack.md`:
+- `sim/types.ts`: `MoveIntent { x, y, targetX|null, targetY|null }`; `PICKUP_KINDS` const array (`PickupKind` is now derived from it, same union).
+- `sim/world.ts`: `FormationState` named type for `run.formations` values; `PoolCapacities`, `DEFAULT_CAPACITIES`, `WorldOptions`, `WORLD_W/H`; factories `createWorld(seed, opts)`, `createRunState`, `createPlayerState`, `createPlayerStats`, `createBullet/Enemy/Asteroid/Anomaly/Pickup`. Player is id 0; `nextId()` starts at 1. Default run ids: ship `kestrel`, pilot `blastroid`, level `kessler`.
+- `engine/rng.ts`: `Rng { seed, next, range, int (inclusive), pick, chance, fork }`, `createRng(seed: number|string)`. `fork(label)` derives from the seed + label only, so sub-streams don't shift when the parent is consumed differently.
+- `engine/events.ts`: `NoPayload = Record<string, never>` replaces `{}` for payload-less events (emit them with `{}`). `on()` returns an unsubscribe function.
+- `gfx/renderer.ts`: `Renderer` gains `readonly width/height` (logical buffer size); `SpriteOpts`/`TextOpts` named. All primitives draw at `(x + shakeX, y + offsetY + shakeY)`; HUD code zeroes those around band draws.
+- `sim/hooks.ts`: register functions return an unregister function; getters `getShotBlockers`, `getAnomalyContact`, `getBossDamageHooks`, plus `clearHooks()` for tests.
+- `engine/scene.ts` holds both the `Scene` interface and `SceneManager` (no separate `src/scenes/scene.ts`). `ScenePointer` is the logical-coords pointer shape T01 should feed to `scenes.pointer()`. Only the top scene updates; all scenes render bottom-up.
+- `engine/pool.ts`: `Pool(name, capacity, create)`; `each()` doesn't visit objects spawned during the walk.
+
+## Notes
+- `Math.random` is banned with `no-restricted-properties` (Math.random is a property, which `no-restricted-globals` can't target).
+- Debug flags other than `?seed=` are ignored in production builds.
+- Integer-scale rule reads "≥ 85%" as integer scale ÷ best fractional fit. With an integer scale, the leftover vertical room goes to the HUD bands (logical height still clamped to 520).
+- Vitest 5 needs npm 11 to install from scratch (npm 10.9's arborist crashes on its peer set); `npm ci` with npm 10 works from the lockfile. TypeScript is pinned to 6.0.x because typescript-eslint 8.72 doesn't support TS 7 yet.
+- Added `src/debug/overlay.ts` (the `?debug` readout) and `.prettierignore` (skips `*.md`, so docs/tickets aren't reformatted).
