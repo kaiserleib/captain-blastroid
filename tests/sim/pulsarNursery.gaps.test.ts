@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { MAGNETAR } from '../../src/content/levels/pulsarNursery';
-import { PULSAR_VARIANTS } from '../../src/content/obstacles';
+import { PULSAR_DOUBLE_DELAY, PULSAR_VARIANTS } from '../../src/content/obstacles';
 import { spawnBoss, updateBoss } from '../../src/game/boss';
 import { updateEnemies } from '../../src/game/enemies';
 import { Magnetar, MagPhase } from '../../src/game/levels/pulsarNursery';
 import {
   obstaclesSystem,
+  pulsarEchoRadius,
   pulsarGapAngles,
   pulsarGapWidth,
   pulsarGlow,
@@ -13,7 +14,8 @@ import {
   pulseIndex,
   spawnPulsar,
 } from '../../src/game/obstacles';
-import { pulsarRingRot } from '../../src/game/obstacles/anomalies/pulsar';
+import { pulsarEchoRot, pulsarRingRot } from '../../src/game/obstacles/anomalies/pulsar';
+import { ext } from '../../src/game/obstacles/anomalies/state';
 import { damageEnemy } from '../../src/sim/damage';
 import { pinAnomaly } from '../../src/sim/scroll';
 import type { Anomaly, Enemy } from '../../src/sim/types';
@@ -61,6 +63,20 @@ function nextRings(list: readonly Anomaly[], px: number, py: number, tele: numbe
     // Until its trailing edge has cleared the hull.
     if (R >= 0 && R < d + 8)
       out.push({ t: Math.max(0, d - R) / a.strength, rot: pulsarRingRot(a), a });
+    // A `double` pulsar's echo trails each ring by PULSAR_DOUBLE_DELAY, half a spacing round.
+    if (ext(a).double) {
+      const half = Math.PI / n;
+      if (g > 0)
+        out.push({
+          t: (1 - g) * tele + PULSAR_DOUBLE_DELAY + (d - a.r) / a.strength,
+          rot: (GAPS[0] as number) + half,
+          a,
+        });
+      const E = pulsarEchoRadius(a);
+      const toEcho = E >= 0 ? (d - E) / a.strength : (d - R) / a.strength + PULSAR_DOUBLE_DELAY;
+      if (R >= 0 && (E < 0 || E < d + 8))
+        out.push({ t: Math.max(0, toEcho), rot: pulsarEchoRot(a), a });
+    }
   }
   return out.sort((x, y) => x.t - y.t);
 }
@@ -227,7 +243,7 @@ describe('Magnetar rings are reachable from the bottom of the screen', () => {
       }
       if (phase === MagPhase.Meltdown) {
         const c = b.core.enemy as Enemy;
-        c.hp = Math.floor(MAGNETAR.parts[4]!.hp * 0.25);
+        c.hp = Math.floor(MAGNETAR.parts[4]!.hp * MAGNETAR.meltdownAt * 0.8);
         while (b.echo() === null) tick();
       }
       // Let the pattern settle, then count 10 pulses.
@@ -235,7 +251,7 @@ describe('Magnetar rings are reachable from the bottom of the screen', () => {
       const start = pulseIndex(a) + 1;
       while (pulseIndex(a) < start) tick();
       const before = hits();
-      const list = () => [b.main(), b.echo()].filter((x): x is Anomaly => x !== null);
+      const list = () => [b.main()].filter((x): x is Anomaly => x !== null);
       let guard = 0;
       while (pulseIndex(a) < start + 10 && guard++ < 60 * 40) {
         fly(w, list(), 200, MAGNETAR.ring.telegraph);

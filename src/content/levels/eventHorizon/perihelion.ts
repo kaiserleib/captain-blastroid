@@ -88,7 +88,7 @@ export const PERIHELION: PerihelionDef = {
     ringAfter: 0.68,
     ringMinDist: 96,
   },
-  ring: { interval: 1.2, firstDelay: 0.8, n: 6, speed: 68, rotStep: 17, minPlayerDist: 80 },
+  ring: { interval: 1.2, firstDelay: 0.8, n: 8, speed: 68, rotStep: 17, minPlayerDist: 80 },
   deathTime: 2,
   shotSalvageMax: 20,
   podShake: { mag: 3, dur: 0.35 },

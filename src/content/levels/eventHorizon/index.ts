@@ -209,7 +209,7 @@ export const LEVEL: LevelDef = {
   enemyHpMul: 1.15,
   enemyShotSpeedMul: 1.1,
   guaranteeWeapon: { by: 30, weapon: 'seeker' },
-  bossSalvage: 90,
+  bossSalvage: 120,
   podFallbackSalvage: 50,
   schematicOnClear: ['corsair'],
   asteroidField: FIELD,

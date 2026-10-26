@@ -122,8 +122,10 @@ function drawSpokes(r: Renderer, a: Anomaly, cx: number, cy: number, echo: boole
   const half = pulsarGapWidth(a) / 2;
   const from = HULL_RADIUS + 1;
   const len = from + 6 + g * 40;
+  // The `double` echo's gaps sit half a spacing round from the ring's.
+  const turn = echo && n > 0 ? Math.PI / n : 0;
   for (let i = 0; i < n; i++) {
-    const ang = GAPS[i] as number;
+    const ang = (GAPS[i] as number) + turn;
     const main = echo ? COL.echoSpoke : COL.spoke;
     dots(r, cx, cy, Math.cos(ang), Math.sin(ang), from, len, echo ? 2 : 0.7, 0, main);
     const el = from + (len - from) * 0.6;

@@ -9,7 +9,7 @@ const env =
 const FULL = env.SIM === '1';
 const GOD_SEEDS = FULL ? 10 : 3;
 /** God seeds per sector in the every-level pass. */
-const LEVEL_SEEDS = FULL ? 5 : 1;
+const LEVEL_SEEDS = FULL ? 10 : 1;
 
 /** The debug-boosted loadout the god runs start with, so the boss falls in ~20 s. */
 const BOOSTED = [
@@ -105,7 +105,7 @@ describe('idle bot', () => {
 
 describe('determinism per sector', () => {
   // A short slice of each in the default suite; full length under SIM=1.
-  const secs = FULL ? 300 : 25;
+  const secs = FULL ? 420 : 25;
   for (const levelId of LEVEL_ORDER) {
     it(`${levelId}: same seed + bot gives the same hash (dodger, ${secs} s)`, () => {
       const a = runSim(`det-${levelId}`, dodgerBot(), secs, { levelId });
@@ -154,6 +154,14 @@ describe('pool safety', () => {
     });
     expectNoDroppedSpawns(r);
   }, 30_000);
+
+  for (const levelId of LEVEL_ORDER) {
+    it(`${levelId}: every weapon at L5 through the whole sector never fills a pool`, () => {
+      const r = runSim(`pool-max-${levelId}`, godBot(), 420, { levelId, loadout: ALL_MAX });
+      expect(r.result.outcome).toBe('victory');
+      expectNoDroppedSpawns(r);
+    }, 30_000);
+  }
 
   it('the harness sees overflow when a pool is undersized (the check is not vacuous)', () => {
     const r = runSim('pool-tiny', godBot(), 20, {

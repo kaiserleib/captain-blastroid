@@ -28,7 +28,7 @@ export const ROSTER: Readonly<Record<string, EnemyDef>> = {
     behavior: {
       kind: 'custom',
       behavior: 'armada.escort',
-      p: { dive: 125, holdY: 80, arc: 46, strafe: 105, sink: 14, stagger: 0.4, cease: 2.8 },
+      p: { dive: 125, holdY: 80, arc: 46, strafe: 105, sink: 14, stagger: 0.4, cease: 2.2 },
     },
     fire: {
       // The aimed pair: two rounds down the same line, 0.14 s apart.
@@ -145,7 +145,7 @@ export const LEVEL: LevelDef = {
   enemyHpMul: 1.35,
   enemyShotSpeedMul: 1.2,
   guaranteeWeapon: { by: 25, weapon: 'lance' },
-  bossSalvage: 150,
+  bossSalvage: 220,
   podFallbackSalvage: 80,
   schematicOnClear: ['paragon'],
 
@@ -196,8 +196,8 @@ export const LEVEL: LevelDef = {
     { t: 59, spawn: { enemy: 'interceptor', x: 'rand' } },
     { t: 62, formation: { type: 'v', enemy: 'ar_escort', count: 3, x: 60, spacing: 18 } },
     { t: 63, formation: { type: 'v', enemy: 'gnat', count: 5, x: 180 } },
-    { t: 66, spawn: { enemy: 'interceptor', x: 80 } },
-    { t: 66, spawn: { enemy: 'interceptor', x: 160 } },
+    // T31: one interceptor here, not a pair (novice deaths clustered at 45–75 s).
+    { t: 66, spawn: { enemy: 'interceptor', x: 120 } },
     { t: 67, formation: { type: 'column', enemy: 'gnat', count: 5, x: 'rand' } },
 
     // Breather.
