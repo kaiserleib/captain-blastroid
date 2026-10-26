@@ -28,7 +28,7 @@ export const level1: SongDef = {
   bpm: 150,
   stepsPerBeat: 4,
   p1: {
-    vol: 0.28,
+    vol: 0.168,
     duty: 0.5,
     attack: 0.004,
     decay: 0.08,

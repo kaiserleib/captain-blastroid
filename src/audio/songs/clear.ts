@@ -6,7 +6,7 @@ export const clear: SongDef = {
   bpm: 140,
   stepsPerBeat: 4,
   p1: {
-    vol: 0.3,
+    vol: 0.18,
     duty: 0.25,
     attack: 0.004,
     decay: 0.1,

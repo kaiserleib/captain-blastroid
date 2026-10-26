@@ -15,7 +15,7 @@ export const title: SongDef = {
   bpm: 116,
   stepsPerBeat: 4,
   p1: {
-    vol: 0.3,
+    vol: 0.18,
     duty: 0.25,
     attack: 0.005,
     decay: 0.12,

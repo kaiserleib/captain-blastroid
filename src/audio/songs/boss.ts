@@ -20,7 +20,7 @@ export const boss: SongDef = {
   bpm: 168,
   stepsPerBeat: 4,
   p1: {
-    vol: 0.28,
+    vol: 0.168,
     duty: 0.25,
     attack: 0.003,
     decay: 0.06,
