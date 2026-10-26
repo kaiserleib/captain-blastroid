@@ -16,6 +16,7 @@ import {
 import { computePlayerStats, getSave } from '../meta';
 import { anomalyLayer, asteroidLayer, obstaclesSystem } from '../game/obstacles';
 import { enemyLayers, enemySystem } from '../game/enemies';
+import { bossLayer, bossSystem } from '../game/boss';
 import { input } from '../input';
 import { pickupsLayer, pickupsSystem, powerupFxLayer } from '../game/pickups';
 import { dronesLayer, playerShotsLayer, weaponSystem } from '../game/weapons';
@@ -56,7 +57,7 @@ export class GameScene implements Scene {
     playerSystem, // player (T08)
     weaponSystem, // weapons (T09)
     enemySystem, // enemies (T11)
-    // boss (T16)
+    bossSystem, // boss (T16)
     bulletsSystem, // bullets (T03)
     obstaclesSystem, // obstacles (T10)
     pickupsSystem, // pickups (T12)
@@ -84,6 +85,7 @@ export class GameScene implements Scene {
     playerShotsLayer,
     dronesLayer,
     ...enemyLayers,
+    bossLayer,
   ];
 
   private readonly hasPlayerLayer: boolean;
