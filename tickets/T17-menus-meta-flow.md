@@ -30,3 +30,9 @@ The full out-of-run loop in SNES menu style, usable by tap on phones and by keyb
 
 ## Out of scope
 Gameplay scene internals.
+
+## Notes from earlier waves
+- Pilot portraits: `NAMED_PORTRAITS[pilotId]` (`src/portraits/named.ts`) gives `{ seed, overrides }`; draw with `portraitCanvas(seed, overrides)`. `content/pilots.ts` has an unused optional `portrait` field — either link it to `NAMED_PORTRAITS` or remove it.
+- Boot: call `initSave(platform.storage, platform.lifecycle)` and `platform.orientation.lockPortrait()`; point T01's `setInputSettingsProvider` at T05's `getSettings()`.
+- Input: route `input.onUi` to menus, handle `pauseRequested`, call `input.releaseStick()` when a UI widget claims a touch in GameScene. `ScenePointer` objects are reused — copy values you keep.
+- Audio: `playSong('title')` on the title screen; settings call `setVolume`/`setMuted`.

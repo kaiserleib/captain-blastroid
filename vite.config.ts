@@ -9,8 +9,13 @@ export default defineConfig({
       input: {
         main: 'index.html',
         gallery: 'tools/gallery.html',
+      input: {
+        main: 'index.html',
+        gallery: 'tools/gallery.html',
         backgrounds: 'tools/backgrounds.html',
         audio: 'tools/audio.html',
+        portraits: 'tools/portraits.html',
+      },
       },
     },
   },
