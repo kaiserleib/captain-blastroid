@@ -5,13 +5,14 @@ import {
   SHIPS,
   SHIP_ORDER,
   getDef,
+  WEAPONS,
   type ShipDef,
   type StartingWeapon,
 } from '../content';
 import { createPlayerStats, type RunState } from '../sim/world';
 import type { PlayerStats } from '../sim/types';
 import { HIGH_SCORE_LIMIT, type HighScore, type SaveData } from './schema';
-import { applyStatMods, applyUpgrades } from './upgrades';
+import { applyStatMods, applyUpgrades, startWeaponBonus } from './upgrades';
 
 /** What a finished (or abandoned) run hands to the meta layer. */
 export interface RunResult {
@@ -208,11 +209,24 @@ export function computePlayerStats(save: SaveData, shipId: string, pilotId: stri
     baseShield: ship.shield,
     baseSpeed: ship.speed,
     weaponSlots: ship.weaponSlots,
-    startingWeapons: ship.startingWeapons,
+    startingWeapons: boostFirstWeapon(ship.startingWeapons, startWeaponBonus(save)),
     maxShield: ship.shield + stats.extraShield,
     speed: ship.speed * stats.speedMul,
     stats,
   };
+}
+
+/** Munitions Cache: the first starting weapon gains `bonus` levels, capped at its max. */
+function boostFirstWeapon(
+  weapons: readonly StartingWeapon[],
+  bonus: number,
+): readonly StartingWeapon[] {
+  const first = weapons[0];
+  if (!first || bonus <= 0) return weapons;
+  const def = WEAPONS[first.weaponId as keyof typeof WEAPONS];
+  const max = def ? def.levels.length : first.level;
+  const level = Math.max(first.level, Math.min(max, first.level + bonus));
+  return [{ ...first, level }, ...weapons.slice(1)];
 }
 
 /** The pilot an escape pod on `levelId` carries, or null when that level's pilots are all rescued. */

@@ -208,6 +208,54 @@ export const FX = ramp({
   spark: '#a8f8f8',
 });
 
+/** Campaign ship hulls and trims (T24). Hull ramps use the PLAYER keys, trims the COBALT keys. */
+export const WARDEN = ramp({
+  shadow: '#183038',
+  dark: '#386868',
+  base: '#68a098',
+  light: '#a0d0c0',
+  highlight: '#e0f8f0',
+});
+export const TEAL = ramp({
+  dark: '#003838',
+  base: '#007868',
+  light: '#10b898',
+  highlight: '#78f0c8',
+});
+export const CORSAIR = ramp({
+  shadow: '#380818',
+  dark: '#701828',
+  base: '#b02838',
+  light: '#e05048',
+  highlight: '#f8a088',
+});
+export const GILT = ramp({
+  dark: '#684000',
+  base: '#b88010',
+  light: '#f0c030',
+  highlight: '#f8f0a0',
+});
+export const HALCYON = ramp({
+  shadow: '#383850',
+  dark: '#787898',
+  base: '#b8b8d0',
+  light: '#e0e0f0',
+  highlight: '#f8f8f8',
+});
+export const SKY = ramp({
+  dark: '#184878',
+  base: '#3088c0',
+  light: '#68c0f0',
+  highlight: '#b8f0f8',
+});
+export const PARAGON = ramp({
+  shadow: '#081840',
+  dark: '#183878',
+  base: '#2858b0',
+  light: '#5088e0',
+  highlight: '#a8c8f8',
+});
+
 /** Every named ramp, for the gallery and the quantization test. Append new ramps here. */
 export const RAMPS: Readonly<Record<string, Ramp>> = {
   PLAYER,
@@ -226,5 +274,12 @@ export const RAMPS: Readonly<Record<string, Ramp>> = {
   PBULLET,
   PICKUP,
   FX,
+  WARDEN,
+  TEAL,
+  CORSAIR,
+  GILT,
+  HALCYON,
+  SKY,
+  PARAGON,
   MISC: { OUTLINE, WHITE, BLACK },
 };

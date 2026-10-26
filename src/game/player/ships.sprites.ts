@@ -1,10 +1,48 @@
-// Bulwark and Dart, drawn to the Kestrel's spec (gfx/reference.sprites.ts):
+// Player ships beyond the Kestrel, drawn to its spec (gfx/reference.sprites.ts):
 // 24 px wide, nose up, lit from the top-left, same palette keys. Frames 0–2
 // cruise flame, 3–5 long flame while climbing; `_bank_l/_r` for strafing.
-import { CANOPY, COBALT, FLAME, OUTLINE, PLAYER } from '../../gfx/palette';
+// Campaign ships swap the hull (k d b l h) and trim (n c s u) ramps.
+import {
+  CANOPY,
+  COBALT,
+  CORSAIR,
+  FLAME,
+  GILT,
+  HALCYON,
+  OUTLINE,
+  PARAGON,
+  PLAYER,
+  SKY,
+  TEAL,
+  WARDEN,
+} from '../../gfx/palette';
 import { defineSprite, gridRows } from '../../gfx/sprite';
 
-const SHIP_PAL = {
+type HullRamp = Readonly<{
+  shadow: string;
+  dark: string;
+  base: string;
+  light: string;
+  highlight: string;
+}>;
+type TrimRamp = Readonly<{ dark: string; base: string; light: string; highlight: string }>;
+
+function shipPalette(hull: HullRamp, trim: TrimRamp): Readonly<Record<string, string>> {
+  return {
+    ...SHIP_PAL,
+    k: hull.shadow,
+    d: hull.dark,
+    b: hull.base,
+    l: hull.light,
+    h: hull.highlight,
+    n: trim.dark,
+    c: trim.base,
+    s: trim.light,
+    u: trim.highlight,
+  };
+}
+
+const SHIP_PAL: Readonly<Record<string, string>> = {
   o: OUTLINE,
   k: PLAYER.shadow,
   d: PLAYER.dark,
@@ -123,15 +161,16 @@ function defineShip(
   cut: number,
   fuse: [number, number],
   anchorY: number,
+  palette: Readonly<Record<string, string>> = SHIP_PAL,
 ): void {
   const anchor = { x: 12, y: anchorY };
-  defineSprite(id, { palette: SHIP_PAL, frames: withFlames(hull, nozzles), anchor });
+  defineSprite(id, { palette, frames: withFlames(hull, nozzles), anchor });
   for (const [suffix, dir] of [
     ['_bank_l', -1],
     ['_bank_r', 1],
   ] as const) {
     defineSprite(id + suffix, {
-      palette: SHIP_PAL,
+      palette,
       frames: withFlames(bank(hull, dir, cut, fuse[0], fuse[1]), nozzles),
       anchor,
     });
@@ -195,3 +234,116 @@ const DART = symmetric(`
 `);
 
 defineShip('dart', DART, [11], 4, [9, 14], 12);
+
+// ---------------------------------------------------------------------------
+// Warden: a broad teal escort. Wide shoulders and two forward gun booms that
+// read as a fork from above; twin engines.
+
+const WARDEN_HULL = symmetric(`
+  ...........o
+  ..........oh
+  ..........ol
+  .........ohl
+  .o.......ohw
+  ohu......owa
+  ohs.....ohag
+  ohs.....olgq
+  ohc....ohlqq
+  olc...ohlbbb
+  olc..ohlbscb
+  olcoohllbscb
+  olchlbbbbscb
+  olcbbbbbbscb
+  olcbbbbbdscb
+  odcbbdddddcb
+  odnddkkkkdnb
+  oknkooooookd
+  .ooo....okko
+`);
+
+defineShip('warden', WARDEN_HULL, [9, 13], 5, [8, 15], 10, shipPalette(WARDEN, TEAL));
+
+// ---------------------------------------------------------------------------
+// Corsair: a red-and-gold raider with forward-swept wings, gold leading edges.
+
+const CORSAIR_HULL = symmetric(`
+  ...........o
+  ..........oh
+  ..........ol
+  .........ohl
+  .........ohw
+  o........owa
+  oso......olg
+  ohso.....olq
+  .ohso...ohlq
+  .ohbso..olbb
+  ..ohbsooolbb
+  ..ohbbsoolbb
+  ...ohbbsolbb
+  ...olbbbslbb
+  ....olbbbsbb
+  ....odbbdbsb
+  .....oddkdsb
+  ......ooodbb
+  ........oddk
+  ........okko
+`);
+
+defineShip('corsair', CORSAIR_HULL, [9, 13], 3, [8, 15], 11, shipPalette(CORSAIR, GILT));
+
+// ---------------------------------------------------------------------------
+// Halcyon: a slim white lancer. Long needle nose, canards, short rear wings
+// with tip pods.
+
+const HALCYON_HULL = symmetric(`
+  ...........o
+  ..........oh
+  ..........oh
+  ..........ol
+  ..........ol
+  ..........os
+  .........ohs
+  .......oohlw
+  ......osshla
+  .......oohag
+  .........olg
+  .........olq
+  .........olb
+  ..oo....ohlb
+  .ohso..ohlbs
+  .olcsoohlbbc
+  .olccsslbbdc
+  .odnccbbdddn
+  .odnoooddkoo
+  ..oo...okko.
+`);
+
+defineShip('halcyon', HALCYON_HULL, [8, 14], 3, [8, 15], 12, shipPalette(HALCYON, SKY));
+
+// ---------------------------------------------------------------------------
+// Paragon: the flagship interceptor. Flagship blue, a gold-trimmed double delta.
+
+const PARAGON_HULL = symmetric(`
+  ...........o
+  ..........oh
+  ..........ol
+  .........ohl
+  .........ohw
+  ........ouwa
+  ........ohag
+  .......oulgq
+  .......ohlqq
+  ......ouhbbb
+  .....ouhlbbb
+  ....oushlbbb
+  ...ouslbbbsb
+  ..ouslbbbbsb
+  .ousbbbbbbsb
+  ousbbbdddosb
+  osbbddkkocsb
+  ocddooookcsb
+  .oooo..oddcb
+  .......okkoo
+`);
+
+defineShip('paragon', PARAGON_HULL, [9, 13], 4, [8, 15], 11, shipPalette(PARAGON, GILT));

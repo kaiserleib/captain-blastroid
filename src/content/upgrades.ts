@@ -8,9 +8,14 @@ export interface UpgradeDef {
   maxLevel: number;
   /** Buying level n costs `costPerLevel * n`. */
   costPerLevel: number;
-  stat: keyof PlayerStats;
+  /** The stat this upgrade raises; absent for upgrades with another effect (`startWeaponLevel`). */
+  stat?: keyof PlayerStats;
   /** Per level: added to `extraShield`, or applied to a `*Mul` as `× (1 + perLevel * level)`. */
   perLevel: number;
+  /** Per level: levels added to the ship's first starting weapon (capped at its max). */
+  startWeaponLevel?: number;
+  /** Upgrade id that must be maxed before this one can be bought. */
+  requires?: string;
 }
 
 export const UPGRADES: Readonly<Record<string, UpgradeDef>> = {
@@ -50,9 +55,35 @@ export const UPGRADES: Readonly<Record<string, UpgradeDef>> = {
     stat: 'powerupDurationMul',
     perLevel: 0.1,
   },
+  hullLattice: {
+    id: 'hullLattice',
+    name: 'Hull Lattice',
+    description: '+1 max shield',
+    maxLevel: 1,
+    costPerLevel: 600,
+    stat: 'extraShield',
+    perLevel: 1,
+    requires: 'plating',
+  },
+  munitions: {
+    id: 'munitions',
+    name: 'Munitions Cache',
+    description: 'First weapon starts +1 level',
+    maxLevel: 1,
+    costPerLevel: 450,
+    perLevel: 0,
+    startWeaponLevel: 1,
+  },
 };
 
-export const UPGRADE_ORDER: readonly string[] = ['plating', 'capacitors', 'tractor', 'fieldGen'];
+export const UPGRADE_ORDER: readonly string[] = [
+  'plating',
+  'capacitors',
+  'tractor',
+  'fieldGen',
+  'hullLattice',
+  'munitions',
+];
 
 /** Salvage cost of buying `level` (1-based). */
 export function upgradeCost(def: UpgradeDef, level: number): number {

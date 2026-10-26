@@ -14,8 +14,18 @@ export function nextUpgradeCost(save: SaveData, id: string): number | null {
   return lvl >= def.maxLevel ? null : upgradeCost(def, lvl + 1);
 }
 
+/** The upgrade that must be maxed first, while it isn't; null once `id` is unblocked. */
+export function missingRequirement(save: SaveData, id: string): string | null {
+  const req = UPGRADES[id]?.requires;
+  if (!req) return null;
+  const def = UPGRADES[req];
+  if (!def) return null;
+  return upgradeLevel(save, req) >= def.maxLevel ? null : req;
+}
+
 export function canBuyUpgrade(save: SaveData, id: string): boolean {
   if (!(id in UPGRADES)) return false;
+  if (missingRequirement(save, id) !== null) return false;
   const cost = nextUpgradeCost(save, id);
   return cost !== null && save.salvage >= cost;
 }
@@ -46,8 +56,20 @@ export function applyUpgrades(stats: PlayerStats, save: SaveData): void {
   for (const [id, lvl] of Object.entries(save.upgrades)) {
     const def = UPGRADES[id];
     if (!def || lvl <= 0) continue;
+    if (!def.stat) continue;
     const level = Math.min(lvl, def.maxLevel);
     if (def.stat === 'extraShield') stats.extraShield += def.perLevel * level;
     else stats[def.stat] *= 1 + def.perLevel * level;
   }
+}
+
+/** Levels the owned upgrades add to the ship's first starting weapon. */
+export function startWeaponBonus(save: SaveData): number {
+  let bonus = 0;
+  for (const [id, lvl] of Object.entries(save.upgrades)) {
+    const def = UPGRADES[id];
+    if (!def?.startWeaponLevel || lvl <= 0) continue;
+    bonus += def.startWeaponLevel * Math.min(lvl, def.maxLevel);
+  }
+  return bonus;
 }
