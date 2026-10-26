@@ -1,4 +1,4 @@
-import type { Anomaly, Bullet, Enemy, PlayerState } from './types';
+import type { Anomaly, Asteroid, Bullet, Enemy, PlayerState } from './types';
 import type { World } from './world';
 
 // Module-level registries so features can plug into collision/damage without
@@ -16,6 +16,14 @@ export type BossDamageHook = (w: World, part: Enemy, amount: number) => boolean;
  * retargets): armor plates and shielded cores would otherwise soak missiles.
  */
 export type TargetFilter = (w: World, e: Enemy) => boolean;
+
+/**
+ * True while a rock is held by a tractor beam (T23): cleanup never culls it,
+ * and it passes through enemies instead of colliding.
+ */
+export type AsteroidHeldCheck = (w: World, a: Asteroid) => boolean;
+
+let asteroidHeld: AsteroidHeldCheck | null = null;
 
 const shotBlockers: ShotBlocker[] = [];
 const targetFilters: TargetFilter[] = [];
@@ -68,8 +76,21 @@ export function getBossDamageHooks(): readonly BossDamageHook[] {
   return bossDamageHooks;
 }
 
+/** One check; registering again replaces it. */
+export function registerAsteroidHeld(fn: AsteroidHeldCheck): () => void {
+  asteroidHeld = fn;
+  return () => {
+    if (asteroidHeld === fn) asteroidHeld = null;
+  };
+}
+
+export function isAsteroidHeld(w: World, a: Asteroid): boolean {
+  return asteroidHeld !== null && asteroidHeld(w, a);
+}
+
 /** For tests. */
 export function clearHooks(): void {
+  asteroidHeld = null;
   shotBlockers.length = 0;
   bossDamageHooks.length = 0;
   targetFilters.length = 0;

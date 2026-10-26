@@ -1,5 +1,6 @@
 import type { Pool } from '../engine/pool';
 import { formationMemberGone } from './damage';
+import { isAsteroidHeld } from './hooks';
 import type { Anomaly, Asteroid, Body, Bullet, Enemy, Pickup } from './types';
 import { WORLD_H, WORLD_W, type System, type World } from './world';
 
@@ -32,13 +33,15 @@ function cullShots(pool: Pool<Bullet>): void {
   }
 }
 
-function cullAsteroids(pool: Pool<Asteroid>, dt: number): void {
+function cullAsteroids(w: World, dt: number): void {
+  const pool = w.asteroids;
   const items = pool.items;
   const n = pool.count;
   for (let i = 0; i < n; i++) {
     const b = items[i] as Asteroid;
     if (!b.active) continue;
-    if (offscreen(b.x, b.y, b.r, b.vy)) pool.release(b);
+    // Towed rocks are hauled in from anywhere (boss rocks start above the top edge).
+    if (offscreen(b.x, b.y, b.r, b.vy) && !isAsteroidHeld(w, b)) pool.release(b);
     else if (b.flashT > 0) b.flashT = b.flashT > dt ? b.flashT - dt : 0;
   }
 }
@@ -81,7 +84,7 @@ export function cleanup(w: World, dt: number): void {
   cullShots(w.playerShots);
   cullShots(w.enemyShots);
   cullEnemies(w, dt);
-  cullAsteroids(w.asteroids, dt);
+  cullAsteroids(w, dt);
   cullAnomalies(w.anomalies);
   cullPickups(w.pickups);
 

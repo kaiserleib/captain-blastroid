@@ -271,11 +271,15 @@ for (const theme of ROCK_THEME_IDS) {
 }
 
 // ---------------------------------------------------------------------------
-// Black hole: a lightless core, a hot photon ring and a dithered accretion
-// swirl whose colors cycle outward frame by frame.
+// Black hole (T23 lensing look): a lightless core, a 1 px hot accretion ring
+// at the core edge with two highlights slowly turning around it, and a
+// dithered dark halo out to twice the core radius, edged by sparse violet
+// lensing glints. One sprite per whole core radius, so variants and
+// collapsing holes all use the same art. The field itself isn't drawn.
 
-export const BLACKHOLE_SIZE = 48;
 export const BLACKHOLE_FRAMES = 8;
+/** Largest baked core radius (the `massive` variant). */
+export const BLACKHOLE_MAX_R = 12;
 
 /** Dim → hot. Violet outer disk, amber inner disk; never magenta-with-white (enemy bullets). */
 export const ACCRETION = [
@@ -288,47 +292,82 @@ export const ACCRETION = [
   snes('#f8f0c8'),
 ] as const;
 const VOID = snes('#000000');
+const HALO_OUTER = snes('#080410');
 
-function drawBlackHole(ctx: CanvasRenderingContext2D, frame: number, _rng: Rng): void {
-  const c = BLACKHOLE_SIZE / 2;
-  const phase = (frame / BLACKHOLE_FRAMES) * TAU;
-  const pulse = Math.sin(phase) * 0.6;
-  const seed = 0x51ab;
-  for (let y = 0; y < BLACKHOLE_SIZE; y++) {
-    for (let x = 0; x < BLACKHOLE_SIZE; x++) {
-      const dx = x + 0.5 - c;
-      const dy = y + 0.5 - c;
-      const d = Math.hypot(dx, dy);
-      const th = Math.atan2(dy, dx);
-      let col: string | null = null;
-      if (d < 7.6) col = VOID;
-      else if (d < 9.1 + pulse * 0.5) {
-        col = ACCRETION[(frame & 1) === 0 ? 6 : 5];
-      } else if (d < 23) {
-        // Two spiral arms wound inward, turning with the frame.
-        const arm = 0.5 + 0.5 * Math.cos(2 * th + d * 0.42 - phase);
-        const fall = 1 - (d - 9) / 14;
-        const grain = noise(th * 4, d * 0.7, seed) * 0.35;
-        const v = fall * (0.45 + 0.55 * arm) + grain - 0.12 + pulse * 0.05;
-        const thr = BAYER4[(y & 3) * 4 + (x & 3)] as number;
-        if (v > thr * 0.9) {
-          const lv = Math.max(0, Math.min(5, Math.floor(v * 6 + thr * 0.8)));
-          col = ACCRETION[lv] as string;
-        }
-      } else if (d < 23.6 && hash2(Math.floor(th * 18 + frame), 0, seed) > 0.55) {
-        // Sparse lensing glints on the outer edge.
-        col = ACCRETION[2];
-      }
-      if (col === null) continue;
-      ctx.fillStyle = col;
-      ctx.fillRect(x, y, 1, 1);
-    }
-  }
+/** Sprite cell for a core radius: halo to 2c plus a glint ring and a pixel of slack. */
+export function blackHoleSize(core: number): number {
+  return 4 * core + 6;
 }
 
-defineProcSprite('anomaly_blackhole', BLACKHOLE_SIZE, BLACKHOLE_SIZE, drawBlackHole, {
-  frames: BLACKHOLE_FRAMES,
-});
+/**
+ * Pixel color (or null) at offset (dx, dy) from the center of a core-radius
+ * `core` hole on `frame`. Exposed for tests.
+ */
+export function blackHolePixel(
+  core: number,
+  dx: number,
+  dy: number,
+  frame: number,
+  bx: number,
+  by: number,
+): string | null {
+  const d = Math.hypot(dx, dy);
+  const th = Math.atan2(dy, dx);
+  // Two highlights, half a turn apart, turning a half-turn per frame cycle.
+  const spin = (frame / BLACKHOLE_FRAMES) * Math.PI;
+  if (d < core - 0.5) return VOID;
+  if (d < core + 0.55) {
+    let off = Math.abs((((th - spin) % Math.PI) + Math.PI) % Math.PI);
+    if (off > Math.PI / 2) off = Math.PI - off;
+    const hot = off < 0.32 ? 6 : off < 0.75 ? 5 : 4;
+    return ACCRETION[hot] as string;
+  }
+  const outer = core * 2;
+  if (d < outer) {
+    // Dense at the ring, thinning to nothing at 2c.
+    const v = 1 - (d - core - 0.55) / (outer - core - 0.55);
+    const thr = BAYER4[(by & 3) * 4 + (bx & 3)] as number;
+    if (v * 1.15 > thr) return v > 0.5 ? VOID : HALO_OUTER;
+    return null;
+  }
+  if (
+    d < outer + 1 &&
+    core >= 4 &&
+    hash2(Math.floor(th * (core + 6) + frame * 0.5), 1, 0x51ab) > 0.7
+  )
+    return ACCRETION[2];
+  return null;
+}
+
+function bakeBlackHole(core: number) {
+  const size = blackHoleSize(core);
+  return (ctx: CanvasRenderingContext2D, frame: number, _rng: Rng): void => {
+    const c = size / 2;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const col = blackHolePixel(core, x + 0.5 - c, y + 0.5 - c, frame, x, y);
+        if (col === null) continue;
+        ctx.fillStyle = col;
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+  };
+}
+
+const BLACKHOLE_IDS: string[] = [];
+for (let core = 1; core <= BLACKHOLE_MAX_R; core++) {
+  const id = `anomaly_blackhole_r${core}`;
+  BLACKHOLE_IDS[core] = id;
+  defineProcSprite(id, blackHoleSize(core), blackHoleSize(core), bakeBlackHole(core), {
+    frames: BLACKHOLE_FRAMES,
+  });
+}
+
+/** Sprite id for a whole core radius 1..BLACKHOLE_MAX_R (clamped). */
+export function blackHoleSprite(core: number): string {
+  const c = core < 1 ? 1 : core > BLACKHOLE_MAX_R ? BLACKHOLE_MAX_R : core;
+  return BLACKHOLE_IDS[c] as string;
+}
 
 // ---------------------------------------------------------------------------
 // Pulsar: a white-blue neutron star with turning beams. Frames 0–3 idle,

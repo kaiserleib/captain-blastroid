@@ -1,4 +1,4 @@
-import { getAnomalyContact } from './hooks';
+import { getAnomalyContact, isAsteroidHeld } from './hooks';
 import { damageAsteroid, damageEnemy, damagePlayer, isDestructible } from './damage';
 import { NO_HIT } from './spawn';
 import type { Anomaly, Asteroid, Bullet, Enemy } from './types';
@@ -79,9 +79,12 @@ export function enemyShotVsObstacle(w: World, shot: Bullet): boolean {
 /**
  * enemy × asteroid: both take the other's current HP (min 1), credited to
  * nobody. Bosses are immune; a rock moving into a boss just breaks, while a
- * rock moving away (flung from the hopper) passes through.
+ * rock moving away (flung from the hopper) passes through. Rocks held by a
+ * tractor beam pass through every enemy, so a tug can't kill itself with its
+ * own catch and towed rocks can orbit boss parts.
  */
 export function enemyVsAsteroid(w: World, e: Enemy, a: Asteroid): void {
+  if (isAsteroidHeld(w, a)) return;
   if (e.isBoss) {
     const closing = (a.vx - e.vx) * (e.x - a.x) + (a.vy - e.vy) * (e.y - a.y) > 0;
     if (closing) damageAsteroid(w, a, a.hp, false);
