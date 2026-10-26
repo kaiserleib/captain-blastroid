@@ -35,9 +35,9 @@ Wave 4  T18 integration + balance   T19 mobile/PWA/Capacitor   T20 test bots │
 | [T12](T12-pickups-powerups.md) | Pickups, drops, magnet, repulsor | T02 T03 | done |
 | [T13](T13-fx-juice.md) | Explosions, particles, shake, hitstop, haptics | T02 T03 | done |
 | [T14](T14-hud.md) | In-game HUD | T02 | done |
-| [T15](T15-director-level1.md) | Wave director + Level 1 script | T10 T11 T12 | todo |
-| [T16](T16-boss-rock-hauler.md) | Boss: Rock Hauler | T09 T10 T11 | todo |
-| [T17](T17-menus-meta-flow.md) | Title, hangar, pilot/ship select, results, pause, settings | T05 T06 T14 | todo |
+| [T15](T15-director-level1.md) | Wave director + Level 1 script | T10 T11 T12 | done |
+| [T16](T16-boss-rock-hauler.md) | Boss: Rock Hauler | T09 T10 T11 | done |
+| [T17](T17-menus-meta-flow.md) | Title, hangar, pilot/ship select, results, pause, settings | T05 T06 T14 | done |
 | [T18](T18-integration-balance.md) | End-to-end integration + balance pass | all of waves 1–3 | todo |
 | [T19](T19-mobile-pwa-capacitor.md) | PWA, device perf, Capacitor wrapper | T18 | todo |
 | [T20](T20-test-bots-e2e.md) | Headless bot playthrough + Playwright smoke | T18 | todo |
