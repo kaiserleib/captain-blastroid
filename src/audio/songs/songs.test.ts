@@ -41,6 +41,14 @@ describe('sector songs', () => {
     expect(l.peak).toBeLessThanOrEqual(ref.peak);
   });
 
+  // The user found the music too loud; boss used to estimate ~26% over level1.
+  it('boss is no louder than level1', () => {
+    const ref = estimateLoudness(level1);
+    const l = estimateLoudness(SONGS.boss!);
+    expect(l.rms).toBeLessThanOrEqual(ref.rms);
+    expect(l.peak).toBeLessThanOrEqual(ref.peak);
+  });
+
   it('loudness estimate ranks a denser mix louder', () => {
     const loud = { ...level1, drums: 1, p1: { ...level1.p1, vol: 0.3 } };
     expect(estimateLoudness(loud).rms).toBeGreaterThan(estimateLoudness(level1).rms);

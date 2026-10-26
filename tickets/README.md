@@ -54,7 +54,7 @@ Wave 7  T31 campaign integration + bots + balance                            │
 | [T22](T22-sector-select-flow.md) | Sector select, campaign flow, per-sector records, e2e scene hook | T00–T20 | todo |
 | [T23](T23-hazards.md) | Hazards: tractor beams, black-hole variants, pulsar gaps | T00–T20 | todo |
 | [T24](T24-roster-ships-pilots.md) | 4 ships, 3 pilots, 2 upgrades, scalable select screens | T00–T20 | todo |
-| [T25](T25-music-backgrounds.md) | Sector music and backgrounds | T00–T20 | todo |
+| [T25](T25-music-backgrounds.md) | Sector music and backgrounds | T00–T20 | done |
 | [T26](T26-drone-boss-stall.md) | Orbit Drones: fix the boss stall | T00–T20 | done |
 | [T27](T27-ionShoals.md) | Level 2: Ion Shoals + The Shepherd | wave 5 | todo |
 | [T28](T28-eventHorizon.md) | Level 3: Event Horizon + Perihelion | wave 5 | todo |

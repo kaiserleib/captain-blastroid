@@ -20,7 +20,7 @@ export const boss: SongDef = {
   bpm: 168,
   stepsPerBeat: 4,
   p1: {
-    vol: 0.168,
+    vol: 0.134,
     duty: 0.25,
     attack: 0.003,
     decay: 0.06,
@@ -29,9 +29,9 @@ export const boss: SongDef = {
     vibrato: 25,
     vibratoDelay: 0.15,
   },
-  p2: { vol: 0.1, duty: 0.125, attack: 0.002, decay: 0.04, sustain: 0.3, release: 0.01 },
-  tri: { vol: 0.6, attack: 0.002, decay: 0.03, sustain: 0.85, release: 0.01 },
-  drums: 0.65,
+  p2: { vol: 0.08, duty: 0.125, attack: 0.002, decay: 0.04, sustain: 0.3, release: 0.01 },
+  tri: { vol: 0.46, attack: 0.002, decay: 0.03, sustain: 0.85, release: 0.01 },
+  drums: 0.52,
   patterns: {
     I: {
       p2: `A4 ${rep('-', 15)} Bb4 ${rep('-', 15)}`,
