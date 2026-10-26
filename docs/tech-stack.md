@@ -229,6 +229,7 @@ export interface GameEvents {
   weaponAdded:     { weaponId: string };
   weaponLeveled:   { weaponId: string; level: number };
   formationCleared:{ formationId: number; x: number; y: number };
+  bossRequested:   { defId: string };   // director → boss module
   bossSpawned:     { defId: string };
   bossDefeated:    { defId: string; x: number; y: number };
   levelComplete:   {};

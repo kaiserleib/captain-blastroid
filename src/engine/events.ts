@@ -52,6 +52,8 @@ export interface GameEvents {
   weaponAdded: { weaponId: string };
   weaponLeveled: { weaponId: string; level: number };
   formationCleared: { formationId: number; x: number; y: number };
+  /** Director → boss module: spawn this boss (T16 replies with bossSpawned). */
+  bossRequested: { defId: string };
   bossSpawned: { defId: string };
   bossDefeated: { defId: string; x: number; y: number };
   levelComplete: NoPayload;
