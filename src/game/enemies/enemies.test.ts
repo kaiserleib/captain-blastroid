@@ -268,7 +268,8 @@ describe('fairness', () => {
     step(w, Math.floor(ENEMY_FAIRNESS.minAge * 60) - 1);
     expect(liveShots(w).length).toBe(0);
     step(w, 3);
-    expect(liveShots(w).length).toBe(3);
+    const fire = ENEMIES.gunboat?.fire?.pattern;
+    expect(liveShots(w).length).toBe(fire?.kind === 'fan' ? fire.n : -1);
   });
 
   it('no shots from below (or within 24 px above) the player', () => {

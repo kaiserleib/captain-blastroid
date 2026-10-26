@@ -54,8 +54,10 @@ export interface SaveData {
 }
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
+  // Slider positions; the mixer squares them (audio.perceptualGain), so 0.35 is
+  // ~−18 dB. T18: the user found the old linear 0.35 too loud.
   music: 0.35,
-  sfx: 0.8,
+  sfx: 0.9,
   haptics: true,
   stickOpacity: 0.5,
   stickRadiusScale: 1,

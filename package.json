@@ -13,6 +13,7 @@
     "test": "vitest run",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
+    "sim": "BALANCE=1 vitest run tests/sim --silent=false",
     "e2e": "echo \"e2e: Playwright smoke arrives in T20\""
   },
   "devDependencies": {

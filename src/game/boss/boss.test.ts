@@ -10,7 +10,7 @@ import type { Enemy } from '../../sim/types';
 import { createWorld, type World } from '../../sim/world';
 import { updateEnemies } from '../enemies';
 import { obstaclesSystem } from '../obstacles';
-import { weaponSystem } from '../weapons';
+import { pickSeekerTarget, weaponSystem } from '../weapons';
 import {
   activeBoss,
   attachBoss,
@@ -287,7 +287,9 @@ function simulateTimeToKill(loadout: [WeaponId, number][], seed = 'ttk'): number
 }
 
 describe('Rock Hauler balance', () => {
-  it('a typical end-of-level loadout kills it in 45–75 s of DPS-only fighting', () => {
+  // T18 retuned the HP down: this bot leads every shot perfectly, humans and
+  // tests/sim's dodging bot don't (real fights run ~1.4× this, see the T18 log).
+  it('a typical end-of-level loadout kills it in 35–65 s of DPS-only fighting', () => {
     const loadouts: [WeaponId, number][][] = [
       [
         ['blaster', 3],
@@ -302,8 +304,27 @@ describe('Rock Hauler balance', () => {
     ];
     for (const l of loadouts) {
       const ttk = simulateTimeToKill(l);
-      expect(ttk, l.map(([id, lv]) => `${id}${lv}`).join('+')).toBeGreaterThanOrEqual(45);
-      expect(ttk).toBeLessThanOrEqual(75);
+      expect(ttk, l.map(([id, lv]) => `${id}${lv}`).join('+')).toBeGreaterThanOrEqual(35);
+      expect(ttk).toBeLessThanOrEqual(65);
     }
+  });
+});
+
+describe('seeker targeting (T18)', () => {
+  it('never picks hull armor or the shielded core', () => {
+    const w = world('seek');
+    const b = fighting(w);
+    collisionSystem.update(w, DT); // fresh hash
+    const turrets = new Set(b.turrets.map((s) => s.enemy));
+    // Straight under the core: the nearest parts are the core and armor.
+    const t = pickSeekerTarget(w, b.rig.x, b.rig.y + 60);
+    expect(turrets.has(t as Enemy)).toBe(true);
+    killTurrets(w, b);
+    run(w, 0.1);
+    collisionSystem.update(w, DT);
+    expect(pickSeekerTarget(w, b.rig.x, b.rig.y + 60)).toBeNull();
+    run(w, ROCK_HAULER.coreOpenTime + 0.1);
+    collisionSystem.update(w, DT);
+    expect(pickSeekerTarget(w, b.rig.x, b.rig.y + 60)).toBe(b.core.enemy);
   });
 });

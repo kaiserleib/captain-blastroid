@@ -6,7 +6,17 @@ import { damageAsteroid, damageEnemy } from '../../sim/damage';
 import { registerEnemyDefs, spawnAsteroid, spawnEnemy, spawnEnemyShot } from '../../sim/spawn';
 import type { Pickup, PickupKind } from '../../sim/types';
 import { createWorld, type World } from '../../sim/world';
-import { onEnemyKilled, rollAndSpawn, ROLL_NO_SHIELD, rollDrop } from './drops';
+import { PICKUP_TUNING } from '../../content/pickups';
+import { getSave, initSave, resetSaveStore, setSave } from '../../meta';
+import { MemoryStorage } from '../../platform';
+import {
+  onEnemyKilled,
+  onFormationCleared,
+  rollAndSpawn,
+  ROLL_NO_SHIELD,
+  rollDrop,
+  spawnEntry,
+} from './drops';
 import {
   attachPickups,
   collectPickup,
@@ -392,5 +402,32 @@ describe('escape pod', () => {
     tick(w, 120);
     expect(pod.active).toBe(false);
     expect(toasts).toEqual(['POD LOST']);
+  });
+});
+
+describe('T18 drop pacing', () => {
+  it('drops at most one formation capsule per formationCapsuleGap seconds', () => {
+    const w = makeWorld('gap');
+    const capsules = () => live(w).filter((k) => k.kind === 'weapon').length;
+    onFormationCleared(w, 100, 100);
+    expect(capsules()).toBe(1);
+    onFormationCleared(w, 120, 100);
+    expect(capsules()).toBe(1);
+    expect(live(w).some((k) => k.kind === 'salvage')).toBe(PICKUP_TUNING.formationBonusSalvage > 0);
+    getPickupState(w).sinceFormationCapsule = PICKUP_TUNING.formationCapsuleGap;
+    onFormationCleared(w, 140, 100);
+    expect(capsules()).toBe(2);
+  });
+
+  it('the elite schematic skips ships the save already has', async () => {
+    await initSave(new MemoryStorage());
+    const w = makeWorld('schem');
+    setSave({ ...getSave(), schematics: ['bulwark'] });
+    try {
+      spawnEntry(w, { kind: 'schematic', weight: 1 }, 50, 50);
+      expect(live(w).find((k) => k.kind === 'schematic')?.payload).toBe('dart');
+    } finally {
+      resetSaveStore();
+    }
   });
 });

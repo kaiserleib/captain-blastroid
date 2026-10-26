@@ -1,12 +1,6 @@
-// TODO(T02): use gfx/palette.snes once T02 merges; this local copy exists only to unblock T06.
-export function snes(hex: string): string {
-  const n = parseInt(hex.slice(1), 16);
-  const q = (c: number): string =>
-    Math.min(248, Math.round(c / 8) * 8)
-      .toString(16)
-      .padStart(2, '0');
-  return `#${q((n >> 16) & 255)}${q((n >> 8) & 255)}${q(n & 255)}`;
-}
+import { snes } from '../gfx/palette';
+
+export { snes };
 
 /** dark → shadow → base → light, lit from the top-left. */
 export interface Ramp {

@@ -44,11 +44,17 @@ export interface GameEvents {
   enemyHit: { enemy: Enemy; damage: number };
   /** byPlayer=false if an asteroid killed it. */
   enemyKilled: { enemy: Enemy; byPlayer: boolean };
+  /** Non-lethal hit on a multi-HP rock. No listener yet: the rock's flashT is the feedback (T18 audit). */
   asteroidHit: { asteroid: Asteroid };
   asteroidDestroyed: { asteroid: Asteroid; byPlayer: boolean };
   playerHit: { shieldLeft: number };
   playerDied: NoPayload;
   pickupCollected: { pickup: Pickup };
+  /**
+   * weaponAdded / weaponLeveled have no listener yet: T09 emits the toast and
+   * `weapon_up` sfx itself, and the HUD reads `player.weapons` directly. Kept
+   * for future listeners (achievements, evolutions).
+   */
   weaponAdded: { weaponId: string };
   weaponLeveled: { weaponId: string; level: number };
   formationCleared: { formationId: number; x: number; y: number };

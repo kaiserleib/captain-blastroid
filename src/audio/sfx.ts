@@ -1,6 +1,13 @@
 import { getMixer, isRunning, type Mixer } from './audio';
 import { VoiceLimiter, xToPan } from './limiter';
-import { presetDuration, SFX, voiceLength, type SfxPreset, type SfxVoice } from './presets';
+import {
+  presetDuration,
+  SFX,
+  SFX_LIMITS,
+  voiceLength,
+  type SfxPreset,
+  type SfxVoice,
+} from './presets';
 import { pulseWave } from './waves';
 
 const limiter = new VoiceLimiter();
@@ -110,7 +117,8 @@ export function play(id: string, opts?: PlayOpts): boolean {
   }
   const { ctx } = m;
   const now = ctx.currentTime;
-  if (!limiter.tryStart(id, now, durations.get(id)!)) return false;
+  const limits = (SFX_LIMITS as Record<string, { perId: number; minGap: number } | undefined>)[id];
+  if (!limiter.tryStart(id, now, durations.get(id)!, limits)) return false;
 
   let out: AudioNode = m.sfx;
   let panner: StereoPannerNode | null = null;

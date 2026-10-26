@@ -28,7 +28,7 @@ export class PauseOverlay extends MenuScene {
 
   override enter(data?: unknown): void {
     this.game = (data as GameScene | undefined) ?? null;
-    // Freezes the audio clock, so music resumes exactly where it stopped.
+    // Holds the song in place and mutes it; menu sounds keep playing.
     suspendAudio();
   }
 

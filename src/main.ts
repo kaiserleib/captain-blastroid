@@ -58,13 +58,19 @@ const loop = new Loop({
     input.endTick();
   },
   render(alpha) {
-    scenes.render(renderer, alpha);
-    if (overlay) {
-      overlay.recordFrame(performance.now());
-      const top = scenes.top;
-      overlay.draw(renderer, top instanceof GameScene ? top.world : null);
+    if (!overlay) {
+      scenes.render(renderer, alpha);
+      display.present();
+      return;
     }
+    const t0 = performance.now();
+    scenes.render(renderer, alpha);
+    const top = scenes.top;
+    overlay.draw(renderer, top instanceof GameScene ? top.world : null);
     display.present();
+    const t1 = performance.now();
+    overlay.recordRender(t1 - t0);
+    overlay.recordFrame(t1);
   },
 });
 

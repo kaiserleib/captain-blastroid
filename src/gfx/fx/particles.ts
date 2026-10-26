@@ -146,7 +146,7 @@ export class ParticlePool {
   }
 
   /** Smoke goes under the fireballs, so it's drawn in its own pass. */
-  drawSmoke(r: Renderer): void {
+  drawSmoke(r: Renderer, back = 0): void {
     const n = this.count;
     for (let i = 0; i < n; i++) {
       if (this.kind[i] !== PK.smoke) continue;
@@ -157,14 +157,15 @@ export class ParticlePool {
       spriteOpts.frame = f;
       r.sprite(
         smokeSprite(this.ramp[i] as number),
-        this.x[i] as number,
-        this.y[i] as number,
+        (this.x[i] as number) - (this.vx[i] as number) * back,
+        (this.y[i] as number) - (this.vy[i] as number) * back,
         spriteOpts,
       );
     }
   }
 
-  draw(r: Renderer, tick: number): void {
+  /** `back`: seconds to extrapolate backwards from the last tick (render interpolation). */
+  draw(r: Renderer, tick: number, back = 0): void {
     const n = this.count;
     for (let i = 0; i < n; i++) {
       const kind = this.kind[i] as number;
@@ -173,8 +174,8 @@ export class ParticlePool {
       const ramp = RAMPS[this.ramp[i] as number] as readonly string[];
       const ci = Math.min(ramp.length - 1, (t * ramp.length) | 0);
       const color = ramp[ci] as string;
-      const x = this.x[i] as number;
-      const y = this.y[i] as number;
+      const x = (this.x[i] as number) - (this.vx[i] as number) * back;
+      const y = (this.y[i] as number) - (this.vy[i] as number) * back;
       const s = this.size[i] as number;
       switch (kind) {
         case PK.spark: {

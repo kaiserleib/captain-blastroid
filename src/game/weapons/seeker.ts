@@ -1,5 +1,6 @@
 import type { WeaponDef, WeaponLevel } from '../../content/weapons';
 import { getSpatialHash } from '../../sim/spatialHash';
+import { targetFilterFor } from '../../sim/targeting';
 import { Layer, type Body, type PlayerState, type WeaponInstance } from '../../sim/types';
 import type { World } from '../../sim/world';
 import { DEG, fireShot } from './shots';
@@ -8,15 +9,23 @@ import { DEG, fireShot } from './shots';
 const PAIR_FAN = 18 * DEG;
 
 let aheadY = 0;
+let canTarget: (b: Body) => boolean = () => true;
 function isAhead(b: Body): boolean {
-  return b.y < aheadY;
+  return b.y < aheadY && canTarget(b);
 }
 
-/** Closest enemy above the ship, else the closest anywhere. Null if none. */
+/**
+ * Closest targetable enemy above the ship, else the closest anywhere. Boss
+ * armor and shielded cores are skipped (`isTargetable`). Null if none.
+ */
 export function pickSeekerTarget(w: World, x: number, y: number): Body | null {
   const h = getSpatialHash(w);
   aheadY = y;
-  return h.nearest(x, y, Layer.Enemy, Infinity, isAhead) ?? h.nearest(x, y, Layer.Enemy);
+  canTarget = targetFilterFor(w);
+  return (
+    h.nearest(x, y, Layer.Enemy, Infinity, isAhead) ??
+    h.nearest(x, y, Layer.Enemy, Infinity, canTarget)
+  );
 }
 
 /**

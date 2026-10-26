@@ -1,10 +1,9 @@
+import { snesChannel } from '../gfx/palette';
+
 export type Rgb = readonly [number, number, number];
 
-// TODO(T02): switch to `snes()` from gfx/palette.ts once T02 merges; this is a local copy of the rule.
-/** Quantize one channel to SNES BGR555: a multiple of 8 in 0..248. */
-export function q5(c: number): number {
-  return Math.min(248, Math.max(0, Math.round(c / 8) * 8));
-}
+/** Quantize one channel to SNES BGR555: a multiple of 8 in 0..248 (gfx/palette's rule). */
+export const q5 = snesChannel;
 
 export function snes(r: number, g: number, b: number): Rgb {
   return [q5(r), q5(g), q5(b)];

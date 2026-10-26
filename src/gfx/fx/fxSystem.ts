@@ -86,7 +86,7 @@ export class Fx {
         r.shakeY = this.shake.y;
       },
     },
-    { name: 'fx', z: FX_Z, draw: (_w, r) => this.draw(r) },
+    { name: 'fx', z: FX_Z, draw: (_w, r, alpha) => this.draw(r, alpha) },
     {
       name: 'fxOverlay',
       z: FX_OVERLAY_Z,
@@ -166,10 +166,13 @@ export class Fx {
     if (this.flashT > 0) this.flashT = Math.max(0, this.flashT - dt);
   }
 
-  draw(r: Renderer): void {
-    this.particles.drawSmoke(r);
-    this.explosions.draw(r);
-    this.particles.draw(r, this.tick);
+  /** `alpha` is the render interpolation; FX extrapolate back from the latest tick (T18). */
+  draw(r: Renderer, alpha = 1): void {
+    // Seconds behind the latest tick this frame shows (0 at alpha 1).
+    const back = (1 - alpha) / 60;
+    this.particles.drawSmoke(r, back);
+    this.explosions.draw(r, back);
+    this.particles.draw(r, this.tick, back);
     this.popups.draw(r, this.tick);
     if (this.flashT > 0 && this.world) {
       const ctx = r.ctx;

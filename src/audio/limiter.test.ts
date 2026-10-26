@@ -60,3 +60,14 @@ describe('xToPan', () => {
     expect(xToPan(400)).toBe(1);
   });
 });
+
+describe('per-id limits (T18)', () => {
+  it('a tighter override caps voices and spacing for that id only', () => {
+    const l = new VoiceLimiter();
+    const lim = { perId: 1, minGap: 0.1 };
+    expect(l.tryStart('enemy_shot', 0, 0.05, lim)).toBe(true);
+    expect(l.tryStart('enemy_shot', 0.06, 0.05, lim)).toBe(false);
+    expect(l.tryStart('enemy_shot', 0.11, 0.05, lim)).toBe(true);
+    expect(l.tryStart('other', 0.11, 0.05)).toBe(true);
+  });
+});

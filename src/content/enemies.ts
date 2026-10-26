@@ -201,7 +201,7 @@ export const ENEMIES: Readonly<Record<string, EnemyDef>> = {
       duration: 3.4,
     },
     fire: {
-      pattern: { kind: 'aimed', n: 1, spreadDeg: 0, speed: 90 },
+      pattern: { kind: 'aimed', n: 2, spreadDeg: 10, speed: 90 },
       firstDelay: 1.2,
       interval: 0,
       bullet: 's',
@@ -228,7 +228,7 @@ export const ENEMIES: Readonly<Record<string, EnemyDef>> = {
       exitVy: -55,
     },
     fire: {
-      pattern: { kind: 'fan', n: 3, arcDeg: 36, speed: 75 },
+      pattern: { kind: 'fan', n: 5, arcDeg: 56, speed: 75 },
       firstDelay: 1.0,
       interval: 1.5,
       bullet: 'l',
@@ -249,7 +249,7 @@ export const ENEMIES: Readonly<Record<string, EnemyDef>> = {
     fire: {
       pattern: { kind: 'aimed', n: 2, spreadDeg: 10, speed: 100 },
       firstDelay: 1.0,
-      interval: 2,
+      interval: 1.7,
       bullet: 's',
     },
     avoidsAsteroids: true,

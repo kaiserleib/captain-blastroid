@@ -86,6 +86,7 @@ export function updatePickups(w: World, dt: number): void {
   attachPickups(w);
   const st = getPickupState(w);
   st.sinceItem += dt;
+  st.sinceFormationCapsule += dt;
   pollSandbox(w);
   updatePowerups(w, dt);
 

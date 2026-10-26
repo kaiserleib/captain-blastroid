@@ -11,7 +11,14 @@ export type AnomalyContact = (w: World, a: Anomaly, player: PlayerState) => void
 /** Return true when the boss handled the hit (and any death) itself. */
 export type BossDamageHook = (w: World, part: Enemy, amount: number) => boolean;
 
+/**
+ * Return false to hide an `isBoss` enemy from auto-targeting (seekers, homing
+ * retargets): armor plates and shielded cores would otherwise soak missiles.
+ */
+export type TargetFilter = (w: World, e: Enemy) => boolean;
+
 const shotBlockers: ShotBlocker[] = [];
+const targetFilters: TargetFilter[] = [];
 const anomalyContacts: Partial<Record<Anomaly['kind'], AnomalyContact>> = {};
 const bossDamageHooks: BossDamageHook[] = [];
 
@@ -40,6 +47,15 @@ export function registerBossDamage(fn: BossDamageHook): () => void {
   return remover(bossDamageHooks, fn);
 }
 
+export function registerTargetFilter(fn: TargetFilter): () => void {
+  targetFilters.push(fn);
+  return remover(targetFilters, fn);
+}
+
+export function getTargetFilters(): readonly TargetFilter[] {
+  return targetFilters;
+}
+
 export function getShotBlockers(): readonly ShotBlocker[] {
   return shotBlockers;
 }
@@ -56,6 +72,7 @@ export function getBossDamageHooks(): readonly BossDamageHook[] {
 export function clearHooks(): void {
   shotBlockers.length = 0;
   bossDamageHooks.length = 0;
+  targetFilters.length = 0;
   delete anomalyContacts.blackhole;
   delete anomalyContacts.pulsar;
 }

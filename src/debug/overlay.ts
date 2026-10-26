@@ -1,3 +1,4 @@
+import { activeVoices } from '../audio';
 import type { Renderer } from '../gfx/renderer';
 import type { World } from '../sim/world';
 
@@ -12,11 +13,21 @@ export class DebugOverlay {
   private avgUpdateMs = 0;
   private maxUpdateMs = 0;
   private windowMaxMs = 0;
+  private renderMs = 0;
+  private renderMax = 0;
+  private avgRenderMs = 0;
+  private maxRenderMs = 0;
 
   recordTick(ms: number): void {
     this.ticks++;
     this.updateMs += ms;
     if (ms > this.windowMaxMs) this.windowMaxMs = ms;
+  }
+
+  /** Cost of one render pass (scene draw + present), ms. */
+  recordRender(ms: number): void {
+    this.renderMs += ms;
+    if (ms > this.renderMax) this.renderMax = ms;
   }
 
   recordFrame(nowMs: number): void {
@@ -28,14 +39,18 @@ export class DebugOverlay {
     this.tps = (this.ticks * 1000) / elapsed;
     this.avgUpdateMs = this.ticks > 0 ? this.updateMs / this.ticks : 0;
     this.maxUpdateMs = this.windowMaxMs;
+    this.avgRenderMs = this.frames > 0 ? this.renderMs / this.frames : 0;
+    this.maxRenderMs = this.renderMax;
     this.windowStart = nowMs;
     this.frames = this.ticks = this.updateMs = this.windowMaxMs = 0;
+    this.renderMs = this.renderMax = 0;
   }
 
   /** Resets the window so time spent paused doesn't drag the averages down. */
   reset(): void {
     this.windowStart = -1;
     this.frames = this.ticks = this.updateMs = this.windowMaxMs = 0;
+    this.renderMs = this.renderMax = 0;
   }
 
   draw(r: Renderer, world: World | null): void {
@@ -49,6 +64,12 @@ export class DebugOverlay {
     r.text(`UPD ${this.avgUpdateMs.toFixed(2)}ms MAX ${this.maxUpdateMs.toFixed(2)}`, 2, 11, {
       color: '#78f878',
     });
+    r.text(
+      `RND ${this.avgRenderMs.toFixed(2)}ms MAX ${this.maxRenderMs.toFixed(2)} VOX ${activeVoices()}`,
+      2,
+      29,
+      { color: '#78f878' },
+    );
     if (world) {
       r.text(
         `PS${world.playerShots.count} ES${world.enemyShots.count} EN${world.enemies.count} ` +

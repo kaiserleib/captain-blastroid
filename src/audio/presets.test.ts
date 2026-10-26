@@ -22,6 +22,9 @@ const CONTRACT_IDS = [
   'pod_rescue',
   'boss_warning',
   'boss_die',
+  'enemy_shot',
+  'boss_throw',
+  'armor_ping',
   'ui_move',
   'ui_confirm',
   'ui_back',
@@ -36,7 +39,7 @@ describe('sfx presets', () => {
   });
 
   it('keep player shots quiet and short relative to hits and explosions', () => {
-    for (const id of ['shot_blaster', 'shot_spread', 'shot_lance', 'shot_seeker']) {
+    for (const id of ['shot_blaster', 'shot_spread', 'shot_lance', 'shot_seeker', 'enemy_shot']) {
       expect(peak(presets[id]!)).toBeLessThanOrEqual(0.12);
       expect(presetDuration(presets[id]!)).toBeLessThan(0.15);
     }

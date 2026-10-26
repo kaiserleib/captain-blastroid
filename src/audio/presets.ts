@@ -376,6 +376,38 @@ export const SFX = {
       lowpass: 3000,
     },
   ],
+  // Enemy fire: a soft, low "tsew" under the player's guns. Played once per
+  // volley (not per bullet) and voice-limited harder (SFX_LIMITS).
+  enemy_shot: [
+    {
+      wave: 'square',
+      duty: 0.25,
+      freq: 620,
+      freqEnd: 300,
+      decay: 0.06,
+      vol: 0.045,
+      lowpass: 2200,
+    },
+  ],
+  // Rock Hauler flinging a rock: a rising chute whoosh over a low clunk.
+  boss_throw: [
+    { wave: 'triangle', freq: 95, freqEnd: 50, decay: 0.16, vol: 0.32 },
+    {
+      wave: 'noise',
+      freq: 0.25,
+      freqEnd: 0.7,
+      attack: 0.03,
+      decay: 0.24,
+      vol: 0.22,
+      lowpass: 500,
+      lowpassEnd: 2200,
+    },
+  ],
+  // A shot glancing off boss armor: a tiny metallic tink.
+  armor_ping: [
+    { wave: 'square', duty: 0.125, freq: 2600, freqEnd: 2100, decay: 0.035, vol: 0.04 },
+    { wave: 'triangle', freq: 3900, decay: 0.025, vol: 0.025, delay: 0.004 },
+  ],
   ui_move: [{ wave: 'square', duty: 0.25, freq: 660, decay: 0.035, vol: 0.12 }],
   ui_confirm: [
     {
@@ -408,4 +440,12 @@ export const SFX = {
 } satisfies Record<string, SfxPreset>;
 
 export type SfxId = keyof typeof SFX;
+
+/** Per-id voice limits tighter than the limiter's defaults (3 voices, 30 ms apart). */
+export const SFX_LIMITS: Partial<Record<SfxId, { perId: number; minGap: number }>> = {
+  enemy_shot: { perId: 2, minGap: 0.07 },
+  // Every non-lethal hit emits this; under a wall of fire it must stay a tick, not a buzz.
+  enemy_hit: { perId: 2, minGap: 0.07 },
+  armor_ping: { perId: 2, minGap: 0.09 },
+};
 export const SFX_IDS = Object.keys(SFX) as SfxId[];

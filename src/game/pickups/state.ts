@@ -8,6 +8,8 @@ export interface PickupState {
   sinceItem: number;
   /** Live escape pods as of the last pickups tick; lets the shot blocker bail early. */
   pods: number;
+  /** Seconds since the last formation-clear capsule (starts "long ago"). */
+  sinceFormationCapsule: number;
 }
 
 const states = new WeakMap<World, PickupState>();
@@ -15,7 +17,7 @@ const states = new WeakMap<World, PickupState>();
 export function getPickupState(w: World): PickupState {
   let s = states.get(w);
   if (s === undefined) {
-    s = { sinceItem: 0, pods: 0 };
+    s = { sinceItem: 0, pods: 0, sinceFormationCapsule: Infinity };
     states.set(w, s);
   }
   return s;

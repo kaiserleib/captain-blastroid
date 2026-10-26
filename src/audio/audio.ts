@@ -11,7 +11,9 @@ export interface Mixer {
 
 const volumes: Record<Bus, number> = { master: 0.9, sfx: 1, music: 0.35 };
 let muted = false;
-// Game pause and page visibility are tracked separately so one can't undo the other.
+// Game pause only silences the music bus (UI sounds keep playing on the pause
+// menu); page visibility suspends the whole context. Tracked separately so one
+// can't undo the other.
 let gamePaused = false;
 let hidden = false;
 let mixer: Mixer | null = null;
@@ -52,11 +54,20 @@ function createMixer(ctx: AudioContext): Mixer {
   return m;
 }
 
+/**
+ * Slider position (0..1) → gain. Loudness is roughly logarithmic in gain, so a
+ * linear slider crams all its audible change into the top few steps; squaring
+ * spreads it out (0.5 ≈ −12 dB, 0.35 ≈ −18 dB).
+ */
+export function perceptualGain(v: number): number {
+  return v * v;
+}
+
 function applyGains(m: Mixer): void {
   const t = m.ctx.currentTime;
   m.master.gain.setTargetAtTime(muted ? 0 : volumes.master, t, 0.015);
-  m.sfx.gain.setTargetAtTime(volumes.sfx, t, 0.015);
-  m.music.gain.setTargetAtTime(volumes.music, t, 0.015);
+  m.sfx.gain.setTargetAtTime(perceptualGain(volumes.sfx), t, 0.015);
+  m.music.gain.setTargetAtTime(gamePaused ? 0 : perceptualGain(volumes.music), t, 0.03);
 }
 
 /**
@@ -70,7 +81,7 @@ export function getMixer(): Mixer | null {
 
 /** True once the context exists and is actually producing sound. */
 export function isRunning(): boolean {
-  return mixer !== null && mixer.ctx.state === 'running' && !gamePaused && !hidden;
+  return mixer !== null && mixer.ctx.state === 'running' && !hidden;
 }
 
 /** Runs `fn` each time the context starts running (first unlock and every resume). */
@@ -93,7 +104,7 @@ export function unlock(): void {
     });
   }
   const { ctx } = mixer;
-  if (gamePaused || hidden) return;
+  if (hidden) return;
   if (ctx.state !== 'running') void ctx.resume().catch(() => {});
   // iOS only un-mutes Web Audio after a buffer has been started inside a gesture.
   const src = ctx.createBufferSource();
@@ -105,7 +116,7 @@ export function unlock(): void {
 function syncContext(): void {
   if (!mixer) return;
   const { ctx } = mixer;
-  if (gamePaused || hidden) {
+  if (hidden) {
     if (ctx.state === 'running') void ctx.suspend().catch(() => {});
   } else if (ctx.state !== 'running') {
     // iOS can leave the context "interrupted" after a call or backgrounding.
@@ -113,15 +124,19 @@ function syncContext(): void {
   }
 }
 
-/** Game pause: freezes the audio clock, so music picks up exactly where it stopped. */
+/** Game pause: mutes the music bus (music.ts also holds the song in place). SFX stay live. */
 export function suspend(): void {
   gamePaused = true;
-  syncContext();
+  if (mixer) applyGains(mixer);
 }
 
 export function resume(): void {
   gamePaused = false;
-  syncContext();
+  if (mixer) applyGains(mixer);
+}
+
+export function isGamePaused(): boolean {
+  return gamePaused;
 }
 
 function setHidden(h: boolean): void {

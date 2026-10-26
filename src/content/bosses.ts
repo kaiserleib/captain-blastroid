@@ -85,10 +85,11 @@ export interface RockHaulerDef {
   turretShake: { mag: number; dur: number };
 }
 
-// Hit points were tuned so the DPS-only sim (boss.test.ts) at a typical
-// end-of-level loadout — Blaster L3, Spread L3, Lance L2 — lands near 60 s,
-// and a real fight with dodging runs 60–90 s. Design.md's 20/60 predates
-// the weapon tables.
+// Hit points (T18): the DPS-only sim in boss.test.ts (a bot that leads every
+// shot) kills it in ~40–55 s with Blaster L3 + Spread L3 + Lance/Seeker L2. A
+// dodging bot that doesn't lead (tests/sim) takes ~45–90 s, which is where a
+// human with a typical loadout should land. Phase 2 strafes slower than T16's
+// first pass because an unled shot at a fast-sweeping core mostly misses.
 export const ROCK_HAULER: RockHaulerDef = {
   id: 'rock_hauler',
   name: 'ROCK HAULER',
@@ -99,7 +100,7 @@ export const ROCK_HAULER: RockHaulerDef = {
       role: 'turret',
       ox: -34,
       oy: 10,
-      hp: 135,
+      hp: 120,
       r: 10,
       targetable: true,
     },
@@ -108,17 +109,17 @@ export const ROCK_HAULER: RockHaulerDef = {
       role: 'turret',
       ox: 34,
       oy: 10,
-      hp: 135,
+      hp: 120,
       r: 10,
       targetable: true,
     },
-    { defId: 'rock_hauler_core', role: 'core', ox: 0, oy: 6, hp: 270, r: 13, targetable: false },
+    { defId: 'rock_hauler_core', role: 'core', ox: 0, oy: 6, hp: 210, r: 13, targetable: false },
     { defId: 'rock_hauler_hull', role: 'hull', ox: -21, oy: -8, hp: 0, r: 8, targetable: false },
     { defId: 'rock_hauler_hull', role: 'hull', ox: 21, oy: -8, hp: 0, r: 8, targetable: false },
     { defId: 'rock_hauler_hull', role: 'hull', ox: 0, oy: -19, hp: 0, r: 10, targetable: false },
   ],
   entry: { fromY: -44, toY: 72, duration: 3 },
-  strafe: { minX: 62, maxX: 178, period1: 6.5, period2: 4.2, bobAmp: 3, bobPeriod: 2.6 },
+  strafe: { minX: 62, maxX: 178, period1: 7, period2: 5.6, bobAmp: 3, bobPeriod: 2.6 },
   turret: {
     interval: 1.6,
     intervalAlone: 1.2,
@@ -138,10 +139,10 @@ export const ROCK_HAULER: RockHaulerDef = {
     ox: 0,
     oy: 38,
   },
-  ring: { interval: 2, firstDelay: 0.6, n: 8, speed: 70, rotStep: 15 },
+  ring: { interval: 1.5, firstDelay: 0.6, n: 14, speed: 70, rotStep: 11 },
   coreOpenTime: 1.2,
   deathTime: 2,
-  shotSalvageMax: 40,
+  shotSalvageMax: 20,
   turretShake: { mag: 3, dur: 0.35 },
 };
 

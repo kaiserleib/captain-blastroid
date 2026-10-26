@@ -73,6 +73,15 @@ export function bossDamageHook(w: World, part: Enemy, amount: number): boolean {
   return b.onDamage(part, b.rig.slots[i] as (typeof b.rig.slots)[number], amount);
 }
 
+/** `registerTargetFilter` hook: seekers skip shielded parts and the boss while it can't be hurt. */
+export function bossTargetFilter(w: World, part: Enemy): boolean {
+  const b = activeBoss(w);
+  if (b === null) return true;
+  const i = b.rig.slotOf(part);
+  if (i < 0) return true;
+  return !b.invulnerable() && (b.rig.slots[i] as (typeof b.rig.slots)[number]).targetable;
+}
+
 /** Remaining HP over every part, targetable or not (0 with no boss). */
 export function bossHp(w: World): number {
   return activeBoss(w)?.rig.hp() ?? 0;

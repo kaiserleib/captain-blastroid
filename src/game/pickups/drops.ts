@@ -13,6 +13,7 @@ import {
 } from '../../content/pickups';
 import { WEAPON_MAX_LEVEL } from '../../content/weapons';
 import type { Rng } from '../../engine/rng';
+import { getSave } from '../../meta';
 import { getEnemyDef, spawnPickup } from '../../sim/spawn';
 import type { Asteroid, Pickup, PickupKind, WeaponInstance } from '../../sim/types';
 import type { World } from '../../sim/world';
@@ -127,10 +128,14 @@ export function spraySalvage(w: World, x: number, y: number, total: number): voi
   }
 }
 
+/** The first schematic ship not found this run and not already in the save (found or built). */
 function nextSchematic(w: World): string | null {
+  const save = getSave();
   for (let i = 0; i < SCHEMATIC_SHIPS.length; i++) {
     const id = SCHEMATIC_SHIPS[i] as string;
-    if (!w.run.schematics.includes(id)) return id;
+    if (w.run.schematics.includes(id)) continue;
+    if (save.schematics.includes(id) || save.shipsBuilt.includes(id)) continue;
+    return id;
   }
   return null;
 }
@@ -219,6 +224,20 @@ export function onAsteroidDestroyed(w: World, size: Asteroid['size'], x: number,
   if (table !== undefined) rollAndSpawn(w, table, x, y);
 }
 
+/**
+ * 1942 rule: a wiped-out formation drops a weapon capsule, at most one per
+ * `formationCapsuleGap` seconds so a level of ~30 formations doesn't max the
+ * rack by midway. Inside the gap the clear sprays a little salvage instead.
+ */
+export function onFormationCleared(w: World, x: number, y: number): void {
+  const st = getPickupState(w);
+  if (st.sinceFormationCapsule >= PICKUP_TUNING.formationCapsuleGap) {
+    if (spawnWeaponCapsule(w, x, y) !== null) st.sinceFormationCapsule = 0;
+  } else if (PICKUP_TUNING.formationBonusSalvage > 0) {
+    spraySalvage(w, x, y, PICKUP_TUNING.formationBonusSalvage);
+  }
+}
+
 /** Subscribes the drop rules to a world's events. */
 export function attachDrops(w: World): void {
   w.events.on('enemyKilled', (p) => {
@@ -232,6 +251,6 @@ export function attachDrops(w: World): void {
     onAsteroidDestroyed(w, a.size, a.x, a.y);
   });
   w.events.on('formationCleared', (p) => {
-    spawnWeaponCapsule(w, p.x, p.y);
+    onFormationCleared(w, p.x, p.y);
   });
 }

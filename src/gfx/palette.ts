@@ -6,6 +6,9 @@ function q(v: number): number {
   return c < 0 ? 0 : c > 248 ? 248 : c;
 }
 
+/** One channel quantized to BGR555 (a multiple of 8 in 0..248), for code that works in numbers. */
+export const snesChannel = q;
+
 function hex2(v: number): string {
   return v.toString(16).padStart(2, '0');
 }

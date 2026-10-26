@@ -103,6 +103,22 @@ class Playback {
     return true;
   };
 
+  /**
+   * Continues the song from its cursor at `t`, dropping whatever was already
+   * scheduled past now. Used when un-pausing: the clock kept running, the song
+   * didn't.
+   */
+  rebase(now: number, t: number): void {
+    this.nextTime = t;
+    for (const ch of CHANNELS) {
+      const v = this.voices[ch];
+      v.env.gain.cancelScheduledValues(now);
+      v.env.gain.setValueAtTime(0, now);
+      v.vib.gain.cancelScheduledValues(now);
+      v.vib.gain.setValueAtTime(0, now);
+    }
+  }
+
   get finished(): boolean {
     return this.m.ctx.currentTime > this.stopAt;
   }
@@ -240,11 +256,12 @@ let current: Playback | null = null;
 const fading: Playback[] = [];
 let pending: string | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
+let paused = false;
 
 function pumpAll(): void {
   timer = null;
   const m = getMixer();
-  if (!m) return;
+  if (!m || paused) return;
   const now = m.ctx.currentTime;
   const horizon = now + LOOKAHEAD;
   if (current) {
@@ -316,6 +333,22 @@ export function fadeTo(id: string, seconds: number): void {
 export function stop(fadeSeconds = 0.03): void {
   pending = null;
   retire(fadeSeconds);
+}
+
+/**
+ * Game pause: stops scheduling so the song holds its place; the mixer mutes
+ * the music bus meanwhile. Resuming re-anchors the song at the current time.
+ */
+export function setPaused(p: boolean): void {
+  if (p === paused) return;
+  paused = p;
+  if (p) return;
+  const m = getMixer();
+  if (m && current) {
+    const now = m.ctx.currentTime;
+    current.rebase(now, now + 0.06);
+  }
+  if (current || fading.length > 0) ensureTimer();
 }
 
 export function currentSong(): string | null {

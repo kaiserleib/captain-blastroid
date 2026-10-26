@@ -32,6 +32,13 @@ export const PICKUP_TUNING = {
   pityTime: 25,
   /** Formation / carrier capsules favor owned non-max weapons this often. */
   ownedWeaponBias: 0.5,
+  /**
+   * Seconds after a formation-clear capsule before another clear drops one
+   * (T18: dropping one per clear maxed four weapons by mid-level).
+   */
+  formationCapsuleGap: 25,
+  /** What a clear inside that gap sprays instead. */
+  formationBonusSalvage: 1,
 } as const;
 
 export const POWERUP_TUNING = {

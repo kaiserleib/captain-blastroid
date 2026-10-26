@@ -84,7 +84,8 @@ function levels(first: Partial<WeaponLevel>, ...deltas: Partial<WeaponLevel>[]):
 }
 
 export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
-  // L1 1 shot 2.5/s; L2 faster; L3 twin; L4 +1 dmg; L5 triple.
+  // L1 1 shot 2.5/s; L2 faster; L3 twin; L4 +1 dmg; L5 triple. L4–L5 (T18) also fire
+  // faster: max level should read as a wall of fire.
   blaster: {
     id: 'blaster',
     name: 'BLASTER',
@@ -105,11 +106,11 @@ export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
       },
       { cooldown: 0.3 },
       { count: 2 },
-      { damage: 2 },
-      { count: 3, cooldown: 0.25, offset: 5, radius: 3, sprite: 'pbullet_blaster5' },
+      { damage: 2, cooldown: 0.25 },
+      { count: 3, cooldown: 0.17, offset: 5, radius: 3, sprite: 'pbullet_blaster5' },
     ),
   },
-  // 3-way ±12° 1.5/s; wider; wider; 5-way; faster. Short ttl: ~70% screen height.
+  // 3-way ±12° 1.5/s; wider; wider; 5-way; faster. Short ttl: ~75% screen height.
   spread: {
     id: 'spread',
     name: 'SPREAD CANNON',
@@ -124,14 +125,14 @@ export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
         count: 3,
         spread: 12,
         speed: 260,
-        ttl: 1.05,
+        ttl: 1.15,
         radius: 3,
         sprite: 'pbullet_spread',
       },
       { spread: 16 },
       { spread: 20 },
       { count: 5, spread: 28 },
-      { cooldown: 0.45, radius: 4, sprite: 'pbullet_spread5' },
+      { count: 7, spread: 36, cooldown: 0.4, radius: 4, sprite: 'pbullet_spread5' },
     ),
   },
   // Pierce 2; more pierce; more; thicker; faster.
@@ -156,7 +157,7 @@ export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
       { pierce: 3 },
       { pierce: 4 },
       { radius: 4, sprite: 'pbullet_lance_w' },
-      { cooldown: 0.8, pierce: 5, sprite: 'pbullet_lance5' },
+      { cooldown: 0.55, pierce: 5, sprite: 'pbullet_lance5' },
     ),
   },
   // 1 missile 1/s; more missiles; then faster turn rate.
@@ -183,7 +184,7 @@ export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
       { count: 2 },
       { count: 3 },
       { homing: 4.5 },
-      { count: 4, homing: 6, cooldown: 0.8, sprite: 'pbullet_seeker5' },
+      { count: 6, homing: 6, cooldown: 0.7, sprite: 'pbullet_seeker5' },
     ),
   },
   // 1 drone r22 1 dmg/0.25 s; more drones; then larger radius; then more damage.
@@ -207,7 +208,7 @@ export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
       { count: 2 },
       { count: 3 },
       { orbitRadius: 28 },
-      { damage: 2, count: 4, radius: 5, sprite: 'drone5' },
+      { damage: 2, count: 5, radius: 5, sprite: 'drone5' },
     ),
   },
 };

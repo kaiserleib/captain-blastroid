@@ -4,7 +4,9 @@ import type { World } from '../../sim/world';
 export const MAX_PIPS = 12;
 export const PIP_LOST_T = 0.6;
 export const PIP_GAIN_T = 0.36;
-export const BOSS_FLASH_T = 0.12;
+export const BOSS_FLASH_T = 0.08;
+/** Minimum seconds between boss-bar glints, so steady fire doesn't hold the bar white. */
+export const BOSS_FLASH_GAP = 0.3;
 export const WARNING_T = 2;
 /** If `bossSpawned` fires before the parts exist, wait this long before hiding the bar. */
 const BOSS_GRACE_T = 1;
@@ -24,6 +26,7 @@ export class HudState {
   bossHp = 0;
   bossMaxHp = 0;
   bossFlashT = 0;
+  private bossFlashCd = 0;
   private bossSeen = false;
   private bossT = 0;
 
@@ -45,7 +48,7 @@ export class HudState {
     this.pipGainT.fill(0);
     this.bossActive = false;
     this.bossName = '';
-    this.bossHp = this.bossMaxHp = this.bossFlashT = 0;
+    this.bossHp = this.bossMaxHp = this.bossFlashT = this.bossFlashCd = 0;
     this.bossSeen = false;
     this.bossT = 0;
     this.warningT = 0;
@@ -114,6 +117,7 @@ export class HudState {
 
   private updateBoss(w: World, dt: number): void {
     if (this.bossFlashT > 0) this.bossFlashT = Math.max(0, this.bossFlashT - dt);
+    if (this.bossFlashCd > 0) this.bossFlashCd = Math.max(0, this.bossFlashCd - dt);
     if (!this.bossActive) return;
     this.bossT += dt;
     let hp = 0;
@@ -132,7 +136,10 @@ export class HudState {
       this.bossHp = 0;
       return;
     }
-    if (this.bossSeen && hp < this.bossHp) this.bossFlashT = BOSS_FLASH_T;
+    if (this.bossSeen && hp < this.bossHp && this.bossFlashCd <= 0) {
+      this.bossFlashT = BOSS_FLASH_T;
+      this.bossFlashCd = BOSS_FLASH_GAP;
+    }
     this.bossSeen = true;
     this.bossHp = hp;
     // Destroyed parts leave the pool, so keep the peak as the bar's full length.

@@ -3,7 +3,7 @@ import { ROCK_HAULER, type RockHaulerDef } from '../../content/bosses';
 import { addKillScore, HIT_FLASH } from '../../sim/damage';
 import type { Enemy } from '../../sim/types';
 import type { World } from '../../sim/world';
-import { aimAt, burst, ring, SHOT_LARGE, SHOT_SMALL } from '../enemies';
+import { aimAt, burst, emitEnemyShotSfx, ring, SHOT_LARGE, SHOT_SMALL } from '../enemies';
 import { spawnRock } from '../obstacles';
 import { spawnDrop } from '../pickups';
 import { BossRig, type PartSlot } from './parts';
@@ -25,6 +25,8 @@ export type PhaseId = (typeof Phase)[keyof typeof Phase];
 
 const DEG = Math.PI / 180;
 const SPARKS = 12;
+/** Seconds between armor pings: a stream of deflected shots shouldn't become a buzz. */
+const PING_GAP = 0.12;
 const DEFEAT_P = { defId: '', x: 0, y: 0 };
 const SFX_P = { id: '', x: 0 as number | undefined };
 const SHAKE_P = { mag: 0, dur: 0 };
@@ -55,6 +57,10 @@ export class RockHauler {
   readonly sparks = new Float32Array(SPARKS * 3).fill(99);
   private sparkI = 0;
   private sparkSeq = 0;
+  private pingT = 0;
+  /** Set by `deflect` (inside the damage hook); the sfx goes out on the next update. */
+  private pingWanted = false;
+  private pingX = 0;
 
   readonly core: PartSlot;
   readonly turrets: PartSlot[];
@@ -108,6 +114,8 @@ export class RockHauler {
     this.sparks[i * 3 + 1] = part.y + part.r * 0.55 + ((k * 13) % 5) - 2;
     this.sparks[i * 3 + 2] = 0;
     this.sparkI = (i + 1) % SPARKS;
+    this.pingWanted = true;
+    this.pingX = part.x;
   }
 
   private setPhase(p: PhaseId): void {
@@ -122,6 +130,14 @@ export class RockHauler {
       this.sparks[i] = (this.sparks[i] as number) + dt;
     for (let i = 0; i < 2; i++) this.turretFired[i] = (this.turretFired[i] as number) + dt;
     this.flungT += dt;
+    this.pingT -= dt;
+    if (this.pingWanted) {
+      this.pingWanted = false;
+      if (this.pingT <= 0 && this.phase < Phase.Dying) {
+        this.pingT = PING_GAP;
+        this.sfx(w, 'armor_ping', this.pingX);
+      }
+    }
 
     if (this.pendingDefeat && !this.defeatEmitted) this.defeat(w);
 
@@ -233,6 +249,7 @@ export class RockHauler {
       this.throwRock(w, x, y, aim - f.pairDeg);
       this.throwRock(w, x, y, aim + f.pairDeg);
     }
+    this.sfx(w, 'boss_throw', x);
     this.flungT = 0;
   }
 
@@ -256,7 +273,8 @@ export class RockHauler {
     if (!w.player.alive) return;
     const core = this.core.enemy;
     if (core === null) return;
-    ring(w, core.x, core.y, r.n, r.speed, this.ringRot, SHOT_LARGE);
+    if (ring(w, core.x, core.y, r.n, r.speed, this.ringRot, SHOT_LARGE) > 0)
+      emitEnemyShotSfx(w, core.x);
     this.ringRot = (this.ringRot + r.rotStep) % 360;
   }
 

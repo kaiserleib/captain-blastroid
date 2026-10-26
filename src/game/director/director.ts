@@ -184,13 +184,19 @@ function applyCapsuleFixes(w: World, st: DirectorState): void {
   const n = w.pickups.count;
   for (const fix of fixes) {
     // T12 spawns the clear capsule exactly where the last member died.
+    let found = false;
     for (let i = 0; i < n; i++) {
       const k = items[i] as Pickup;
       if (!k.active || k.kind !== 'weapon' || k.x !== fix.x || k.y !== fix.y) continue;
       k.payload = fix.weaponId;
+      found = true;
+      break;
+    }
+    // T12's capsule gap can skip a clear; a forced capsule still has to appear.
+    if (!found && spawnDrop(w, 'weapon', fix.x, fix.y, fix.weaponId) !== null) found = true;
+    if (found) {
       st.forcedGranted.add(fix.weaponId);
       logLine(st, `${st.t.toFixed(1)} forcedCapsule ${fix.weaponId}`);
-      break;
     }
   }
   fixes.length = 0;

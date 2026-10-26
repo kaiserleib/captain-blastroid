@@ -23,7 +23,7 @@ export const LEVEL1: LevelDef = {
   music: 'level1',
   scrollSpeed: 30,
   duration: 210,
-  bossSalvage: 100,
+  bossSalvage: 50,
   podFallbackSalvage: 30,
   schematicOnClear: ['bulwark', 'dart'],
 

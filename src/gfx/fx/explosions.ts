@@ -131,14 +131,15 @@ export class Explosions {
     }
   }
 
-  draw(r: Renderer): void {
+  /** `back`: seconds to extrapolate backwards from the last tick (render interpolation). */
+  draw(r: Renderer, back = 0): void {
     for (let i = 0; i < this.count; i++) {
       const size = SIZES[this.bsize[i] as number] as BoomSize;
       spriteOpts.frame = (this.bt[i] as number) / FRAME_DUR[size];
       r.sprite(
         SPRITES[this.bsize[i] as number] as string,
-        this.bx[i] as number,
-        this.by[i] as number,
+        (this.bx[i] as number) - (this.bvx[i] as number) * back,
+        (this.by[i] as number) - (this.bvy[i] as number) * back,
         spriteOpts,
       );
     }

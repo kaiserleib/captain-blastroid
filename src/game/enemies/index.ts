@@ -27,6 +27,7 @@ export {
   aimed,
   burst,
   canFire,
+  emitEnemyShotSfx,
   fan,
   firePattern,
   muzzleY,

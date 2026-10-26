@@ -1,6 +1,7 @@
 import { angleDiff } from '../engine/math';
 import type { Pool } from '../engine/pool';
 import { getSpatialHash } from './spatialHash';
+import { isTargetable, targetFilterFor } from './targeting';
 import { Layer, type Body, type Bullet, type Enemy } from './types';
 import type { System, World } from './world';
 
@@ -39,10 +40,15 @@ export function steerHoming(w: World, b: Bullet, dt: number): void {
   if (b.owner === 'enemy') {
     target = w.player.alive ? w.player : null;
     if (target === null) return;
-  } else if ((target = findEnemy(w, b.targetId)) === null) {
-    target = getSpatialHash(w).nearest(b.x, b.y, Layer.Enemy);
-    b.targetId = target === null ? -1 : target.id;
-    if (target === null) return;
+  } else {
+    const e = findEnemy(w, b.targetId);
+    if (e !== null && isTargetable(w, e)) {
+      target = e;
+    } else {
+      target = getSpatialHash(w).nearest(b.x, b.y, Layer.Enemy, Infinity, targetFilterFor(w));
+      b.targetId = target === null ? -1 : target.id;
+      if (target === null) return;
+    }
   }
   const speed = Math.hypot(b.vx, b.vy);
   if (speed === 0) return;

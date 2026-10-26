@@ -22,12 +22,12 @@ export function drawInputDebug(
     intent.targetX === null || intent.targetY === null
       ? '-'
       : `${intent.targetX.toFixed(0)},${intent.targetY.toFixed(0)}`;
-  r.text(`IN ${mode} ${f(intent.x)} ${f(intent.y)} T ${target}`, 2, 29, { color: COLOR });
+  r.text(`IN ${mode} ${f(intent.x)} ${f(intent.y)} T ${target}`, 2, 38, { color: COLOR });
   if (stick.active) {
     r.text(
       `ST ${stick.baseX.toFixed(0)},${stick.baseY.toFixed(0)} K ${stick.knobX.toFixed(0)},${stick.knobY.toFixed(0)}`,
       2,
-      38,
+      47,
       { color: COLOR },
     );
   }

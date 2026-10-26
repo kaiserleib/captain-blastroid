@@ -44,6 +44,9 @@ export interface ButtonOpts {
 }
 
 /** A menu button: SNES window, label, blinking cursor when focused, 1 px press nudge. */
+/** Minimum px between a button's label and its right-aligned value. */
+const VALUE_GAP = 14;
+
 export function drawButton(r: Renderer, it: MenuItem, label: string, o: ButtonOpts): void {
   const p = o.pressed ? 1 : 0;
   drawWindow(r, it.x, it.y + p, it.w, it.h);
@@ -59,7 +62,16 @@ export function drawButton(r: Renderer, it: MenuItem, label: string, o: ButtonOp
   if (align === 'center') r.text(label, it.x + it.w / 2, ty, { align: 'center', color });
   else r.text(label, it.x + 12, ty, { color });
   if (o.value !== undefined) {
-    r.text(o.value, it.x + it.w - 8, ty, { align: 'right', color: o.valueColor ?? color });
+    // A long value (e.g. CAPTAIN BLASTROID) drops to the small font rather
+    // than crowding the label; the small font sits 1 px lower to share a baseline.
+    const labelEnd = it.x + 12 + measure(label);
+    const right = it.x + it.w - 8;
+    const fits = right - measure(o.value) - labelEnd >= VALUE_GAP;
+    r.text(o.value, right, fits ? ty : ty + 1, {
+      align: 'right',
+      color: o.valueColor ?? color,
+      font: fits ? 'ui' : 'small',
+    });
   }
   if (o.focused) {
     const cx = align === 'center' ? it.x + it.w / 2 - measure(label) / 2 - 3 : it.x + 10;

@@ -27,14 +27,23 @@ export class VoiceLimiter {
     this.opts = { ...DEFAULT_LIMITS, ...opts };
   }
 
-  /** Returns true and records the voice if it may play `duration` seconds from `now`. */
-  tryStart(id: string, now: number, duration: number): boolean {
+  /**
+   * Returns true and records the voice if it may play `duration` seconds from
+   * `now`. `limits` overrides perId/minGap for this id (the first call sizes it).
+   */
+  tryStart(
+    id: string,
+    now: number,
+    duration: number,
+    limits?: { perId: number; minGap: number },
+  ): boolean {
     let slot = this.slots.get(id);
     if (!slot) {
-      slot = { lastStart: -Infinity, ends: new Float64Array(this.opts.perId).fill(-Infinity) };
+      const perId = limits?.perId ?? this.opts.perId;
+      slot = { lastStart: -Infinity, ends: new Float64Array(perId).fill(-Infinity) };
       this.slots.set(id, slot);
     }
-    if (now - slot.lastStart < this.opts.minGap) return false;
+    if (now - slot.lastStart < (limits?.minGap ?? this.opts.minGap)) return false;
     let free = -1;
     for (let i = 0; i < slot.ends.length; i++) {
       if (slot.ends[i]! <= now) {

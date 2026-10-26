@@ -4,7 +4,8 @@ import { PLAYFIELD_H } from '../engine/display';
 import { randomSeedString } from '../engine/rng';
 import type { Scene, ScenePointer } from '../engine/scene';
 import { flags } from '../debug/flags';
-import { Fx } from '../gfx/fx';
+import { Fx, FX_SPRITE_IDS } from '../gfx/fx';
+import { warm } from '../gfx/spriteCache';
 import { getLevel, levelIdForNumber } from '../content/levels';
 import { directorSystem, startDirector } from '../game/director';
 import { createHudDemoSystem, Hud, hudDemoEnabled } from '../game/hud';
@@ -17,11 +18,11 @@ import {
 } from '../game/player';
 import { computePlayerStats, getSave } from '../meta';
 import { anomalyLayer, asteroidLayer, obstaclesSystem } from '../game/obstacles';
-import { enemyLayers, enemySystem } from '../game/enemies';
-import { bossLayer, bossSystem } from '../game/boss';
+import { ENEMY_SPRITE_IDS, enemyLayers, enemySystem } from '../game/enemies';
+import { BOSS_SPRITE_IDS, bossLayer, bossSystem } from '../game/boss';
 import { input } from '../input';
-import { pickupsLayer, pickupsSystem, powerupFxLayer } from '../game/pickups';
-import { dronesLayer, playerShotsLayer, weaponSystem } from '../game/weapons';
+import { PICKUP_SPRITE_IDS, pickupsLayer, pickupsSystem, powerupFxLayer } from '../game/pickups';
+import { dronesLayer, playerShotsLayer, WEAPON_SPRITE_IDS, weaponSystem } from '../game/weapons';
 import type { Renderer } from '../gfx/renderer';
 import { cleanupSystem } from '../sim/cleanup';
 import { collisionSystem } from '../sim/collision';
@@ -37,6 +38,24 @@ export interface GameSceneData {
 }
 
 const BAND_COLOR = '#100818';
+
+let gameplayWarmed = false;
+
+/**
+ * Bakes every gameplay sprite (flash and rotation sheets included) once, at
+ * the first run's load, so the first capsule, boss or explosion doesn't hitch.
+ */
+function warmGameplaySprites(): void {
+  if (gameplayWarmed || typeof document === 'undefined') return;
+  gameplayWarmed = true;
+  warm([
+    ...PICKUP_SPRITE_IDS,
+    ...WEAPON_SPRITE_IDS,
+    ...ENEMY_SPRITE_IDS,
+    ...BOSS_SPRITE_IDS,
+    ...FX_SPRITE_IDS,
+  ]);
+}
 const PLAYFIELD_COLOR = '#000000';
 const PLACEHOLDER_SHIP_COLOR = '#3868f8';
 
@@ -117,6 +136,7 @@ export class GameScene implements Scene {
     const w = this.world;
     initPlayer(w, computePlayerStats(save, shipId, pilotId));
     warmPlayerSprites(shipId);
+    warmGameplaySprites();
     installPlayerSandbox();
     const level = getLevel(w.run.levelId);
     const theme = isThemeId(level.theme) ? level.theme : themeForLevel(w.run.levelId);

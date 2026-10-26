@@ -35,7 +35,8 @@ const CHAIN_TEXT_LEFT = { color: HUD_COLORS.chain } as const;
 const SALVAGE_TEXT = { color: HUD_COLORS.salvage, align: 'right' } as const;
 const BOSS_TEXT = { color: UI.text, align: 'center' } as const;
 const BOSS_BAR = { fill: HUD_COLORS.boss, highlight: HUD_COLORS.bossHigh } as const;
-const BOSS_BAR_FLASH = { fill: WHITE, highlight: WHITE } as const;
+// A hit glints the bar's highlight row only; a fully white bar under steady fire read as a strobe.
+const BOSS_BAR_FLASH = { fill: HUD_COLORS.bossHigh, highlight: WHITE } as const;
 const TIMER_BAR = { fill: UI.barFill, highlight: UI.barHigh } as const;
 const WARN_TEXT = { color: HUD_COLORS.warnStripe, align: 'center', scale: 2 } as const;
 

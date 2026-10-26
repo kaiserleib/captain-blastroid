@@ -123,7 +123,15 @@ export function ring(
 
 type VolleyPattern = AimedPattern | FanPattern | RingPattern;
 
-function volley(w: World, x: number, y: number, p: VolleyPattern, s: ShotStyle): number {
+const sfxP: { id: string; x?: number } = { id: 'enemy_shot', x: 0 };
+
+/** One quiet `enemy_shot` per volley (never per bullet); T04 voice-limits it further. */
+export function emitEnemyShotSfx(w: World, x: number): void {
+  sfxP.x = x;
+  w.events.emit('sfx', sfxP);
+}
+
+function volleyShots(w: World, x: number, y: number, p: VolleyPattern, s: ShotStyle): number {
   switch (p.kind) {
     case 'aimed':
       return aimed(w, x, y, p.n, p.spreadDeg, p.speed, s);
@@ -132,6 +140,12 @@ function volley(w: World, x: number, y: number, p: VolleyPattern, s: ShotStyle):
     case 'ring':
       return ring(w, x, y, p.n, p.speed, p.rotOffset, s);
   }
+}
+
+function volley(w: World, x: number, y: number, p: VolleyPattern, s: ShotStyle): number {
+  const n = volleyShots(w, x, y, p, s);
+  if (n > 0) emitEnemyShotSfx(w, x);
+  return n;
 }
 
 /** Where an enemy's shots leave from: a little ahead (below) its center. */
