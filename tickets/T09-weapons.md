@@ -1,5 +1,5 @@
 # T09 — Weapons: five auto-fire weapons with five levels each
-Status: todo
+Status: done (pending merge)
 Wave: 2 · Depends on: T02, T03 · Blocks: T12 (pickup resolution calls into it), T16, T18
 
 ## Goal
@@ -25,10 +25,21 @@ The Vampire Survivors heart of the game: weapons that fire automatically, stack 
 6. **Sandbox controls** (`?sandbox`): keys `F1–F5` grant/level each weapon, and `F6` maxes everything.
 
 ## Acceptance criteria
-- [ ] Starting Blaster L1 feels weak but pops Level 1 asteroids in one shot.
-- [ ] All five weapons at L5 together keep 60 fps in the sandbox with 40 enemies, and shot count stays within pool capacity (400). If not, tune cooldowns.
-- [ ] Drones visibly eat enemy bullets.
-- [ ] Unit tests: cooldown + fireRateMul, pickup resolution table (all branches), seeker retargeting when its target dies, pierce counts per level.
+- [x] Starting Blaster L1 feels weak but pops Level 1 asteroids in one shot.
+- [x] All five weapons at L5 together keep 60 fps in the sandbox with 40 enemies, and shot count stays within pool capacity (400). If not, tune cooldowns.
+- [x] Drones visibly eat enemy bullets.
+- [x] Unit tests: cooldown + fireRateMul, pickup resolution table (all branches), seeker retargeting when its target dies, pierce counts per level.
 
 ## Out of scope
 Pickup entities and drops (T12), weapon evolutions (post-MVP).
+
+## Notes (T09)
+- **API** (`src/game/weapons/index.ts`): `weaponSystem` (slot after player), `playerShotsLayer` (z 55), `dronesLayer` (z 58), `applyWeaponPickup(w, id)` / `applyUpgradeCore(w)` → `'added' | 'leveled' | 'converted'`, `attachWeapons(w)` (subscribes to `pickupCollected`; the system also calls it lazily, so no scene wiring is needed), `addWeapon`, `levelWeapon`, `findWeapon`, `levelOf(inst)`, `pickSeekerTarget`, `droneBlocker` (registered via `registerShotBlocker` at module load), `sandboxAction`, `WEAPON_SPRITE_IDS`.
+- **Content** (`src/content/weapons.ts`, re-exported from `content/index.ts`): `WEAPONS`, `WEAPON_ORDER`, `WEAPON_MAX_LEVEL`, `WEAPON_CONVERT` (`{salvage: 25, score: 100}`; salvage is multiplied by `stats.salvageMul` and rounded), `isWeaponId`, types `WeaponId`, `WeaponDef`, `WeaponLevel`.
+- **Pickups:** T09 listens to `pickupCollected` and resolves `weapon` (payload = weapon id) and `upgrade`. Unknown weapon ids convert to salvage. Toasts: `SPREAD CANNON LV3`, and `+25 SALVAGE` for conversions. `weaponAdded`/`weaponLeveled` both come with `sfx weapon_up`.
+- **Sprites:** `pbullet_blaster5`, `pbullet_spread`, `pbullet_spread5`, `pbullet_lance` (2f), `pbullet_lance_w` (L4, 2f), `pbullet_lance5` (2f), `pbullet_seeker`, `pbullet_seeker5`, `drone`, `drone5` (2f each). L1–4 Blaster reuses `pbullet_blaster`. HUD icons (12×12): `icon_blaster`, `icon_spread`, `icon_lance`, `icon_seeker`, `icon_orbitDrones` (= `WEAPONS[id].icon`).
+- **Player shots layer:** no ticket owned the z 55 player-shot layer, so T09 draws all player shots (interpolated, rotated, lance shimmer, seeker exhaust trail). Bullets with `sprite === ''` are drawn as a small cyan rect.
+- **Sandbox:** F1–F5 grant/level, F6 maxes all (slot limits ignored). If `player.weapons` is empty, the starter Blaster is added so the sandbox works before T08.
+- **Drones** keep per-world state in a `WeakMap` (`state.ts`), not on the World contract. Contact cooldown is per enemy (32 tracked). Drones damage enemies only, not asteroids.
+- **Measured:** all 5 at L5 with 40 enemies → 120 fps, 0.10 ms per update, peak 36 player shots (pool 400). That's plenty of headroom, so T18 can make it denser.
+- **Contract changes:** none.

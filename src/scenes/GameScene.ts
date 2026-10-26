@@ -5,6 +5,7 @@ import { randomSeedString } from '../engine/rng';
 import type { Scene } from '../engine/scene';
 import { flags } from '../debug/flags';
 import { input } from '../input';
+import { dronesLayer, playerShotsLayer, weaponSystem } from '../game/weapons';
 import type { Renderer } from '../gfx/renderer';
 import { cleanupSystem } from '../sim/cleanup';
 import { collisionSystem } from '../sim/collision';
@@ -38,7 +39,7 @@ export class GameScene implements Scene {
     this.bg.system,
     input.system,
     // player (T08)
-    // weapons (T09)
+    weaponSystem, // weapons (T09)
     // enemies (T11)
     // boss (T16)
     bulletsSystem, // bullets (T03)
@@ -55,7 +56,7 @@ export class GameScene implements Scene {
    * anomalies 10, pickups 20, asteroids 30, enemies 40, enemy shots 50,
    * player shots 55, player 60, fx 70, stick 95, HUD 100.
    */
-  readonly layers: DrawLayer[] = [this.bg.layer, input.stickLayer];
+  readonly layers: DrawLayer[] = [this.bg.layer, input.stickLayer, playerShotsLayer, dronesLayer];
 
   private readonly hasPlayerLayer: boolean;
 
