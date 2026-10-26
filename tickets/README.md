@@ -58,7 +58,7 @@ Wave 7  T31 campaign integration + bots + balance                            │
 | [T26](T26-drone-boss-stall.md) | Orbit Drones: fix the boss stall | T00–T20 | done |
 | [T27](T27-ionShoals.md) | Level 2: Ion Shoals + The Shepherd | wave 5 | done |
 | [T28](T28-eventHorizon.md) | Level 3: Event Horizon + Perihelion | wave 5 | done |
-| [T29](T29-pulsarNursery.md) | Level 4: Pulsar Nursery + Magnetar | wave 5 | todo |
+| [T29](T29-pulsarNursery.md) | Level 4: Pulsar Nursery + Magnetar | wave 5 | done |
 | [T30](T30-armada.md) | Level 5: The Armada + Dreadnought Leviathan | wave 5 | done |
 | [T31](T31-campaign-balance.md) | Campaign integration, bots, balance | T21–T30 | todo |
 

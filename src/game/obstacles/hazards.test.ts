@@ -212,7 +212,19 @@ describe('programmable pulsar', () => {
     expect(pulseIndex(a)).toBe(2);
   });
 
-  it('double fires an echo ring 0.5 s later with its gaps turned by half a gap', () => {
+  it("the echo's hit test matches its drawn gaps (half the gap spacing)", () => {
+    const w = world();
+    // Two gaps start at 90° (down); the echo's sit at 180° (left of the core).
+    parkPlayer(w, 60, 200);
+    const a = spawnPulsar(w, 120, 200, { variant: 'magnetar', vy: 0 })!;
+    setPulsarPattern(a, { period: 3, gaps: 2, gapDeg: 50, gapSpin: 0, double: true });
+    const h = hits(w);
+    step(w, 181 + Math.round(PULSAR_DOUBLE_DELAY * 60) + 60);
+    // The first ring is solid here; the echo's gap is not.
+    expect(h).toHaveLength(1);
+  });
+
+  it('double fires an echo ring 0.5 s later with its gaps between the first ring gaps', () => {
     const w = world();
     // Dead center of the first ring's gap: the echo's gap starts right here, so the ship is on solid.
     parkPlayer(w, 120, 260);

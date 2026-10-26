@@ -214,7 +214,7 @@ export function updatePulsar(w: World, a: Anomaly, dt: number): void {
     if (
       R2 >= 0 &&
       Math.abs(d - R2) <= band &&
-      !inPulsarGap(dx, dy, p.r, e.gaps, e.gapW, e.ringRot + e.gapW / 2)
+      !inPulsarGap(dx, dy, p.r, e.gaps, e.gapW, pulsarEchoRot(a))
     ) {
       e.hitPulse2 = e.pulse;
       damagePlayer(w, PULSAR.damage);
