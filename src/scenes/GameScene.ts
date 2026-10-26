@@ -6,6 +6,9 @@ import type { Scene } from '../engine/scene';
 import { flags } from '../debug/flags';
 import { input } from '../input';
 import type { Renderer } from '../gfx/renderer';
+import { cleanupSystem } from '../sim/cleanup';
+import { collisionSystem } from '../sim/collision';
+import { bulletsSystem } from '../sim/motion';
 import { createWorld, type DrawLayer, type System, type World } from '../sim/world';
 
 export interface GameSceneData {
@@ -38,11 +41,11 @@ export class GameScene implements Scene {
     // weapons (T09)
     // enemies (T11)
     // boss (T16)
-    // bullets (T03)
+    bulletsSystem, // bullets (T03)
     // obstacles (T10)
     // pickups (T12)
-    // collision (T03)
-    // cleanup (T03)
+    collisionSystem, // collision (T03)
+    cleanupSystem, // cleanup (T03)
     // director (T15)
     // fx (T13)
   ];
