@@ -1,3 +1,4 @@
+import { Background, createBackgroundPair, themeForLevel } from '../backgrounds';
 import { PLAYFIELD_H } from '../engine/display';
 import { randomSeedString } from '../engine/rng';
 import type { Scene } from '../engine/scene';
@@ -18,6 +19,9 @@ const PLACEHOLDER_SHIP_COLOR = '#3868f8';
 
 export class GameScene implements Scene {
   world!: World;
+  /** T15 picks the level's theme with `background.setTheme(level.theme, seed)`. */
+  readonly background = new Background();
+  private readonly bg = createBackgroundPair(this.background);
 
   /**
    * Fixed order. Each ticket inserts its system at its slot:
@@ -25,6 +29,8 @@ export class GameScene implements Scene {
    * pickups → collision → cleanup → director → fx
    */
   readonly systems: System[] = [
+    // Owns world.scrollY (T07).
+    this.bg.system,
     // input (T01)
     // player (T08)
     // weapons (T09)
@@ -44,15 +50,23 @@ export class GameScene implements Scene {
    * anomalies 10, pickups 20, asteroids 30, enemies 40, enemy shots 50,
    * player shots 55, player 60, fx 70, stick 95, HUD 100.
    */
-  readonly layers: DrawLayer[] = [];
+  readonly layers: DrawLayer[] = [this.bg.layer];
+
+  private readonly hasPlayerLayer: boolean;
 
   constructor() {
     this.layers.sort((a, b) => a.z - b.z);
+    this.hasPlayerLayer = this.layers.some((l) => l.name === 'player');
   }
 
   enter(data?: unknown): void {
     const d = (data ?? {}) as GameSceneData;
     this.world = createWorld(d.seed ?? flags.seed ?? randomSeedString(), d);
+    const w = this.world;
+    this.background.setTheme(themeForLevel(w.run.levelId), w.run.seed);
+    this.background.prebuild();
+    // Until T15's director sets the level's scroll speed.
+    if (w.scrollSpeed === 0) w.scrollSpeed = this.background.theme.scrollSpeed;
   }
 
   exit(): void {
@@ -63,7 +77,6 @@ export class GameScene implements Scene {
     const w = this.world;
     w.tick++;
     w.time += dt;
-    w.scrollY += w.scrollSpeed * dt;
     for (let i = 0; i < this.systems.length; i++) this.systems[i]?.update(w, dt);
   }
 
@@ -77,7 +90,7 @@ export class GameScene implements Scene {
     for (let i = 0; i < this.layers.length; i++) this.layers[i]?.draw(w, r, alpha);
 
     // Placeholder until T08's player layer exists, so scaling is visible.
-    if (this.layers.length === 0) {
+    if (!this.hasPlayerLayer) {
       const p = w.player;
       r.rect(p.x - 6, p.y - 8, 12, 16, PLACEHOLDER_SHIP_COLOR);
     }
