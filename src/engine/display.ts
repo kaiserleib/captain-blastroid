@@ -34,6 +34,8 @@ export interface Layout {
   destY: number;
   destW: number;
   destH: number;
+  /** Safe-area insets this layout was computed with, CSS px. */
+  insets: Insets;
 }
 
 /** Pure layout math for a CSS-px viewport, device pixel ratio and safe-area insets. */
@@ -42,6 +44,8 @@ export function computeLayout(
   cssH: number,
   dpr: number,
   insets: Readonly<Insets> = NO_INSETS,
+  /** Dev `?h=`: pin the logical height (clamped to 400..520) instead of deriving it. */
+  forceLogicalH: number | null = null,
 ): Layout {
   const canvasW = Math.max(1, Math.round(cssW * dpr));
   const canvasH = Math.max(1, Math.round(cssH * dpr));
@@ -50,13 +54,18 @@ export function computeLayout(
   const availW = Math.max(1, (cssW - insets.left - insets.right) * dpr);
   const availH = Math.max(1, (cssH - insets.top - insets.bottom) * dpr);
 
-  let logicalH = clamp(Math.round((LOGICAL_W * availH) / availW), PLAYFIELD_H, MAX_LOGICAL_H);
+  const forced = forceLogicalH !== null;
+  let logicalH = clamp(
+    Math.round(forced ? forceLogicalH : (LOGICAL_W * availH) / availW),
+    PLAYFIELD_H,
+    MAX_LOGICAL_H,
+  );
   const fit = Math.min(availW / LOGICAL_W, availH / logicalH);
   const k = Math.floor(fit);
   const integerScale = k >= 1 && k / fit >= INTEGER_SCALE_MIN_FILL;
   const scale = integerScale ? k : fit;
   // A smaller integer scale leaves vertical room; give it to the HUD bands.
-  if (integerScale) logicalH = clamp(Math.floor(availH / k), logicalH, MAX_LOGICAL_H);
+  if (integerScale && !forced) logicalH = clamp(Math.floor(availH / k), logicalH, MAX_LOGICAL_H);
 
   const destW = Math.round(LOGICAL_W * scale);
   const destH = Math.round(logicalH * scale);
@@ -73,6 +82,7 @@ export function computeLayout(
     destY: Math.round(availY + (availH - destH) / 2),
     destW,
     destH,
+    insets: { top: insets.top, right: insets.right, bottom: insets.bottom, left: insets.left },
   };
 }
 
@@ -120,7 +130,10 @@ export class Display {
   private canvasRect = { left: 0, top: 0 };
   private dprQuery: MediaQueryList | null = null;
 
-  constructor(readonly canvas: HTMLCanvasElement) {
+  constructor(
+    readonly canvas: HTMLCanvasElement,
+    private readonly forceLogicalH: number | null = null,
+  ) {
     this.displayCtx = get2d(canvas);
     this.buffer = document.createElement('canvas');
     this.ctx = get2d(this.buffer);
@@ -166,6 +179,7 @@ export class Display {
       window.innerHeight,
       dpr,
       readSafeAreaInsets(this.probe),
+      this.forceLogicalH,
     );
     this.layout = l;
 

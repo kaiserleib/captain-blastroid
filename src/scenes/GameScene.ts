@@ -2,8 +2,9 @@ import { Background, createBackgroundPair, themeForLevel } from '../backgrounds'
 import { attachAudio, playSong } from '../audio';
 import { PLAYFIELD_H } from '../engine/display';
 import { randomSeedString } from '../engine/rng';
-import type { Scene } from '../engine/scene';
+import type { Scene, ScenePointer } from '../engine/scene';
 import { flags } from '../debug/flags';
+import { createHudDemoSystem, Hud, hudDemoEnabled } from '../game/hud';
 import { input } from '../input';
 import type { Renderer } from '../gfx/renderer';
 import { cleanupSystem } from '../sim/cleanup';
@@ -27,6 +28,7 @@ export class GameScene implements Scene {
   /** T15 picks the level's theme with `background.setTheme(level.theme, seed)`. */
   readonly background = new Background();
   private readonly bg = createBackgroundPair(this.background);
+  readonly hud = new Hud();
 
   /**
    * Fixed order. Each ticket inserts its system at its slot:
@@ -55,11 +57,12 @@ export class GameScene implements Scene {
    * anomalies 10, pickups 20, asteroids 30, enemies 40, enemy shots 50,
    * player shots 55, player 60, fx 70, stick 95, HUD 100.
    */
-  readonly layers: DrawLayer[] = [this.bg.layer, input.stickLayer];
+  readonly layers: DrawLayer[] = [this.bg.layer, input.stickLayer, this.hud.layer];
 
   private readonly hasPlayerLayer: boolean;
 
   constructor() {
+    if (hudDemoEnabled) this.systems.push(createHudDemoSystem());
     this.layers.sort((a, b) => a.z - b.z);
     this.hasPlayerLayer = this.layers.some((l) => l.name === 'player');
   }
@@ -74,11 +77,16 @@ export class GameScene implements Scene {
     if (w.scrollSpeed === 0) w.scrollSpeed = this.background.theme.scrollSpeed;
     // Detached by exit()'s events.clear().
     attachAudio(this.world.events);
+    this.hud.attach(w);
     playSong('level1');
   }
 
   exit(): void {
     this.world.events.clear();
+  }
+
+  onPointer(e: ScenePointer): void {
+    this.hud.onPointer(e);
   }
 
   update(dt: number): void {

@@ -20,6 +20,20 @@ describe('computeLayout', () => {
     expect([l.destW, l.destH, l.canvasW, l.canvasH]).toEqual([960, 1760, 960, 1760]);
   });
 
+  it('pins the logical height with forceLogicalH (dev ?h=), clamped', () => {
+    const l = computeLayout(1920, 1080, 1, undefined, 520);
+    expect(l.logicalH).toBe(520);
+    expect(l.playfieldOffsetY).toBe(60);
+    expect(l.destH).toBeLessThanOrEqual(1080);
+    expect(computeLayout(500, 1000, 1, undefined, 440).logicalH).toBe(440);
+    expect(computeLayout(500, 1000, 1, undefined, 900).logicalH).toBe(MAX_LOGICAL_H);
+  });
+
+  it('records the safe-area insets it was given', () => {
+    const insets = { top: 47, right: 0, bottom: 34, left: 0 };
+    expect(computeLayout(390, 844, 3, insets).insets).toEqual(insets);
+  });
+
   it('gives the vertical room an integer scale leaves to the HUD bands', () => {
     const l = computeLayout(500, 1000, 1);
     expect(l.scale).toBe(2);
