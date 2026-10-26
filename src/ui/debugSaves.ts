@@ -22,10 +22,11 @@ export function debugSave(id: DebugSaveId): SaveData {
       schematics: ['bulwark', 'dart'],
       pilotsRescued: ['blastroid', 'juno'],
       highScores: [
-        { score: 18450, pilot: 'juno', ship: 'kestrel', date: DAY },
-        { score: 9120, pilot: 'blastroid', ship: 'kestrel', date: DAY },
-        { score: 2400, pilot: 'blastroid', ship: 'kestrel', date: DAY },
+        { score: 18450, pilot: 'juno', ship: 'kestrel', level: 'kessler', date: DAY },
+        { score: 9120, pilot: 'blastroid', ship: 'kestrel', level: 'kessler', date: DAY },
+        { score: 2400, pilot: 'blastroid', ship: 'kestrel', level: 'kessler', date: DAY },
       ],
+      levels: { kessler: { clears: 1, best: 18450 } },
       stats: { runs: 5, kills: 612, deaths: 4, bossKills: 1 },
     };
   }
@@ -46,8 +47,10 @@ export function debugSave(id: DebugSaveId): SaveData {
       score: 52000 - i * 4300,
       pilot: PILOT_ORDER[i % PILOT_ORDER.length] as string,
       ship: SHIP_ORDER[i % SHIP_ORDER.length] as string,
+      level: 'kessler',
       date: DAY,
     })),
+    levels: { kessler: { clears: 7, best: 52000 } },
     stats: { runs: 31, kills: 5180, deaths: 24, bossKills: 7 },
   };
 }

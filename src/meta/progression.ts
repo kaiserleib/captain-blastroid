@@ -106,6 +106,7 @@ export function bankRun(save: SaveData, result: RunResult, now: Date = new Date(
         score: result.score,
         pilot: result.pilotId,
         ship: result.shipId,
+        level: result.levelId,
         date: now.toISOString(),
       };
       highScores = [...highScores.slice(0, rank), entry, ...highScores.slice(rank)].slice(
@@ -116,11 +117,18 @@ export function bankRun(save: SaveData, result: RunResult, now: Date = new Date(
     }
   }
 
+  const prev = save.levels[result.levelId];
+  const clears = (prev?.clears ?? 0) + (result.bossDefeated ? 1 : 0);
+  const best = Math.max(prev?.best ?? 0, result.score);
+  const levels =
+    clears > 0 || best > 0 ? { ...save.levels, [result.levelId]: { clears, best } } : save.levels;
+
   return {
     salvageEarned,
     discoveries,
     save: {
       ...save,
+      levels,
       salvage: save.salvage + salvageEarned,
       totalSalvageEarned: save.totalSalvageEarned + salvageEarned,
       schematics,

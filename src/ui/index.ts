@@ -18,3 +18,4 @@ export { applyAudioSettings } from './audioSettings';
 export const GAME_VERSION = '0.1.0';
 export { bankFinishedRun, discoveryLines, type DiscoveryLine } from './results';
 export { cycleShake, SLIDERS, snapSetting, type SliderDef, type SliderKey } from './settings';
+export { isSaveTransferOpen, openSaveExport, openSaveImport } from './saveTransfer';

@@ -13,6 +13,7 @@ export type {
 } from './platform';
 export { MemoryStorage, WebStorage, type KeyValueBacking } from './web/storage';
 export { WebHaptics } from './web/haptics';
+export { requestPersistentStorage } from './web/persist';
 export { WebLifecycle, WebOrientation } from './web/lifecycle';
 
 /** Nothing here touches the DOM until a method is called, so importing this is safe in Node. */

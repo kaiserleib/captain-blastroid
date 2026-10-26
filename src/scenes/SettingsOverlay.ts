@@ -11,7 +11,10 @@ import {
   type SliderDef,
   drawSliderRow,
   GOLD,
+  OK_GREEN,
   MenuScene,
+  openSaveExport,
+  openSaveImport,
   sfx,
   sliderRect,
   type MenuItem,
@@ -23,14 +26,26 @@ export class SettingsOverlay extends MenuScene {
   private boxY = 0;
   private closing = false;
   private dragging = false;
+  private transfer = false;
+  /** The DOM export/import panel is up; the canvas menu waits. */
+  private panelOpen = false;
+  private note = '';
 
   constructor() {
     super();
     this.drawsBackdrop = false;
   }
 
+  override enter(data?: unknown): void {
+    this.transfer = !!(data as { transfer?: boolean } | undefined)?.transfer;
+  }
+
+  override onUi(e: Parameters<MenuScene['onUi']>[0]): void {
+    if (!this.panelOpen) super.onUi(e);
+  }
+
   protected layout(w: number, h: number): void {
-    const rows = SLIDERS.length + 2;
+    const rows = SLIDERS.length + 2 + (this.transfer ? 1 : 0);
     const boxH = 24 + rows * 26 + 32;
     this.boxY = Math.max(2, Math.floor((h - boxH) / 2));
     let y = this.boxY + 22;
@@ -48,6 +63,12 @@ export class SettingsOverlay extends MenuScene {
     add('shake', 'adjustable');
     add('stickOpacity', 'slider');
     add('stickRadiusScale', 'slider');
+    if (this.transfer) {
+      const bw = Math.floor((w - 28 - 6) / 2);
+      items.push(this.button('export', 14, y, bw, 22));
+      items.push(this.button('import', w - 14 - bw, y, bw, 22));
+      y += 26;
+    }
     items.push(this.button('done', 50, y + 6, w - 100, 22));
     this.menu.setItems(items);
   }
@@ -108,6 +129,18 @@ export class SettingsOverlay extends MenuScene {
       this.back();
       return;
     }
+    if (it.id === 'export' || it.id === 'import') {
+      sfx('ui_confirm');
+      this.panelOpen = true;
+      this.note = '';
+      const done = (imported = false): void => {
+        this.panelOpen = false;
+        if (imported) this.note = 'SAVE IMPORTED';
+      };
+      if (it.id === 'export') openSaveExport(done);
+      else openSaveImport(done);
+      return;
+    }
     if (it.id === 'haptics' || it.id === 'shake') this.toggle(it.id, 1);
   }
 
@@ -125,7 +158,10 @@ export class SettingsOverlay extends MenuScene {
     const last = this.menu.items[this.menu.items.length - 1];
     const boxH = last ? last.y + last.h + 8 - this.boxY : 200;
     drawWindow(r, 6, this.boxY, w - 12, boxH);
-    r.text('SETTINGS', w / 2, this.boxY + 8, { align: 'center', color: GOLD });
+    r.text(this.note || 'SETTINGS', w / 2, this.boxY + 8, {
+      align: 'center',
+      color: this.note ? OK_GREEN : GOLD,
+    });
     for (const it of this.menu.items) {
       const o = { focused: this.focused(it.id), pressed: this.pressed(it.id), t: this.t };
       const def = SLIDERS.find((d) => d.key === it.id);
@@ -143,6 +179,10 @@ export class SettingsOverlay extends MenuScene {
         drawButton(r, it, 'HAPTICS', { ...o, value: s.haptics ? 'ON' : 'OFF' });
       } else if (it.id === 'shake') {
         drawButton(r, it, 'SCREEN SHAKE', { ...o, value: s.screenShake.toUpperCase() });
+      } else if (it.id === 'export') {
+        drawButton(r, it, 'EXPORT SAVE', o);
+      } else if (it.id === 'import') {
+        drawButton(r, it, 'IMPORT SAVE', o);
       } else {
         drawButton(r, it, 'DONE', o);
       }

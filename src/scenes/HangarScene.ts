@@ -78,7 +78,7 @@ export class HangarScene extends MenuScene {
       else if (it.id === 'ship') flow.ships();
       else if (it.id === 'upgrades') flow.upgrades();
       else if (it.id === 'records') flow.records();
-      else if (it.id === 'settings') flow.settings();
+      else if (it.id === 'settings') flow.settings(true);
     });
   }
 

@@ -8,7 +8,7 @@ import { CanvasRenderer } from './gfx/canvasRenderer';
 import { setHitstopSink } from './gfx/fx';
 import { attachInput, input, setInputSettingsProvider } from './input';
 import { getSettings, onSaveChange } from './meta';
-import { platform } from './platform';
+import { platform, requestPersistentStorage } from './platform';
 import { registerServiceWorker, selectPlatform } from './platform/select';
 import { BootScene } from './scenes/BootScene';
 import { initFlow } from './scenes/flow';
@@ -89,6 +89,9 @@ platform.lifecycle.onPause(pauseRun);
 if (platform.kind === 'native') {
   platform.lifecycle.onPause(() => loop.pause());
   platform.lifecycle.onResume(() => syncLifecycle());
+} else {
+  // localStorage is best-effort storage; this lowers the odds of the save being evicted.
+  void requestPersistentStorage();
 }
 
 // Pause whenever the page is hidden; resume() discards the elapsed time.

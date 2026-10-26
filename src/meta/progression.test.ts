@@ -63,6 +63,15 @@ describe('runResultFrom', () => {
 describe('bankRun', () => {
   const now = new Date('2026-01-02T03:04:05Z');
 
+  it('keeps the best score per level and counts only boss kills as clears', () => {
+    let save = createDefaultSave();
+    save = bankRun(save, result({ score: 300 }), now).save;
+    expect(save.levels).toEqual({ kessler: { clears: 0, best: 300 } });
+    save = bankRun(save, result({ score: 200, bossDefeated: true, victory: true }), now).save;
+    expect(save.levels).toEqual({ kessler: { clears: 1, best: 300 } });
+    expect(bankRun(createDefaultSave(), result({ score: 0 }), now).save.levels).toEqual({});
+  });
+
   it('banks salvage, stats and discoveries without mutating the input', () => {
     const save = createDefaultSave();
     const {
@@ -89,8 +98,15 @@ describe('bankRun', () => {
     expect(next.pilotsRescued).toEqual(['blastroid', 'juno']);
     expect(next.stats).toEqual({ runs: 1, kills: 30, deaths: 0, bossKills: 1 });
     expect(next.highScores).toEqual([
-      { score: 1000, pilot: 'blastroid', ship: 'kestrel', date: now.toISOString() },
+      {
+        score: 1000,
+        pilot: 'blastroid',
+        ship: 'kestrel',
+        level: 'kessler',
+        date: now.toISOString(),
+      },
     ]);
+    expect(next.levels).toEqual({ kessler: { clears: 1, best: 1000 } });
     expect(discoveries).toEqual([
       { kind: 'schematic', schematicId: 'bulwark', shipId: 'bulwark' },
       { kind: 'pilot', pilotId: 'juno' },

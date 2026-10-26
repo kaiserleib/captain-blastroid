@@ -1,10 +1,11 @@
 // Persistent save format. Pure data + validation; no I/O.
-import { PILOTS, SHIPS, UPGRADES } from '../content';
+import { LEVEL_ORDER, PILOTS, SHIPS, UPGRADES } from '../content';
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 export const HIGH_SCORE_LIMIT = 10;
 export const DEFAULT_SHIP = 'kestrel';
 export const DEFAULT_PILOT = 'blastroid';
+export const DEFAULT_LEVEL = LEVEL_ORDER[0] as string;
 
 export type ScreenShake = 'off' | 'low' | 'full';
 
@@ -25,8 +26,18 @@ export interface HighScore {
   score: number;
   pilot: string;
   ship: string;
+  /** Level id the run flew (v1 scores predate levels and read as the first one). */
+  level: string;
   /** ISO 8601. */
   date: string;
+}
+
+/** Per-level progress, keyed by level id. */
+export interface LevelRecord {
+  /** Boss kills on this level. */
+  clears: number;
+  /** Best score on this level. */
+  best: number;
 }
 
 export interface SaveStats {
@@ -47,6 +58,10 @@ export interface SaveData {
   pilotsRescued: string[];
   selectedShip: string;
   selectedPilot: string;
+  /** Level id launched from the hangar. */
+  selectedLevel: string;
+  /** Missing = never cleared. Unknown ids are kept so an older build can't erase newer progress. */
+  levels: Record<string, LevelRecord>;
   /** Sorted by score, highest first; at most HIGH_SCORE_LIMIT. */
   highScores: HighScore[];
   stats: SaveStats;
@@ -75,6 +90,8 @@ export function createDefaultSave(): SaveData {
     pilotsRescued: [DEFAULT_PILOT],
     selectedShip: DEFAULT_SHIP,
     selectedPilot: DEFAULT_PILOT,
+    selectedLevel: DEFAULT_LEVEL,
+    levels: {},
     highScores: [],
     stats: { runs: 0, kills: 0, deaths: 0, bossKills: 0 },
     settings: { ...DEFAULT_SETTINGS },
@@ -136,6 +153,7 @@ function normalizeHighScores(v: unknown): HighScore[] {
       score: count(h.score, 0),
       pilot: typeof h.pilot === 'string' ? h.pilot : DEFAULT_PILOT,
       ship: typeof h.ship === 'string' ? h.ship : DEFAULT_SHIP,
+      level: typeof h.level === 'string' ? h.level : DEFAULT_LEVEL,
       date: typeof h.date === 'string' ? h.date : '',
     });
   }
@@ -143,8 +161,20 @@ function normalizeHighScores(v: unknown): HighScore[] {
   return out.slice(0, HIGH_SCORE_LIMIT);
 }
 
+function normalizeLevels(v: unknown): Record<string, LevelRecord> {
+  const out: Record<string, LevelRecord> = {};
+  if (!isObj(v)) return out;
+  for (const [id, rec] of Object.entries(v)) {
+    if (!isObj(rec)) continue;
+    const clears = count(rec.clears, 0);
+    const best = count(rec.best, 0);
+    if (clears > 0 || best > 0) out[id] = { clears, best };
+  }
+  return out;
+}
+
 /**
- * Coerces a v1-shaped object into a valid SaveData: unknown ids dropped,
+ * Coerces a current-shaped object into a valid SaveData: unknown ids dropped,
  * bad fields defaulted, starter ship/pilot always present.
  */
 export function normalize(raw: Obj): SaveData {
@@ -179,6 +209,11 @@ export function normalize(raw: Obj): SaveData {
       typeof raw.selectedPilot === 'string' && pilotsRescued.includes(raw.selectedPilot)
         ? raw.selectedPilot
         : DEFAULT_PILOT,
+    selectedLevel:
+      typeof raw.selectedLevel === 'string' && LEVEL_ORDER.includes(raw.selectedLevel)
+        ? raw.selectedLevel
+        : DEFAULT_LEVEL,
+    levels: normalizeLevels(raw.levels),
     highScores: normalizeHighScores(raw.highScores),
     stats: {
       runs: count(stats.runs, 0),
@@ -200,8 +235,17 @@ export function migrate(raw: unknown): SaveData {
   }
   const data: Obj = { ...raw };
   const version = raw.version;
-  // Version steps go here as the format evolves, e.g.:
-  // if (version < 2) { data.foo = ...; }
+  if (version < 2) {
+    // v1 only had Level 1, so its boss kills and scores all belong to it.
+    const stats = isObj(raw.stats) ? raw.stats : {};
+    const clears = count(stats.bossKills, 0);
+    let best = 0;
+    if (Array.isArray(raw.highScores)) {
+      for (const h of raw.highScores) if (isObj(h)) best = Math.max(best, count(h.score, 0));
+    }
+    data.levels = clears > 0 || best > 0 ? { [DEFAULT_LEVEL]: { clears, best } } : {};
+    data.selectedLevel = DEFAULT_LEVEL;
+  }
   if (version > SAVE_VERSION) {
     // A newer build wrote this; keep what we understand rather than wiping progress.
     console.warn(`Save version ${version} read by a v${SAVE_VERSION} build`);

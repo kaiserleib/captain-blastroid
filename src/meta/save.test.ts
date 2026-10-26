@@ -3,6 +3,7 @@ import type { Lifecycle, StorageAdapter } from '../platform/platform';
 import { MemoryStorage } from '../platform/web/storage';
 import {
   CORRUPT_BACKUP_KEY,
+  PRE_IMPORT_BACKUP_KEY,
   SAVE_KEY,
   SaveStore,
   getSettings,
@@ -83,6 +84,39 @@ describe('SaveStore', () => {
     expect(store.recovered).toBe(true);
     expect(mem.data.get(CORRUPT_BACKUP_KEY)).toBe('{not json');
     expect(JSON.parse(mem.data.get(SAVE_KEY) ?? '')).toEqual(createDefaultSave());
+  });
+
+  it('upgrades a stored v1 save on load and writes v2 on the next save', async () => {
+    const mem = new MemoryStorage();
+    const v1 = {
+      ...createDefaultSave(),
+      version: 1,
+      salvage: 6,
+      stats: { runs: 1, kills: 4, deaths: 0, bossKills: 1 },
+    };
+    delete (v1 as Partial<typeof v1>).levels;
+    await mem.set(SAVE_KEY, JSON.stringify(v1));
+    const store = new SaveStore(mem);
+    const loaded = await store.load();
+    expect(store.recovered).toBe(false);
+    expect(loaded.salvage).toBe(6);
+    expect(loaded.levels).toEqual({ kessler: { clears: 1, best: 0 } });
+    await store.saveNow();
+    expect(JSON.parse(mem.data.get(SAVE_KEY) ?? '').version).toBe(2);
+  });
+
+  it('imports a save after backing up the current one', async () => {
+    const mem = new MemoryStorage();
+    const store = new SaveStore(mem);
+    await store.load();
+    store.set({ ...store.data, salvage: 11 });
+    const seen: number[] = [];
+    store.onChange((s) => seen.push(s.salvage));
+    await store.replaceWithImport({ ...createDefaultSave(), salvage: 999 });
+    expect(seen).toEqual([999]);
+    expect(store.pending).toBe(false);
+    expect(JSON.parse(mem.data.get(SAVE_KEY) ?? '').salvage).toBe(999);
+    expect(JSON.parse(mem.data.get(PRE_IMPORT_BACKUP_KEY) ?? '').salvage).toBe(11);
   });
 
   it('survives a storage adapter that throws', async () => {

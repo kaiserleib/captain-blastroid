@@ -43,6 +43,7 @@ export const flow = {
   results: (data: ResultsData): void => scenes().replace(new ResultsScene(), data),
   /** Overlays push over the current scene, which keeps rendering underneath, frozen. */
   pause: (game: GameScene): void => scenes().push(new PauseOverlay(), game),
-  settings: (): void => scenes().push(new SettingsOverlay()),
+  /** `transfer` adds save export/import, which only makes sense outside a run. */
+  settings: (transfer = false): void => scenes().push(new SettingsOverlay(), { transfer }),
   closeOverlay: (): void => scenes().pop(),
 };

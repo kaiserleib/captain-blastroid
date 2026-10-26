@@ -45,6 +45,14 @@ npm run build && npm run preview   # vite preview --host, port 4173
   - Lookups use `ignoreVary`. Module scripts are CORS requests carrying an `Origin` header, so a server that sends `Vary: Origin` (vite preview does) would otherwise never match and the game would boot to a black screen offline.
   - Registration is skipped in dev and inside the native shell (`registerServiceWorker()` in `select.ts`).
 
+### Save durability on the web
+The browser build keeps the save in `localStorage` (`captain-blastroid.save`, JSON, versioned by `SAVE_VERSION` with migrations in `src/meta/schema.ts`). It survives reloads, new tabs and new deploys. Things that can still lose it:
+- **Safari / iOS (ITP):** script-writable storage, `localStorage` included, is deleted after **7 days of Safari use without a visit** to the site. **Home-screen installs are exempt:** a web app added to the Home Screen has its own storage that the 7-day cap doesn't touch. Tell iPhone players to install it.
+- **Eviction under storage pressure** (all browsers). At boot the web build calls `navigator.storage.persist()` (`src/platform/web/persist.ts`, guarded, failures ignored). Chrome grants it silently to engaged or installed sites, Firefox may ask, and Safari mostly ignores it.
+- **Clearing site data / private windows.** Private windows fall back to an in-memory save for the session.
+
+The escape hatch is **Settings → Export / Import save** (Hangar only, not the pause menu). Export shows a `CB1.<base64url JSON>.<FNV-1a checksum>` code and copies it to the clipboard. Import validates the checksum, runs the code through the normal schema migration, shows a before/after summary, and keeps a copy of the replaced save under `captain-blastroid.save.beforeImport`. Settings (volume, stick, haptics) are per-device and are not part of the code. There are no accounts and no servers.
+
 ### Install
 - **iOS Safari:** Share → Add to Home Screen. It launches without browser chrome. The status bar is translucent over the HUD band, which sits inside the safe area.
 - **Android Chrome:** ⋮ → Install app (or the install prompt). It launches fullscreen in portrait.

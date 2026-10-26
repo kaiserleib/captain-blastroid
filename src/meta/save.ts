@@ -13,6 +13,8 @@ import {
 export const SAVE_KEY = 'captain-blastroid.save';
 /** Where an unreadable save is copied before defaults replace it. */
 export const CORRUPT_BACKUP_KEY = 'captain-blastroid.save.corrupt';
+/** The save an import replaced, so a bad paste is recoverable by hand. */
+export const PRE_IMPORT_BACKUP_KEY = 'captain-blastroid.save.beforeImport';
 export const SAVE_DEBOUNCE_MS = 500;
 
 export interface SaveStoreOptions {
@@ -84,6 +86,18 @@ export class SaveStore {
     this.current = next;
     this.notify();
     this.save();
+  }
+
+  /** Swaps in an imported save, backing up the current one first. Resolves once stored. */
+  async replaceWithImport(next: SaveData): Promise<void> {
+    try {
+      await this.storage.set(PRE_IMPORT_BACKUP_KEY, serializeSave(this.current));
+    } catch (e) {
+      console.warn('Pre-import backup failed', e);
+    }
+    this.current = next;
+    this.notify();
+    await this.saveNow();
   }
 
   update(fn: (save: SaveData) => SaveData): SaveData {
