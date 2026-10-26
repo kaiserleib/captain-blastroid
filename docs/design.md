@@ -55,7 +55,7 @@ There are up to **N weapon slots**, set by the ship. Each weapon fires automatic
 | **Spread Cannon** | 3-way fan at ±12°, 1.5/s, 1 dmg | Wider fan, then 5-way at L4, then faster | Crowd control |
 | **Pulse Lance** | Piercing bolt, 0.8/s, 3 dmg, pierce 2 | More pierce, then thicker, then faster | Lines and armored targets |
 | **Seeker Pods** | 1 homing missile, 1/s, 2 dmg | More missiles, then faster turn rate | Hits targets off-axis |
-| **Orbit Drones** | 1 drone orbiting at radius 22, 1 contact dmg per 0.25 s, **blocks enemy bullets** | More drones, then larger radius, then more damage | VS-style defensive weapon |
+| **Orbit Drones** | 1 drone orbiting at radius 22, 1 contact dmg per 0.25 s, **blocks enemy bullets** | More drones, then larger radius, then more damage. From L3 each drone fires a 1-dmg spark at the nearest target within 150 px (every 0.9 / 0.7 / 0.5 s at L3 / L4 / L5). | VS-style defensive weapon |
 
 **Weapon pickup resolution:** an unowned weapon with a free slot is added at L1. An owned weapon gains a level. If the weapon is at max level, or the slots are full and it isn't owned, it converts to 25 salvage and score. A **Weapon Upgrade core** levels the lowest-level owned weapon that isn't maxed (ties go to the oldest).
 
