@@ -97,7 +97,7 @@ const KESTREL_BANK_R = `
   ........okkookko........
 `;
 
-// One engine-flame strip per frame, under the two nozzles.
+// One engine-flame strip per frame, under the two nozzles. Frames 0–2 cruise, 3–5 climb.
 const KESTREL_FLAMES = [
   `
   .........ee..ee.........
@@ -114,15 +114,51 @@ const KESTREL_FLAMES = [
   .........yy..yy.........
   .........fr..fr.........
   .........r....r.........`,
+  // Frames 3–5: long flame while climbing.
+  `
+  .........ee..ee.........
+  .........yy..yy.........
+  .........yy..yy.........
+  .........ff..ff.........
+  .........fr..fr.........
+  .........r....r.........`,
+  `
+  .........ee..ee.........
+  .........ey..ey.........
+  .........yy..yy.........
+  .........yf..yf.........
+  .........ff..ff.........
+  .........rr..rr.........`,
+  `
+  .........ee..ee.........
+  .........yy..yy.........
+  .........yf..yf.........
+  .........ff..ff.........
+  .........rr..rr.........
+  ..........r...r.........`,
 ];
 
 function withFlames(hull: string): string[] {
   return KESTREL_FLAMES.map((f) => hull + f);
 }
 
-defineSprite('kestrel', { palette: KESTREL_PAL, frames: withFlames(KESTREL_HULL) });
-defineSprite('kestrel_bank_l', { palette: KESTREL_PAL, frames: withFlames(KESTREL_BANK_L) });
-defineSprite('kestrel_bank_r', { palette: KESTREL_PAL, frames: withFlames(KESTREL_BANK_R) });
+// Explicit anchor: the long flame makes the cell taller, but the pivot stays on the hull.
+const KESTREL_ANCHOR = { x: 12, y: 12 };
+defineSprite('kestrel', {
+  palette: KESTREL_PAL,
+  frames: withFlames(KESTREL_HULL),
+  anchor: KESTREL_ANCHOR,
+});
+defineSprite('kestrel_bank_l', {
+  palette: KESTREL_PAL,
+  frames: withFlames(KESTREL_BANK_L),
+  anchor: KESTREL_ANCHOR,
+});
+defineSprite('kestrel_bank_r', {
+  palette: KESTREL_PAL,
+  frames: withFlames(KESTREL_BANK_R),
+  anchor: KESTREL_ANCHOR,
+});
 
 // ---------------------------------------------------------------------------
 // Bullets.

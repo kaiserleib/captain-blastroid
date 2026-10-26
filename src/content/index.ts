@@ -6,6 +6,7 @@
 export * from './ships';
 export * from './pilots';
 export * from './upgrades';
+export * from './player';
 
 /** Looks up a content definition, failing loudly on a typo'd id. */
 export function getDef<T>(table: Readonly<Record<string, T>>, id: string, tableName: string): T {
