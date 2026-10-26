@@ -1,16 +1,45 @@
-import type { Scene, SceneManager } from '../engine/scene';
-import { GameScene } from './GameScene';
+import { flags } from '../debug/flags';
+import type { Scene } from '../engine/scene';
+import { initSave, setSave } from '../meta';
+import { MemoryStorage, platform } from '../platform';
+import { debugSave } from '../ui';
+import { flow } from './flow';
 
-/** Goes straight to the game for now; T17 routes it through save loading and the title screen. */
+/**
+ * Loads the save, then hands over to the title screen (or straight into a run with
+ * `?sandbox`, which the gameplay tickets' test keys rely on).
+ */
 export class BootScene implements Scene {
-  constructor(private readonly scenes: SceneManager) {}
+  private ready = false;
 
-  enter(): void {}
+  enter(): void {
+    void this.boot().finally(() => {
+      this.ready = true;
+    });
+  }
+
+  private async boot(): Promise<void> {
+    void platform.orientation.lockPortrait();
+    try {
+      if (flags.save) {
+        // Crafted saves live in memory so they never overwrite the real one.
+        await initSave(new MemoryStorage(), platform.lifecycle);
+        setSave(debugSave(flags.save));
+      } else {
+        await initSave(platform.storage, platform.lifecycle);
+      }
+    } catch (e) {
+      console.error('Save failed to load; continuing with defaults', e);
+    }
+  }
+
   exit(): void {}
 
-  // Switch on the first update rather than inside enter(), so replace() isn't re-entered.
+  // Switch on an update rather than inside the promise, so replace() isn't re-entered.
   update(): void {
-    this.scenes.replace(new GameScene());
+    if (!this.ready) return;
+    if (flags.sandbox) flow.launch({});
+    else flow.title();
   }
 
   render(): void {}
