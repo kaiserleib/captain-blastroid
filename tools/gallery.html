@@ -6,21 +6,107 @@
     <title>Captain Blastroid — Gallery</title>
     <style>
       body {
-        margin: 16px;
+        margin: 0;
+        padding: 16px;
         background: #100818;
         color: #f8f8f8;
         font:
-          14px/1.4 ui-monospace,
+          13px/1.4 ui-monospace,
           monospace;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 8px 0;
+        background: #100818;
+        border-bottom: 1px solid #303050;
+      }
+      h1 {
+        margin: 0;
+        font-size: 16px;
+      }
+      h2 {
+        margin: 24px 0 8px;
+        font-size: 15px;
+        color: #f8d850;
+      }
+      h3 {
+        margin: 0 0 4px;
+        font-size: 12px;
+        font-weight: normal;
+        color: #a0a8c0;
+      }
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 12px;
+        margin-top: 8px;
+      }
+      a {
+        color: #88b8f8;
+      }
+      button {
+        font: inherit;
+        color: #f8f8f8;
+        background: #283058;
+        border: 1px solid #5068a8;
+        padding: 4px 10px;
+        cursor: pointer;
+      }
+      button.active {
+        background: #4060d0;
+        border-color: #f8f8f8;
       }
       canvas {
         image-rendering: pixelated;
+        display: block;
+      }
+      .grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      .card {
+        background: #181028;
+        border: 1px solid #302848;
+        padding: 8px;
+      }
+      .row {
+        display: flex;
+        gap: 4px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+      }
+      .label {
+        color: #a0a8c0;
+        font-size: 11px;
+      }
+      .swatch {
+        width: 72px;
+        font-size: 10px;
+      }
+      .swatch div {
+        height: 28px;
+        border: 1px solid #000;
+      }
+      .error {
+        color: #f84838;
+        white-space: pre-wrap;
       }
     </style>
   </head>
   <body>
-    <h1>Gallery</h1>
-    <!-- T02 mounts sprites, palettes and font glyphs here; T06 adds portraits. -->
+    <header>
+      <h1>Captain Blastroid — Gallery</h1>
+      <div id="toolbar"><span class="label">zoom </span></div>
+    </header>
     <main id="gallery"></main>
+    <script type="module" src="./gallery.ts"></script>
   </body>
 </html>

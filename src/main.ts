@@ -4,7 +4,7 @@ import { flags } from './debug/flags';
 import { Display } from './engine/display';
 import { Loop } from './engine/loop';
 import { SceneManager } from './engine/scene';
-import { CanvasRenderer } from './gfx/renderer';
+import { CanvasRenderer } from './gfx/canvasRenderer';
 import { attachInput, input } from './input';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
