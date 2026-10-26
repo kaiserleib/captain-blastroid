@@ -13,11 +13,13 @@
     "test": "vitest run",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "sim": "BALANCE=1 vitest run tests/sim --silent=false",
-    "e2e": "echo \"e2e: Playwright smoke arrives in T20\""
+    "test:sim": "SIM=1 vitest run tests/sim",
+    "balance": "BALANCE=1 vitest run tests/sim/balance.test.ts --silent=false",
+    "e2e": "playwright test -c e2e/playwright.config.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
     "eslint": "^10.13.0",
     "globals": "^17.13.0",
     "prettier": "^3.9.10",
