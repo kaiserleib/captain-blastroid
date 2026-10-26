@@ -3,6 +3,9 @@
 // Content tickets append their re-export below; keep this list append-only.
 //
 // export * from './enemies';
+export * from './ships';
+export * from './pilots';
+export * from './upgrades';
 
 /** Looks up a content definition, failing loudly on a typo'd id. */
 export function getDef<T>(table: Readonly<Record<string, T>>, id: string, tableName: string): T {
