@@ -3,6 +3,11 @@ import type { Renderer } from '../gfx/renderer';
 /** Full deflection distance and deadzone, CSS px (design.md, Controls). */
 export const STICK_RADIUS_CSS = 40;
 export const STICK_DEADZONE_CSS = 6;
+/**
+ * The stick base never spawns closer than this to the left/right screen edge, so a
+ * touch there still has room to steer outward and keeps clear of Android's back gesture.
+ */
+export const STICK_EDGE_INSET_CSS = 16;
 
 /** Floating stick, in playfield coords (logical buffer minus `playfieldOffsetY`). */
 export interface StickState {

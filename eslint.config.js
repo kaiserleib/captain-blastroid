@@ -4,7 +4,7 @@ import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig(
-  { ignores: ['dist/', 'coverage/', 'node_modules/', '.claude/'] },
+  { ignores: ['dist/', 'coverage/', 'node_modules/', '.claude/', 'ios/', 'android/'] },
   js.configs.recommended,
   tseslint.configs.recommended,
   {
@@ -24,7 +24,7 @@ export default defineConfig(
     },
   },
   {
-    files: ['*.config.{js,ts}', 'tests/**/*.ts'],
+    files: ['*.config.{js,ts}', 'tests/**/*.ts', 'tools/pwa/*.ts'],
     languageOptions: { globals: { ...globals.node } },
   },
 );

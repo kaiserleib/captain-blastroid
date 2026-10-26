@@ -14,6 +14,7 @@ import {
   createStick,
   drawStick,
   STICK_DEADZONE_CSS,
+  STICK_EDGE_INSET_CSS,
   STICK_RADIUS_CSS,
   stickDown,
   stickMove,
@@ -116,7 +117,8 @@ export class InputManager implements InputSink {
       if (type === 'down') {
         // Secondary touches only reach the UI while a stick finger is down.
         if (!s.active) {
-          stickDown(s, id, p.x, py);
+          const inset = this.mapper.cssLength(STICK_EDGE_INSET_CSS);
+          stickDown(s, id, clamp(p.x, inset, WORLD_W - inset), py);
           this.mode = 'touch';
           capture = true;
         }

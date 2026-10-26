@@ -9,6 +9,7 @@ import { setHitstopSink } from './gfx/fx';
 import { attachInput, input, setInputSettingsProvider } from './input';
 import { getSettings, onSaveChange } from './meta';
 import { platform } from './platform';
+import { registerServiceWorker, selectPlatform } from './platform/select';
 import { BootScene } from './scenes/BootScene';
 import { initFlow } from './scenes/flow';
 import { GameScene } from './scenes/GameScene';
@@ -81,8 +82,14 @@ function pauseRun(): void {
   const top = scenes.top;
   if (top instanceof GameScene) top.pauseNow();
 }
-// Page hidden / pagehide on the web; Capacitor's App.pause once T19 swaps the platform in.
+// Native shell: swap in Capacitor services before anything subscribes to the platform.
+await selectPlatform();
+// Page hidden / pagehide on the web; App.pause / App.resume inside the Capacitor shell.
 platform.lifecycle.onPause(pauseRun);
+if (platform.kind === 'native') {
+  platform.lifecycle.onPause(() => loop.pause());
+  platform.lifecycle.onResume(() => syncLifecycle());
+}
 
 // Pause whenever the page is hidden; resume() discards the elapsed time.
 function syncLifecycle(): void {
@@ -103,3 +110,4 @@ if (flags.mute) setMuted(true);
 
 scenes.replace(new BootScene());
 loop.start();
+registerServiceWorker();
