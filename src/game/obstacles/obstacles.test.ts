@@ -3,6 +3,7 @@ import {
   ASTEROID_SIZES,
   BLACK_HOLE,
   PULSAR,
+  PULSAR_VARIANTS,
   ROCK_VARIANTS,
   type AsteroidSize,
 } from '../../content/obstacles';
@@ -20,6 +21,7 @@ import {
   asteroidTheme,
   obstaclesSystem,
   registerAnomalyHooks,
+  setPulsarPattern,
   spawnAsteroidStream,
   spawnBlackHole,
   spawnPulsar,
@@ -28,6 +30,7 @@ import {
 import { ROCK_FRAMES, rockFrame, rockLevels, rockShape } from './obstacles.sprites';
 
 const DT = 1 / 60;
+const SP = PULSAR_VARIANTS.steady;
 
 function world(levelId = 'kessler'): World {
   const w = createWorld('t10', { levelId });
@@ -256,33 +259,34 @@ describe('pulsar', () => {
     const w = world();
     parkPlayer(w);
     const p = spawnPulsar(w, 60, 60, { vy: 0 })!;
-    step(w, Math.round((PULSAR.period - PULSAR.telegraph / 2) * 60));
+    step(w, Math.round((SP.period - SP.telegraph / 2) * 60));
     expect(pulsarGlow(p)).toBeGreaterThan(0);
     expect(pulsarRingRadius(p)).toBe(-1);
-    step(w, Math.round((PULSAR.telegraph / 2 + 0.5) * 60));
+    step(w, Math.round((SP.telegraph / 2 + 0.5) * 60));
     expect(pulseIndex(p)).toBe(1);
-    expect(pulsarRingRadius(p)).toBeCloseTo(PULSAR.r + 0.5 * PULSAR.ringSpeed, 0);
+    expect(pulsarRingRadius(p)).toBeCloseTo(PULSAR.r + 0.5 * SP.ringSpeed, 0);
   });
 
-  it('damages the player once per pulse when the ring passes', () => {
+  it('damages the player once per pulse when a solid ring passes', () => {
     const w = world();
     parkPlayer(w, 120, 260);
     w.player.shield = 5;
-    spawnPulsar(w, 120, 200, { vy: 0 });
+    const p = spawnPulsar(w, 120, 200, { vy: 0 })!;
+    setPulsarPattern(p, { period: SP.period, gaps: 0, gapDeg: 0, gapSpin: 0 });
     const hits: number[] = [];
     w.events.on('playerHit', () => hits.push(w.tick));
-    step(w, Math.round(PULSAR.period * 60) + 60);
+    step(w, Math.round(SP.period * 60) + 60);
     expect(hits).toHaveLength(1);
     // Second pulse hits again once invulnerability has worn off.
-    step(w, Math.round(PULSAR.period * 60));
+    step(w, Math.round(SP.period * 60));
     expect(hits).toHaveLength(2);
   });
 
   it('does not hurt a player outside the band', () => {
     const w = world();
-    parkPlayer(w, 120, 200 + PULSAR.maxRadius + 20);
+    parkPlayer(w, 30, 200 + SP.maxRadius + 20);
     spawnPulsar(w, 120, 200, { vy: 0 });
-    step(w, Math.round(PULSAR.period * 2 * 60));
+    step(w, Math.round(SP.period * 2 * 60));
     expect(w.player.shield).toBe(3);
   });
 });
