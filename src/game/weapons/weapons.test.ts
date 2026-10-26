@@ -212,6 +212,86 @@ describe('orbit drones', () => {
     expect(c.n).toBe(1);
   });
 
+  function sparks(w: World): Bullet[] {
+    return shots(w).filter((b) => b.sprite === 'pbullet_spark');
+  }
+
+  it('fire no sparks below L3', () => {
+    const w = world();
+    give(w, 'orbitDrones', 2);
+    for (let i = 0; i < 300; i++) updateWeapons(w, DT);
+    expect(w.playerShots.count).toBe(0);
+  });
+
+  for (const [level, perDrone, n] of [
+    [3, 0.9, 3],
+    [4, 0.7, 3],
+    [5, 0.5, 5],
+  ] as const) {
+    it(`L${level}: each of ${n} drones sparks every ${perDrone} s, staggered`, () => {
+      const w = world();
+      give(w, 'orbitDrones', level);
+      const fired: number[] = [];
+      for (let t = 0; t < 600; t++) {
+        const before = w.playerShots.count;
+        updateWeapons(w, DT);
+        const added = w.playerShots.count - before;
+        // Staggered: never more than one spark in a tick.
+        expect(added).toBeLessThanOrEqual(1);
+        if (added === 1) fired.push(t);
+      }
+      // 10 s → n sparks per `perDrone` seconds.
+      expect(Math.abs(fired.length - (10 * n) / perDrone)).toBeLessThanOrEqual(1);
+      const gap = Math.round((perDrone / n) * 60);
+      for (let i = 1; i < fired.length; i++)
+        expect(Math.abs((fired[i] as number) - (fired[i - 1] as number) - gap)).toBeLessThanOrEqual(
+          1,
+        );
+      const s = sparks(w)[0] as Bullet;
+      expect(s.damage).toBe(1);
+      expect(s.weaponId).toBe('orbitDrones');
+      expect(Math.hypot(s.vx, s.vy)).toBeCloseTo(220);
+    });
+  }
+
+  it('aim sparks at the nearest targetable enemy in range, else straight up', () => {
+    const w = world();
+    const p = w.player;
+    give(w, 'orbitDrones', 3);
+    // Out of range (> 150 px from every drone): straight up.
+    spawnEnemy(w, 'dummy', p.x + 200, p.y - 120, { hp: 50 });
+    // Boss armor is never a target.
+    const armor = spawnEnemy(w, 'dummy', p.x - 40, p.y - 10, { hp: 50, isBoss: true }) as Enemy;
+    armor.maxHp = 0;
+    rebuildSpatialHash(w);
+    updateWeapons(w, DT);
+    const up = sparks(w)[0] as Bullet;
+    expect(up.vx).toBeCloseTo(0);
+    expect(up.vy).toBeCloseTo(-220);
+
+    const near = spawnEnemy(w, 'dummy', p.x + 60, p.y - 60, { hp: 50 }) as Enemy;
+    rebuildSpatialHash(w);
+    for (let i = 0; i < 30 && sparks(w).length < 2; i++) updateWeapons(w, DT);
+    const aimed = sparks(w)[1] as Bullet;
+    const dx = near.x - aimed.x;
+    const dy = near.y - aimed.y;
+    // Velocity parallel to the line to the target, and toward it.
+    expect(Math.abs(aimed.vx * dy - aimed.vy * dx)).toBeLessThan(1e-6 * 220 * Math.hypot(dx, dy));
+    expect(aimed.vx * dx + aimed.vy * dy).toBeGreaterThan(0);
+  });
+
+  it('sparks go through the normal damage pipeline', () => {
+    const w = world();
+    const p = w.player;
+    give(w, 'orbitDrones', 5);
+    const e = spawnEnemy(w, 'dummy', p.x, p.y - 100, { hp: 1000 }) as Enemy;
+    for (let i = 0; i < 120; i++) {
+      rebuildSpatialHash(w);
+      step(w);
+    }
+    expect(e.hp).toBeLessThan(1000);
+  });
+
   it('vanish while the player is dead', () => {
     const w = world();
     give(w, 'orbitDrones');

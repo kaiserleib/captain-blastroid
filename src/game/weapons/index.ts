@@ -15,7 +15,7 @@ export {
   findWeapon,
   type PickupResult,
 } from './resolvePickup';
-export { droneBlocker } from './drones';
+export { droneBlocker, sparkAngle } from './drones';
 export { pickSeekerTarget } from './seeker';
 export { sandboxAction } from './sandbox';
 
@@ -30,6 +30,7 @@ export const WEAPON_SPRITE_IDS: readonly string[] = [
   'pbullet_lance5',
   'pbullet_seeker',
   'pbullet_seeker5',
+  'pbullet_spark',
   'drone',
   'drone5',
   'icon_blaster',
