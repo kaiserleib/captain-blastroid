@@ -7,6 +7,7 @@ import {
   buyUpgrade,
   canBuyUpgrade,
   getSave,
+  missingRequirement,
   nextUpgradeCost,
   setSave,
   upgradeLevel,
@@ -109,7 +110,13 @@ export class UpgradesScene extends MenuScene {
       const lvl = upgradeLevel(save, it.id);
       const cost = nextUpgradeCost(save, it.id);
       r.text(def.name, x + 14, y + 6, { color: focused ? GOLD : '#f8f8f8' });
-      r.text(def.description, x + 14, y + 18, { color: DIM });
+      const req = missingRequirement(save, it.id);
+      if (req) {
+        const name = UPGRADES[req]?.name ?? req;
+        r.text(`REQUIRES ${name.toUpperCase()}`, x + 14, y + 18, { color: LOCK_RED });
+      } else {
+        r.text(def.description, x + 14, y + 18, { color: DIM });
+      }
       // Level pips.
       for (let i = 0; i < def.maxLevel; i++) {
         const px = x + 14 + i * 9;
@@ -121,7 +128,8 @@ export class UpgradesScene extends MenuScene {
       } else {
         const afford = save.salvage >= cost;
         const s = String(cost);
-        r.text(s, x + it.w - 10, y + 27, { align: 'right', color: afford ? GOLD : LOCK_RED });
+        const color = req ? DIM : afford ? GOLD : LOCK_RED;
+        r.text(s, x + it.w - 10, y + 27, { align: 'right', color });
         r.sprite('hud_scrap', x + it.w - 20 - measure(s), y + 26);
       }
     }

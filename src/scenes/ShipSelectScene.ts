@@ -27,20 +27,47 @@ import {
   type MenuItem,
 } from '../ui';
 import { flow } from './flow';
+import {
+  corners,
+  drawArrowButton,
+  drawPageDots,
+  outline,
+  pageCount,
+  pageOf,
+  PER_PAGE,
+  schematicSector,
+} from './rosterStrip';
 
-// Bar maxima: the best value any MVP ship has.
+// Bar maxima: the best value any ship has.
 const MAX_SHIELD = 5;
 const MAX_SPEED = 150;
 const MAX_SLOTS = 5;
 
-/** Carousel of ships with stats; build ships from owned schematics. */
+const CARD_H = 184;
+const THUMB_W = 52;
+const THUMB_H = 34;
+const THUMB_GAP = 6;
+const NAV_H = 20;
+// Header 18 + card + strip + page row + action 24 + done 22, with gaps.
+const TOTAL = 22 + CARD_H + 6 + THUMB_H + 4 + NAV_H + 6 + 24 + 4 + 22;
+
+const UNKNOWN_TINT = '#283468';
+const SCHEMATIC_TINT = '#4880d8';
+
+/** The shown ship large with its stats, the hangar below as a paged strip; builds from schematics. */
 export class ShipSelectScene extends MenuScene {
   private index = 0;
+  private page = 0;
   private top = 0;
+  private navY = 0;
   private flashT = 0;
+  private entering = true;
 
   override enter(): void {
     this.index = Math.max(0, SHIP_ORDER.indexOf(getSave().selectedShip));
+    this.page = pageOf(this.index);
+    this.entering = true;
+    this.relayout();
   }
 
   private get ship(): ShipDef {
@@ -48,18 +75,24 @@ export class ShipSelectScene extends MenuScene {
   }
 
   protected layout(w: number, h: number): void {
-    // Header 18 + card 218 + action 26 + done 22 + gaps ≈ 300.
-    this.top = Math.max(2, Math.floor((h - 304) / 2));
-    const cy = this.top + 22;
-    this.menu.setItems(
-      [
-        this.button('prev', 10, cy + 30, 30, 40),
-        this.button('next', w - 40, cy + 30, 30, 40),
-        this.button('action', 40, cy + 226, w - 80, 24),
-        this.button('done', 50, cy + 256, w - 100, 22),
-      ],
-      this.menu.focused?.id ?? 'action',
-    );
+    this.top = Math.max(2, Math.floor((h - TOTAL) / 2));
+    const stripY = this.top + 22 + CARD_H + 6;
+    const stripW = PER_PAGE * THUMB_W + (PER_PAGE - 1) * THUMB_GAP;
+    const sx = Math.floor((w - stripW) / 2);
+    const items: MenuItem[] = [];
+    const first = this.page * PER_PAGE;
+    for (let i = 0; i < PER_PAGE; i++) {
+      const id = SHIP_ORDER[first + i];
+      if (id) items.push(this.button(id, sx + i * (THUMB_W + THUMB_GAP), stripY, THUMB_W, THUMB_H));
+    }
+    this.navY = stripY + THUMB_H + 4;
+    items.push(this.button('prev', sx, this.navY, 36, NAV_H));
+    items.push(this.button('next', sx + stripW - 36, this.navY, 36, NAV_H));
+    const ay = this.navY + NAV_H + 6;
+    items.push(this.button('action', 40, ay, w - 80, 24));
+    items.push(this.button('done', 50, ay + 28, w - 100, 22));
+    this.menu.setItems(items, this.entering ? 'action' : undefined);
+    this.entering = false;
   }
 
   protected override tick(dt: number): void {
@@ -67,8 +100,9 @@ export class ShipSelectScene extends MenuScene {
   }
 
   protected override nav(dx: number, dy: number): void {
-    // Left/right always turn the carousel; up/down move between the buttons.
-    if (dx !== 0 && dy === 0) {
+    // Left/right walk the hangar from anywhere but the page arrows; up/down move between rows.
+    const f = this.menu.focused?.id;
+    if (dx !== 0 && dy === 0 && f !== 'prev' && f !== 'next') {
       this.cycle(dx);
       return;
     }
@@ -77,18 +111,53 @@ export class ShipSelectScene extends MenuScene {
 
   private cycle(dx: number): void {
     const n = SHIP_ORDER.length;
-    this.index = (this.index + dx + n) % n;
+    this.show((this.index + dx + n) % n);
     sfx('ui_move');
+  }
+
+  /** Shows ship `i`, turning the strip to its page; a focused thumb follows. */
+  private show(i: number): void {
+    const onStrip = (this.menu.focused?.id ?? '') in SHIPS;
+    this.index = i;
+    const page = pageOf(i);
+    if (page !== this.page) {
+      this.page = page;
+      this.layout(this.width, this.height);
+    }
+    if (onStrip) this.menu.focusId(SHIP_ORDER[i] as string);
+  }
+
+  private turn(dir: -1 | 1): void {
+    const page = this.page + dir;
+    if (page < 0 || page >= pageCount(SHIP_ORDER.length)) {
+      sfx('ui_back');
+      return;
+    }
+    sfx('ui_move');
+    const focus = this.menu.focused?.id;
+    this.page = page;
+    this.index = page * PER_PAGE;
+    this.layout(this.width, this.height);
+    if (focus) this.menu.focusId(focus);
   }
 
   protected activate(it: MenuItem): void {
     if (it.id === 'prev' || it.id === 'next') {
-      this.cycle(it.id === 'prev' ? -1 : 1);
+      this.turn(it.id === 'prev' ? -1 : 1);
       return;
     }
     if (it.id === 'done') {
       this.back();
       return;
+    }
+    if (it.id in SHIPS) {
+      const i = SHIP_ORDER.indexOf(it.id);
+      if (i !== this.index) {
+        this.index = i;
+        sfx('ui_move');
+        return;
+      }
+      // A second tap on the shown ship acts as the action button.
     }
     const save = getSave();
     const ship = this.ship;
@@ -126,63 +195,52 @@ export class ShipSelectScene extends MenuScene {
     drawSalvage(r, save.salvage, w - 14, this.top + 5);
 
     const cy = this.top + 22;
-    drawWindow(r, 6, cy, w - 12, 218);
+    drawWindow(r, 6, cy, w - 12, CARD_H);
     // Display bay behind the ship.
-    r.rect(46, cy + 8, w - 92, 84, '#081030');
-    for (let gy = cy + 16; gy < cy + 92; gy += 12) r.rect(48, gy, w - 96, 1, '#102050');
+    const bayH = 72;
+    r.rect(46, cy + 8, w - 92, bayH, '#081030');
+    for (let gy = cy + 16; gy < cy + 8 + bayH; gy += 12) r.rect(48, gy, w - 96, 1, '#102050');
     const known = status !== 'unknown';
     const bob = Math.round(Math.sin(this.t * 2) * 2);
     drawSpriteScaled(
       r,
       ship.id,
       w / 2,
-      cy + 46 + bob,
+      cy + 40 + bob,
       2,
       Math.floor(this.t * 12) % 3,
-      known && status === 'built' ? undefined : status === 'unknown' ? '#283468' : '#4880d8',
+      status === 'built' ? undefined : status === 'unknown' ? UNKNOWN_TINT : SCHEMATIC_TINT,
     );
     if (this.flashT > 0) {
       r.ctx.globalAlpha = Math.min(1, this.flashT * 3);
-      r.rect(46, cy + 8, w - 92, 84, '#f8f8f8');
+      r.rect(46, cy + 8, w - 92, bayH, '#f8f8f8');
       r.ctx.globalAlpha = 1;
     }
     if (status === 'schematic' || status === 'buildable') {
-      r.text('SCHEMATIC', w / 2, cy + 80, { align: 'center', color: '#78d8f8' });
+      r.text('SCHEMATIC', w / 2, cy + bayH - 4, { align: 'center', color: '#78d8f8' });
     }
 
-    for (const id of ['prev', 'next']) {
-      const it = this.menu.items.find((i) => i.id === id);
-      if (!it) continue;
-      const f = this.focused(id);
-      const p = this.pressed(id) ? 1 : 0;
-      drawWindow(r, it.x, it.y + p, it.w, it.h);
-      r.text(id === 'prev' ? '←' : '→', it.x + it.w / 2, it.y + 16 + p, {
-        align: 'center',
-        color: f ? GOLD : '#f8f8f8',
-      });
-    }
-
-    r.text(known ? ship.name.toUpperCase() : '? ? ?', w / 2, cy + 98, {
+    r.text(known ? ship.name.toUpperCase() : '? ? ?', w / 2, cy + 86, {
       align: 'center',
       color: GOLD,
     });
-    r.text(`${this.index + 1}/${SHIP_ORDER.length}`, w - 14, cy + 98, {
+    r.text(`${this.index + 1}/${SHIP_ORDER.length}`, w - 14, cy + 86, {
       align: 'right',
       color: DIM,
     });
-    r.text(statusLine(status, ship, save.selectedShip === ship.id), w / 2, cy + 110, {
+    r.text(statusLine(status, ship, save.selectedShip === ship.id), w / 2, cy + 98, {
       align: 'center',
       color: statusColor(status),
     });
 
     const sx = 16;
-    let y = cy + 126;
+    let y = cy + 114;
     this.stat(r, 'SHIELD', sx, y, ship.shield, MAX_SHIELD, String(ship.shield), known);
-    y += 14;
+    y += 13;
     this.stat(r, 'SPEED', sx, y, ship.speed, MAX_SPEED, String(ship.speed), known);
-    y += 14;
+    y += 13;
     this.stat(r, 'SLOTS', sx, y, ship.weaponSlots, MAX_SLOTS, String(ship.weaponSlots), known);
-    y += 18;
+    y += 16;
     r.text('START', sx, y, { color: DIM });
     if (!known) {
       r.text('???', sx + 58, y, { color: DIM });
@@ -193,10 +251,13 @@ export class ShipSelectScene extends MenuScene {
         if (def) {
           r.sprite(def.icon, sx + 64, wy + 3);
           r.text(def.name, sx + 74, wy, {});
+          r.text(`L${sw.level}`, w - 16, wy, { align: 'right', color: DIM });
         }
         wy += 14;
       }
     }
+
+    this.drawStrip(r);
 
     const action = this.menu.items.find((i) => i.id === 'action');
     if (action) {
@@ -216,6 +277,44 @@ export class ShipSelectScene extends MenuScene {
         pressed: this.pressed('done'),
         t: this.t,
       });
+  }
+
+  private drawStrip(r: Renderer): void {
+    const save = getSave();
+    const pages = pageCount(SHIP_ORDER.length);
+    const shown = SHIP_ORDER[this.index];
+    for (const it of this.menu.items) {
+      const focused = this.focused(it.id);
+      const pressed = this.pressed(it.id);
+      if (it.id === 'prev' || it.id === 'next') {
+        const dir = it.id === 'prev' ? -1 : 1;
+        const enabled = dir < 0 ? this.page > 0 : this.page < pages - 1;
+        drawArrowButton(r, it, dir, { focused, pressed, enabled });
+        continue;
+      }
+      if (!(it.id in SHIPS)) continue;
+      const p = pressed ? 1 : 0;
+      const status = shipStatus(save, it.id);
+      drawWindow(r, it.x, it.y + p, it.w, it.h);
+      drawSpriteScaled(
+        r,
+        it.id,
+        it.x + it.w / 2,
+        it.y + it.h / 2 - 1 + p,
+        1,
+        0,
+        status === 'built' ? undefined : status === 'unknown' ? UNKNOWN_TINT : SCHEMATIC_TINT,
+      );
+      if (save.selectedShip === it.id) {
+        outline(r, it.x - 1, it.y - 1 + p, it.w + 2, it.h + 2, GOLD);
+        outline(r, it.x - 2, it.y - 2 + p, it.w + 4, it.h + 4, '#100818');
+      }
+      if (it.id === shown && !focused) {
+        r.rect(it.x + 4, it.y + it.h - 4 + p, it.w - 8, 1, '#f8f8f8');
+      }
+      if (focused) corners(r, it.x - 3, it.y - 3 + p, it.w + 6, it.h + 6, '#f8f8f8', this.t);
+    }
+    drawPageDots(r, r.width / 2, this.navY + NAV_H / 2, this.page, pages);
   }
 
   private stat(
@@ -245,7 +344,7 @@ export class ShipSelectScene extends MenuScene {
 
 function statusLine(s: ShipStatus, ship: ShipDef, selected: boolean): string {
   if (s === 'built') return selected ? 'ON THE LAUNCH PAD' : 'IN THE HANGAR';
-  if (s === 'unknown') return 'SCHEMATIC NOT FOUND';
+  if (s === 'unknown') return `SCHEMATIC: ${schematicSector(ship.id)}`;
   const cost = ship.unlock.kind === 'schematic' ? ship.unlock.cost : 0;
   return s === 'buildable' ? `READY TO BUILD: ${cost}` : `NEED ${cost} SALVAGE`;
 }

@@ -50,10 +50,41 @@ export const PILOTS: Readonly<Record<string, PilotDef>> = {
     passiveText: '+50% powerup duration, +25% salvage',
     passive: { powerupDurationMul: 1.5, salvageMul: 1.25 },
     bio: 'Exiled scrap broker. Smells salvage through hull plate.',
-    // Post-MVP level, so unreachable in the MVP.
     unlock: { kind: 'rescue', levelId: 'ionShoals' },
+  },
+  sable: {
+    id: 'sable',
+    name: 'Sable Okoro',
+    passiveText: '+20% damage, -15% pickup radius',
+    passive: { damageMul: 1.2, pickupRadiusMul: 0.85 },
+    bio: 'Syndicate-hunting ace. Shoots first, collects later.',
+    unlock: { kind: 'rescue', levelId: 'eventHorizon' },
+  },
+  pip: {
+    id: 'pip',
+    name: 'Pip Tanaka',
+    passiveText: '+15% speed, +20% pickup radius',
+    passive: { speedMul: 1.15, pickupRadiusMul: 1.2 },
+    bio: 'Youngest pilot on the station. Flies like the comms are a rhythm game.',
+    unlock: { kind: 'rescue', levelId: 'pulsarNursery' },
+  },
+  vale: {
+    id: 'vale',
+    name: 'Commodore Vale',
+    passiveText: '+1 max shield, +10% fire rate, -10% salvage',
+    passive: { extraShield: 1, fireRateMul: 1.1, salvageMul: 0.9 },
+    bio: 'Lost a fleet to the Armada. Wants it back, one ship at a time.',
+    unlock: { kind: 'rescue', levelId: 'armada' },
   },
 };
 
 /** Display order; also the rescue order within a level. */
-export const PILOT_ORDER: readonly string[] = ['blastroid', 'juno', 'grieg', 'zzkar'];
+export const PILOT_ORDER: readonly string[] = [
+  'blastroid',
+  'juno',
+  'grieg',
+  'zzkar',
+  'sable',
+  'pip',
+  'vale',
+];

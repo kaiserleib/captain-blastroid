@@ -117,11 +117,25 @@ describe('named pilots', () => {
       'large',
       'purple',
     ]);
+    const s = rollTraits(NAMED_PORTRAITS.sable.seed, NAMED_PORTRAITS.sable.overrides);
+    expect([s.skin, s.hair, s.headgear, s.helmetColor, s.uniform]).toEqual([
+      'deep',
+      'undercut',
+      'helmetUp',
+      'uniform',
+      'crimson',
+    ]);
+    expect(s.accessories).toEqual(['scar']);
+    const p = rollTraits(NAMED_PORTRAITS.pip.seed, NAMED_PORTRAITS.pip.overrides);
+    expect([p.age, p.hairColor, p.headgear]).toEqual(['young', 'lime', 'headset']);
+    expect(p.accessories).toContain('freckles');
+    const v = rollTraits(NAMED_PORTRAITS.vale.seed, NAMED_PORTRAITS.vale.overrides);
+    expect([v.age, v.hairColor, v.headgear, v.patchColor]).toEqual(['old', 'gray', 'none', 'gold']);
   });
 
   it('are pinned to fixed pixels', () => {
     const hashes = Object.values(NAMED_PORTRAITS).map((s) => hash(s.seed, s.overrides));
-    expect(new Set(hashes).size).toBe(4);
+    expect(new Set(hashes).size).toBe(hashes.length);
     for (const s of Object.values(NAMED_PORTRAITS)) {
       expect(hash(s.seed, s.overrides)).toBe(hash(s.seed, s.overrides));
     }
