@@ -54,7 +54,7 @@ export interface SaveData {
 }
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
-  music: 0.8,
+  music: 0.35,
   sfx: 0.8,
   haptics: true,
   stickOpacity: 0.5,

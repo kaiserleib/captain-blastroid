@@ -9,7 +9,7 @@ export interface Mixer {
   noise: AudioBuffer;
 }
 
-const volumes: Record<Bus, number> = { master: 0.9, sfx: 1, music: 0.5 };
+const volumes: Record<Bus, number> = { master: 0.9, sfx: 1, music: 0.35 };
 let muted = false;
 // Game pause and page visibility are tracked separately so one can't undo the other.
 let gamePaused = false;
