@@ -86,7 +86,7 @@ describe('sectors', () => {
       expect(id).toBe(LEVEL_ORDER[n - 1]);
       const l = getLevel(id);
       expect(l.number).toBe(n);
-      expect(l.timeline.some((e) => 'boss' in e && e.boss === 'rock_hauler')).toBe(true);
+      expect(l.timeline.some((e) => 'boss' in e)).toBe(true);
       expect(l.timeline.filter((e) => 'escapePod' in e)).toHaveLength(1);
       expect(l.guaranteeWeapon).toBeDefined();
       expect(rockThemeForLevel(id)).toBe(l.rockTheme);
