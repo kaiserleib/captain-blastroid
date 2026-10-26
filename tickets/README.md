@@ -21,13 +21,13 @@ Wave 4  T18 integration + balance   T19 mobile/PWA/Capacitor   T20 test bots │
 | ID | Title | Depends on | Status |
 |---|---|---|---|
 | [T00](T00-scaffold-and-contracts.md) | Scaffold, loop, display, contracts | — | done |
-| [T01](T01-input.md) | Input: keyboard, mouse-follow, floating stick | T00 | todo |
-| [T02](T02-pixel-art-kit.md) | Pixel-art kit: palette, sprites, font, gallery | T00 | todo |
-| [T03](T03-sim-core.md) | Sim core: pools, spatial hash, collision rules, forces, damage | T00 | todo |
-| [T04](T04-audio.md) | Audio: procedural SFX + chiptune sequencer | T00 | todo |
-| [T05](T05-save-meta-platform.md) | Save data, meta progression model, platform adapters | T00 | todo |
-| [T06](T06-pilot-portraits.md) | Sci-fi pilot portrait generator | T00 | todo |
-| [T07](T07-backgrounds.md) | Parallax space backgrounds | T00 | todo |
+| [T01](T01-input.md) | Input: keyboard, mouse-follow, floating stick | T00 | done |
+| [T02](T02-pixel-art-kit.md) | Pixel-art kit: palette, sprites, font, gallery | T00 | done |
+| [T03](T03-sim-core.md) | Sim core: pools, spatial hash, collision rules, forces, damage | T00 | done |
+| [T04](T04-audio.md) | Audio: procedural SFX + chiptune sequencer | T00 | done |
+| [T05](T05-save-meta-platform.md) | Save data, meta progression model, platform adapters | T00 | done |
+| [T06](T06-pilot-portraits.md) | Sci-fi pilot portrait generator | T00 | done |
+| [T07](T07-backgrounds.md) | Parallax space backgrounds | T00 | done |
 | [T08](T08-player-ship.md) | Player ship: movement, shields, death, ship sprites | T01 T02 T03 | todo |
 | [T09](T09-weapons.md) | Weapons: 5 auto-fire weapons with levels | T02 T03 | todo |
 | [T10](T10-asteroids-obstacles.md) | Asteroids + indestructible anomaly framework | T02 T03 | todo |
