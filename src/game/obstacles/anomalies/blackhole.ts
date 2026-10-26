@@ -10,6 +10,10 @@ export interface AnomalyPlacement {
   vx?: number;
   /** Default `world.scrollSpeed`: anomalies sit in the scrolling world. */
   vy?: number;
+  /** Variant id from content/obstacles; unknown or missing = the default variant. */
+  variant?: string;
+  /** Pulsars: seconds already elapsed on the pulse clock at spawn. */
+  phase?: number;
 }
 
 const init = {

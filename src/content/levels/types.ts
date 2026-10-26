@@ -1,7 +1,7 @@
 // Level definition format, read by the wave director (game/director).
 
 import type { EnemyOverrides } from '../../sim/spawn';
-import type { AsteroidSize } from '../obstacles';
+import type { AsteroidSize, RockTheme } from '../obstacles';
 import type { PickupKind } from '../../sim/types';
 
 /** A number in px, or `'rand'`: resolved through `world.rng` inside the safe x bounds. */
@@ -60,6 +60,26 @@ export interface DropEvent {
   amount?: number;
 }
 
+/** Places an anomaly. Variants are ids in content/obstacles (`BLACK_HOLE_VARIANTS`, `PULSAR_VARIANTS`). */
+export interface AnomalyEvent {
+  kind: 'blackhole' | 'pulsar';
+  x: XSpec;
+  /** Default: just above the top edge (−radius). */
+  y?: number;
+  /** Default 0 / `world.scrollSpeed` (drifts with the scroll). */
+  vx?: number;
+  vy?: number;
+  variant?: string;
+  /** Pulsars: seconds already elapsed on the pulse clock at spawn (phase-locks rings to the music). */
+  phase?: number;
+}
+
+/** Ramps `world.scrollSpeed` linearly to `to` over `over` seconds (0 = instant). */
+export interface ScrollEvent {
+  to: number;
+  over: number;
+}
+
 interface EventBase {
   /** Level seconds. */
   t: number;
@@ -76,7 +96,17 @@ export type TimelineEvent = EventBase &
         forceCapsule?: string;
       }
     | { spawn: SpawnEvent }
-    | { escapePod: { x: XSpec } }
+    | {
+        escapePod: {
+          x: XSpec;
+          /** Enemy shots the pod survives (default 1: the first hit destroys it). */
+          hp?: number;
+        };
+      }
+    | { anomaly: AnomalyEvent }
+    | { scroll: ScrollEvent }
+    /** A named level script (registered by the level's game folder) for bespoke beats. */
+    | { script: string; args?: Readonly<Record<string, number | string>> }
     | { drop: DropEvent }
     | {
         toast: string;
@@ -106,4 +136,14 @@ export interface LevelDef {
   bossSalvage: number;
   /** Salvage cache sprayed when every pilot of this level is already rescued. */
   podFallbackSalvage: number;
+  /** Rock look and toughness. */
+  rockTheme: RockTheme;
+  /** Song id played on `bossSpawned` (default `boss`). */
+  bossMusic?: string;
+  /** Multiplier on the HP of *reused* Level 1 roster enemies (rounded, min 1). Default 1. */
+  enemyHpMul?: number;
+  /** Multiplier on every enemy shot's speed in this level. Default 1. */
+  enemyShotSpeedMul?: number;
+  /** If the player holds only one weapon at `by` level seconds, drop a `weapon` capsule ahead of them. */
+  guaranteeWeapon?: { by: number; weapon: string };
 }

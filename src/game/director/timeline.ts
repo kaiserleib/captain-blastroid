@@ -113,5 +113,8 @@ export function eventKind(ev: TimelineEvent): string {
   if ('drop' in ev) return 'drop';
   if ('toast' in ev) return 'toast';
   if ('bossWarning' in ev) return 'bossWarning';
+  if ('anomaly' in ev) return 'anomaly';
+  if ('scroll' in ev) return 'scroll';
+  if ('script' in ev) return 'script';
   return 'boss';
 }

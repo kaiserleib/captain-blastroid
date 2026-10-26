@@ -122,6 +122,9 @@ export function fireEvent(w: World, st: DirectorState, ev: TimelineEvent): void 
   } else if ('bossWarning' in ev) {
     w.events.emit('bossWarning', NO_PAYLOAD);
     logLine(st, `${fmt(st.t)} bossWarning`);
+  } else if ('anomaly' in ev || 'scroll' in ev || 'script' in ev) {
+    // T21 implements these; until then they only log.
+    logLine(st, `${fmt(st.t)} unhandled ${Object.keys(ev).join(',')}`);
   } else {
     // The boss module (T16) answers with bossSpawned; the field yields to its thrown rocks.
     st.phase = 'boss';

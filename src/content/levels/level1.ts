@@ -25,6 +25,7 @@ export const LEVEL1: LevelDef = {
   duration: 210,
   bossSalvage: 50,
   podFallbackSalvage: 30,
+  rockTheme: 'kessler',
   schematicOnClear: ['bulwark', 'dart'],
 
   asteroidField: [
