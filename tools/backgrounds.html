@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Captain Blastroid — Backgrounds</title>
+    <style>
+      body {
+        margin: 16px;
+        background: #100818;
+        color: #f8f8f8;
+        font:
+          14px/1.4 ui-monospace,
+          monospace;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-start;
+      }
+      canvas {
+        image-rendering: pixelated;
+        border: 1px solid #383050;
+        max-width: 100%;
+      }
+      #readout {
+        white-space: pre;
+        min-width: 22ch;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Backgrounds</h1>
+    <div class="controls">
+      <label
+        >Theme
+        <select id="theme"></select
+      ></label>
+      <label>Seed <input id="seed" value="KESTREL1" size="10" /></label>
+      <label
+        >Height
+        <select id="height">
+          <option>400</option>
+          <option>460</option>
+          <option selected>520</option>
+        </select></label
+      >
+      <label>Speed × <input id="speed" type="range" min="0" max="8" step="0.25" value="1" /></label>
+      <span id="speedv">1</span>
+      <label><input id="overlay" type="checkbox" checked /> Reference sprites</label>
+      <label><input id="bands" type="checkbox" checked /> Mark HUD bands</label>
+      <button id="jump">Skip +30 s</button>
+    </div>
+    <div class="wrap">
+      <canvas id="view"></canvas>
+      <div id="readout"></div>
+    </div>
+    <script type="module" src="./backgrounds.ts"></script>
+  </body>
+</html>
