@@ -2,7 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 // T20 smoke: Chromium only, with phone emulation. The iPhone descriptor defaults to
 // WebKit, so the browser is pinned back to Chromium (viewport, DPR, touch, UA stay).
-const PORT = 5120;
+// E2E_PORT lets parallel worktrees run the suite without reusing each other's server.
+const PORT = Number(process.env.E2E_PORT) || 5120;
 
 export default defineConfig({
   testDir: '.',

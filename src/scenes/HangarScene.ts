@@ -1,12 +1,13 @@
 import { fadeTo } from '../audio';
-import { PILOTS, SHIPS, UPGRADE_ORDER } from '../content';
+import { LEVEL_ORDER, PILOTS, SHIPS, UPGRADE_ORDER } from '../content';
 import { flags } from '../debug/flags';
 import { randomSeedString } from '../engine/rng';
+import { measure } from '../gfx/font';
 import type { Renderer } from '../gfx/renderer';
 import { drawWindow } from '../gfx/ui';
 import '../game/hud';
 import '../game/player';
-import { canBuyUpgrade, getSave } from '../meta';
+import { canBuyUpgrade, getSave, isLevelUnlocked } from '../meta';
 import {
   DIM,
   drawButton,
@@ -16,6 +17,7 @@ import {
   drawSpriteScaled,
   GOLD,
   MenuScene,
+  sectorLabel,
   sfx,
   wrapText,
   type MenuItem,
@@ -26,6 +28,7 @@ const LABELS: Readonly<Record<string, string>> = {
   launch: 'LAUNCH',
   pilot: 'PILOT',
   ship: 'SHIP',
+  sector: 'SECTOR',
   upgrades: 'UPGRADES',
   records: 'RECORDS',
   settings: 'SETTINGS',
@@ -43,15 +46,15 @@ export class HangarScene extends MenuScene {
   }
 
   protected layout(w: number, h: number): void {
-    // Content is ~280 px tall; centre it in whatever the buffer offers.
-    this.top = Math.max(4, Math.floor((h - 284) / 2));
+    // Content is ~306 px tall; centre it in whatever the buffer offers.
+    this.top = Math.max(4, Math.floor((h - 310) / 2));
     this.cardY = this.top + 24;
     const bx = 30;
     const bw = w - 60;
     let y = this.cardY + 84;
     const items: MenuItem[] = [this.button('launch', bx - 6, y, bw + 12, 30)];
     y += 38;
-    for (const id of ['pilot', 'ship', 'upgrades', 'records', 'settings']) {
+    for (const id of ['pilot', 'ship', 'sector', 'upgrades', 'records', 'settings']) {
       items.push(this.button(id, bx, y, bw, 22));
       y += 26;
     }
@@ -62,11 +65,14 @@ export class HangarScene extends MenuScene {
     if (it.id === 'launch') {
       sfx('ui_confirm');
       const save = getSave();
+      const levelId = isLevelUnlocked(save, save.selectedLevel)
+        ? save.selectedLevel
+        : (LEVEL_ORDER[0] as string);
       this.later(() =>
         flow.launch({
           shipId: save.selectedShip,
           pilotId: save.selectedPilot,
-          levelId: 'kessler',
+          levelId,
           seed: flags.seed ?? randomSeedString(),
         }),
       );
@@ -76,6 +82,7 @@ export class HangarScene extends MenuScene {
     this.later(() => {
       if (it.id === 'pilot') flow.pilots();
       else if (it.id === 'ship') flow.ships();
+      else if (it.id === 'sector') flow.sectors();
       else if (it.id === 'upgrades') flow.upgrades();
       else if (it.id === 'records') flow.records();
       else if (it.id === 'settings') flow.settings(true);
@@ -107,6 +114,11 @@ export class HangarScene extends MenuScene {
         r.text(lines[i] as string, 68, y + 21 + i * 10, { color: DIM });
       }
     }
+    // The flight plan, under the pilot text, when it clears the ship's name.
+    const sector = sectorLabel(save.selectedLevel);
+    if (68 + measure(sector, 'small') <= w - 76) {
+      r.text(sector, 68, y + 61, { color: DIM, font: 'small' });
+    }
     if (ship) {
       drawSpriteScaled(r, ship.id, w - 38, y + 32, 2, Math.floor(this.t * 12) % 3);
       r.text(ship.name.toUpperCase(), w - 38, y + 60, { align: 'center' });
@@ -128,6 +140,7 @@ export class HangarScene extends MenuScene {
       let value: string | undefined;
       if (it.id === 'pilot' && pilot) value = pilot.name.toUpperCase();
       else if (it.id === 'ship' && ship) value = ship.name.toUpperCase();
+      else if (it.id === 'sector') value = sectorLabel(save.selectedLevel);
       else if (it.id === 'upgrades' && canBuy) value = 'BUY!';
       drawButton(r, it, label, {
         focused,

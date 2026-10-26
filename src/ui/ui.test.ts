@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ScenePointer } from '../engine/scene';
 import { normalize } from '../meta';
 import { createRunState } from '../sim/world';
+import { LEVEL_ORDER } from '../content';
 import { debugSave } from './debugSaves';
+import { sectorInfo, sectorLabel } from './sectors';
 import { formatTime, wrapText } from './draw';
 import { wasdNav } from './keys';
 import { buildLogoLine, embolden, LOGO_GOLD, scaleMask, textMask } from './logo';
@@ -135,12 +137,39 @@ describe('debug saves', () => {
   });
 });
 
+describe('sector cards', () => {
+  const order = ['kessler', 'ionShoals'];
+
+  it('reads unlocks, records and the pod / schematic markers from the save', () => {
+    const fresh = sectorInfo(debugSave('fresh'), 'kessler', order);
+    expect(fresh).toMatchObject({ number: 1, unlocked: true, clears: 0, best: 0 });
+    expect(fresh.pod).toBe(true);
+    expect(fresh.schematic).toBe(true);
+    expect(sectorInfo(debugSave('fresh'), 'ionShoals', order).unlocked).toBe(false);
+    expect(sectorInfo(debugSave('mid'), 'ionShoals', order).unlocked).toBe(true);
+    const all = sectorInfo(debugSave('all'), 'kessler', order);
+    expect(all.clears).toBeGreaterThan(0);
+    expect(all.pod).toBe(false);
+    expect(all.schematic).toBe(false);
+  });
+
+  it('labels a sector with its number and name', () => {
+    expect(sectorLabel('kessler')).toBe('1 THE KESSLER BELT');
+  });
+
+  it('debug saves: mid has sector 1 cleared, all has every sector cleared', () => {
+    expect(debugSave('mid').levels.kessler?.clears).toBeGreaterThan(0);
+    const all = debugSave('all');
+    for (const id of LEVEL_ORDER) expect(all.levels[id]?.clears).toBeGreaterThan(0);
+  });
+});
+
 describe('results', () => {
   it('floors fractional run salvage before banking', () => {
     const save = debugSave('fresh');
     const run = createRunState('SEED', 'kestrel', 'blastroid', 'kessler');
     run.salvage = 10.9;
-    run.score = 500;
+    run.score = 1500;
     run.pilotsRescued.push('juno');
     run.schematics.push('bulwark');
     const b = bankFinishedRun(save, run, false);
@@ -154,6 +183,29 @@ describe('results', () => {
       'NEW HIGH SCORE!',
     ]);
     expect(lines[1]?.value).toBe('Juno Sparks');
+  });
+
+  it('flags first clears and the end of the campaign', () => {
+    const order = ['kessler', 'ionShoals'];
+    const run = createRunState('SEED', 'kestrel', 'blastroid', 'kessler');
+    run.bossDefeated = true;
+    const first = bankFinishedRun(debugSave('fresh'), run, true, false, undefined, order);
+    expect(first.firstClear).toBe(true);
+    expect(first.nextLevel).toBe('ionShoals');
+    expect(first.campaignComplete).toBe(false);
+    const again = bankFinishedRun(first.save, run, true, false, undefined, order);
+    expect(again.firstClear).toBe(false);
+    const last = bankFinishedRun(debugSave('fresh'), run, true, false, undefined, ['kessler']);
+    expect(last.campaignComplete).toBe(true);
+    expect(last.nextLevel).toBeNull();
+  });
+
+  it('never ranks an abandoned run', () => {
+    const run = createRunState('SEED', 'kestrel', 'blastroid', 'kessler');
+    run.score = 40000;
+    const b = bankFinishedRun(debugSave('fresh'), run, false, true);
+    expect(b.save.highScores).toEqual([]);
+    expect(b.discoveries).toEqual([]);
   });
 
   it('formats time as m:ss', () => {

@@ -1,3 +1,4 @@
+import './ui.sprites';
 export {
   getMinHitSize,
   hitTest,
@@ -16,6 +17,7 @@ export { applyAudioSettings } from './audioSettings';
 
 /** Shown on the title screen. */
 export const GAME_VERSION = '0.1.0';
-export { bankFinishedRun, discoveryLines, type DiscoveryLine } from './results';
+export { bankFinishedRun, discoveryLines, type DiscoveryLine, type FinishedRun } from './results';
+export { hasSchematicLeft, sectorInfo, sectorLabel, type SectorInfo } from './sectors';
 export { cycleShake, SLIDERS, snapSetting, type SliderDef, type SliderKey } from './settings';
 export { isSaveTransferOpen, openSaveExport, openSaveImport } from './saveTransfer';

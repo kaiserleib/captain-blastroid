@@ -1,17 +1,42 @@
 import { PILOTS, SHIPS } from '../content';
-import { bankRun, runResultFrom, type BankResult, type Discovery, type SaveData } from '../meta';
+import {
+  bankRun,
+  nextLevelId,
+  runResultFrom,
+  type BankResult,
+  type Discovery,
+  type SaveData,
+} from '../meta';
 import type { RunState } from '../sim/world';
+
+export interface FinishedRun extends BankResult {
+  /** The boss went down on a sector that had never been cleared. */
+  firstClear: boolean;
+  /** First clear of the campaign's last sector. */
+  campaignComplete: boolean;
+  /** The sector after this one, or null at the end of the campaign. */
+  nextLevel: string | null;
+}
 
 /** Banks a finished or abandoned run. Run salvage accumulates fractions, so it's floored first. */
 export function bankFinishedRun(
   save: SaveData,
   run: RunState,
   victory: boolean,
+  abandoned = false,
   now?: Date,
-): BankResult {
-  const result = runResultFrom(run, victory);
+  order?: readonly string[],
+): FinishedRun {
+  const result = runResultFrom(run, victory, abandoned);
   result.salvage = Math.floor(result.salvage);
-  return bankRun(save, result, now);
+  const firstClear = run.bossDefeated && (save.levels[run.levelId]?.clears ?? 0) === 0;
+  const nextLevel = nextLevelId(run.levelId, order);
+  return {
+    ...bankRun(save, result, now),
+    firstClear,
+    campaignComplete: firstClear && nextLevel === null,
+    nextLevel,
+  };
 }
 
 export interface DiscoveryLine {

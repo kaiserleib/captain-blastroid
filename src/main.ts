@@ -14,7 +14,7 @@ import { BootScene } from './scenes/BootScene';
 import { initFlow } from './scenes/flow';
 import { GameScene } from './scenes/GameScene';
 import { setHudViewport } from './game/hud';
-import { applyAudioSettings, bindWasdNav, isUiScene, setMinHitSize } from './ui';
+import { applyAudioSettings, bindWasdNav, isUiScene, MenuScene, setMinHitSize } from './ui';
 
 const canvas = document.getElementById('game');
 if (!(canvas instanceof HTMLCanvasElement)) throw new Error('#game canvas missing');
@@ -42,6 +42,17 @@ bindWasdNav((dx, dy) => {
   if (isUiScene(top)) top.onUi({ kind: 'nav', dx, dy });
 });
 setInputSettingsProvider(() => getSettings());
+if (import.meta.env.DEV) {
+  // e2e and console access: the top scene's name and its menu items, in buffer px.
+  (window as unknown as { __scene: unknown }).__scene = {
+    name: (): string => scenes.top?.constructor.name ?? '',
+    items: () => {
+      const top = scenes.top;
+      if (!(top instanceof MenuScene)) return [];
+      return top.menuItems().map(({ id, x, y, w, h }) => ({ id, x, y, w, h }));
+    },
+  };
+}
 // Fires on load and on every change, so saved volumes reach the mixer before any sound.
 onSaveChange((save) => applyAudioSettings(save.settings));
 const overlay = flags.debug ? new DebugOverlay() : null;

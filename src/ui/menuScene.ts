@@ -50,6 +50,11 @@ export abstract class MenuScene implements UiScene {
     });
   }
 
+  /** The current items in buffer coordinates (dev `window.__scene` hook, e2e). */
+  menuItems(): readonly MenuItem[] {
+    return this.menu.items;
+  }
+
   enter(_data?: unknown): void {}
   exit(): void {}
 

@@ -1,5 +1,6 @@
 // Meta-progression rules. Pure functions on SaveData: they return new saves and never do I/O.
 import {
+  LEVEL_ORDER,
   PILOTS,
   PILOT_ORDER,
   SHIPS,
@@ -26,9 +27,14 @@ export interface RunResult {
   pilotsRescued: string[];
   bossDefeated: boolean;
   victory: boolean;
+  /** Quit from the pause menu: banks salvage and stats but never a score. */
+  abandoned?: boolean;
 }
 
-export function runResultFrom(run: RunState, victory: boolean): RunResult {
+/** Scores below this never enter the high-score tables. */
+export const HIGH_SCORE_FLOOR = 1000;
+
+export function runResultFrom(run: RunState, victory: boolean, abandoned = false): RunResult {
   return {
     shipId: run.shipId,
     pilotId: run.pilotId,
@@ -40,6 +46,7 @@ export function runResultFrom(run: RunState, victory: boolean): RunResult {
     pilotsRescued: [...run.pilotsRescued],
     bossDefeated: run.bossDefeated,
     victory,
+    abandoned,
   };
 }
 
@@ -96,32 +103,32 @@ export function bankRun(save: SaveData, result: RunResult, now: Date = new Date(
     discoveries.push({ kind: 'pilot', pilotId: id });
   }
 
+  const abandoned = result.abandoned === true;
   let highScores = save.highScores;
-  if (result.score > 0) {
-    // Ties keep the older entry ahead.
-    let rank = highScores.findIndex((h) => result.score > h.score);
-    if (rank < 0) rank = highScores.length;
-    if (rank < HIGH_SCORE_LIMIT) {
-      const entry: HighScore = {
-        score: result.score,
-        pilot: result.pilotId,
-        ship: result.shipId,
-        level: result.levelId,
-        date: now.toISOString(),
-      };
-      highScores = [...highScores.slice(0, rank), entry, ...highScores.slice(rank)].slice(
-        0,
-        HIGH_SCORE_LIMIT,
-      );
-      discoveries.push({ kind: 'highScore', rank: rank + 1 });
+  if (!abandoned && result.score >= HIGH_SCORE_FLOOR) {
+    const added = insertHighScore(highScores, {
+      score: result.score,
+      pilot: result.pilotId,
+      ship: result.shipId,
+      level: result.levelId,
+      date: now.toISOString(),
+    });
+    if (added) {
+      highScores = added.highScores;
+      discoveries.push({ kind: 'highScore', rank: added.rank });
     }
   }
 
   const prev = save.levels[result.levelId];
-  const clears = (prev?.clears ?? 0) + (result.bossDefeated ? 1 : 0);
-  const best = Math.max(prev?.best ?? 0, result.score);
+  const prevClears = prev?.clears ?? 0;
+  const clears = prevClears + (result.bossDefeated ? 1 : 0);
+  const prevBest = prev?.best ?? 0;
+  const best = abandoned ? prevBest : Math.max(prevBest, result.score);
   const levels =
     clears > 0 || best > 0 ? { ...save.levels, [result.levelId]: { clears, best } } : save.levels;
+  // The first clear points LAUNCH at the next sector, so the campaign carries on.
+  const next = prevClears === 0 && clears > 0 ? nextLevelId(result.levelId) : null;
+  const selectedLevel = next ?? save.selectedLevel;
 
   return {
     salvageEarned,
@@ -129,6 +136,7 @@ export function bankRun(save: SaveData, result: RunResult, now: Date = new Date(
     save: {
       ...save,
       levels,
+      selectedLevel,
       salvage: save.salvage + salvageEarned,
       totalSalvageEarned: save.totalSalvageEarned + salvageEarned,
       schematics,
@@ -142,6 +150,75 @@ export function bankRun(save: SaveData, result: RunResult, now: Date = new Date(
       },
     },
   };
+}
+
+/**
+ * Inserts `entry` into a table that keeps up to HIGH_SCORE_LIMIT entries per level in
+ * one score-sorted array. Ties keep the older entry ahead. Returns null when the score
+ * doesn't make its level's table; `rank` is 1-based within the level.
+ */
+export function insertHighScore(
+  table: readonly HighScore[],
+  entry: HighScore,
+): { highScores: HighScore[]; rank: number } | null {
+  let rank = 0;
+  let at = table.length;
+  for (let i = 0; i < table.length; i++) {
+    const h = table[i] as HighScore;
+    if (entry.score > h.score) {
+      at = i;
+      break;
+    }
+    if (h.level === entry.level) rank++;
+  }
+  if (rank >= HIGH_SCORE_LIMIT) return null;
+  const out = [...table.slice(0, at), entry, ...table.slice(at)];
+  let seen = 0;
+  for (let i = 0; i < out.length; i++) {
+    if ((out[i] as HighScore).level !== entry.level) continue;
+    if (++seen > HIGH_SCORE_LIMIT) {
+      out.splice(i, 1);
+      break;
+    }
+  }
+  return { highScores: out, rank: rank + 1 };
+}
+
+/** One level's entries from the shared table, best first. */
+export function levelHighScores(save: SaveData, levelId: string): HighScore[] {
+  return save.highScores.filter((h) => h.level === levelId);
+}
+
+/** The sector after `id` in the campaign, or null for the last (or an unknown) one. */
+export function nextLevelId(id: string, order: readonly string[] = LEVEL_ORDER): string | null {
+  const i = order.indexOf(id);
+  return i >= 0 ? (order[i + 1] ?? null) : null;
+}
+
+/** Sector 1 is always open; every later one needs the sector before it cleared once. */
+export function isLevelUnlocked(
+  save: SaveData,
+  id: string,
+  order: readonly string[] = LEVEL_ORDER,
+): boolean {
+  const i = order.indexOf(id);
+  if (i < 0) return false;
+  if (i === 0) return true;
+  return (save.levels[order[i - 1] as string]?.clears ?? 0) > 0;
+}
+
+export function unlockedLevels(save: SaveData, order: readonly string[] = LEVEL_ORDER): string[] {
+  return order.filter((id) => isLevelUnlocked(save, id, order));
+}
+
+/** Returns a new save launching `id`. Throws if it's locked. */
+export function selectLevel(
+  save: SaveData,
+  id: string,
+  order: readonly string[] = LEVEL_ORDER,
+): SaveData {
+  if (!isLevelUnlocked(save, id, order)) throw new Error(`Level "${id}" is locked`);
+  return { ...save, selectedLevel: id };
 }
 
 export type ShipStatus = 'built' | 'buildable' | 'schematic' | 'unknown';
