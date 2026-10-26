@@ -86,10 +86,12 @@ describe('sectors', () => {
       expect(id).toBe(LEVEL_ORDER[n - 1]);
       const l = getLevel(id);
       expect(l.number).toBe(n);
-      // Each sector ends in a registered boss (stubs: the Rock Hauler).
-      const boss = l.timeline.find((e) => 'boss' in e);
+      // Each sector ends in one registered boss; a pod may come from a script instead.
+      const bosses = l.timeline.filter((e) => 'boss' in e);
+      expect(bosses).toHaveLength(1);
+      const boss = bosses[0];
       expect(boss !== undefined && 'boss' in boss && bossRegistration(boss.boss)).toBeTruthy();
-      expect(l.timeline.filter((e) => 'escapePod' in e)).toHaveLength(1);
+      expect(l.timeline.filter((e) => 'escapePod' in e).length).toBeLessThanOrEqual(1);
       expect(l.guaranteeWeapon).toBeDefined();
       expect(rockThemeForLevel(id)).toBe(l.rockTheme);
     }
