@@ -10,8 +10,8 @@ import {
   PICKUP_TUNING,
   SALVAGE_SIZES,
   SCHEMATIC_SHIPS,
-  WEAPON_MAX_LEVEL,
 } from '../../content/pickups';
+import { WEAPON_MAX_LEVEL } from '../../content/weapons';
 import type { Rng } from '../../engine/rng';
 import { getEnemyDef, spawnPickup } from '../../sim/spawn';
 import type { Asteroid, Pickup, PickupKind, WeaponInstance } from '../../sim/types';

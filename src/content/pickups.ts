@@ -1,15 +1,8 @@
 // Pickup tunables, per docs/design.md → Pickups.
+import { WEAPON_ORDER } from './weapons';
 
 /** Weapon ids a capsule can carry, in letter order B/S/L/M/D. */
-export const CAPSULE_WEAPON_IDS: readonly string[] = [
-  'blaster',
-  'spread',
-  'lance',
-  'seeker',
-  'orbitDrones',
-];
-
-export const WEAPON_MAX_LEVEL = 5;
+export const CAPSULE_WEAPON_IDS: readonly string[] = WEAPON_ORDER;
 
 /** Salvage bit denominations, smallest first. */
 export const SALVAGE_SIZES: readonly number[] = [1, 5, 25];

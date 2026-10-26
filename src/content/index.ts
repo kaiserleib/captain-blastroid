@@ -10,6 +10,7 @@ export * from './dropTables';
 export * from './pickups';
 export * from './player';
 export * from './obstacles';
+export * from './weapons';
 
 /** Looks up a content definition, failing loudly on a typo'd id. */
 export function getDef<T>(table: Readonly<Record<string, T>>, id: string, tableName: string): T {
