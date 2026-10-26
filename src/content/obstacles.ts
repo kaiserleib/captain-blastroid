@@ -1,5 +1,7 @@
 // Asteroid and anomaly tunables (T10). Systems in game/obstacles read these.
 
+import { LEVELS } from './levels';
+
 export type AsteroidSize = 'small' | 'medium' | 'large';
 export const ASTEROID_SIZE_IDS: readonly AsteroidSize[] = ['small', 'medium', 'large'];
 
@@ -69,8 +71,14 @@ export const ASTEROID_SIZES: Readonly<Record<AsteroidSize, AsteroidSizeDef>> = {
   },
 };
 
-/** Level id → rock theme. Unknown levels fall back to basalt (post-MVP depths). */
+/**
+ * Level id → rock theme: the LevelDef's `rockTheme`, then the old aliases;
+ * unknown levels fall back to basalt.
+ */
 export function rockThemeForLevel(levelId: string): RockTheme {
+  // LEVELS is read at call time, so the levels ↔ obstacles import cycle is harmless.
+  const def = LEVELS[levelId];
+  if (def !== undefined) return def.rockTheme;
   if (levelId === 'kessler' || levelId === 'level1' || levelId === '1') return 'kessler';
   if (levelId === 'ion' || levelId === 'level2' || levelId === '2') return 'ion';
   return 'basalt';

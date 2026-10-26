@@ -1,11 +1,21 @@
 // Timeline event executors. Each one spawns through the owning module's API.
 
-import type { FormationEvent, SpawnEvent, TimelineEvent } from '../../content/levels';
+import type {
+  AnomalyEvent,
+  FormationEvent,
+  ScrollEvent,
+  SpawnEvent,
+  TimelineEvent,
+} from '../../content/levels';
 import { getSave, nextRescuablePilot } from '../../meta';
+import { pinAnomaly, setScrollSpeed } from '../../sim/scroll';
 import { spawnEnemy, type EnemyOverrides } from '../../sim/spawn';
+import type { Anomaly } from '../../sim/types';
 import type { World } from '../../sim/world';
 import { spawnFormation } from '../enemies';
+import { spawnBlackHole, spawnPulsar, type AnomalyPlacement } from '../obstacles';
 import { spawnDrop, spawnEscapePod, spraySalvage } from '../pickups';
+import { runLevelScript } from './registry';
 import { logLine, type DirectorState } from './state';
 import { DEFAULT_SPACING, formationHalfWidth, resolveX } from './timeline';
 
@@ -84,17 +94,58 @@ function podPilot(w: World, st: DirectorState): string | null {
   return pilot !== null && w.run.pilotsRescued.includes(pilot) ? null : pilot;
 }
 
-function firePod(w: World, st: DirectorState, xSpec: number | 'rand'): void {
+function firePod(w: World, st: DirectorState, xSpec: number | 'rand', hp: number): void {
   const x = resolveX(xSpec, w.rng, POD_HALF_WIDTH, w.width);
   const pilot = podPilot(w, st);
   if (pilot !== null) {
-    spawnEscapePod(w, pilot, x);
-    logLine(st, `${fmt(st.t)} escapePod ${pilot} x=${fmt(x)}`);
+    spawnEscapePod(w, pilot, x, hp);
+    logLine(st, `${fmt(st.t)} escapePod ${pilot} x=${fmt(x)}${hp > 1 ? ` hp=${hp}` : ''}`);
   } else {
     // Everyone here is rescued: a salvage cache takes the pod's place.
     spraySalvage(w, x, CACHE_Y, st.level.podFallbackSalvage);
     logLine(st, `${fmt(st.t)} salvageCache x=${fmt(x)}`);
   }
+}
+
+const placement: Required<AnomalyPlacement> = { vx: 0, vy: 0, variant: '', phase: 0 };
+
+function fireAnomaly(w: World, st: DirectorState, ev: AnomalyEvent): void {
+  const x = resolveX(ev.x, w.rng, 0, w.width);
+  placement.vx = ev.vx ?? 0;
+  placement.vy = ev.vy ?? w.scrollSpeed;
+  placement.variant = ev.variant ?? '';
+  placement.phase = ev.phase ?? 0;
+  const spawn = ev.kind === 'pulsar' ? spawnPulsar : spawnBlackHole;
+  const a: Anomaly | null = spawn(w, x, ev.y ?? 0, placement);
+  if (a !== null) {
+    // The variant decides the core size, so the default y is set after spawning.
+    if (ev.y === undefined) a.y = a.prevY = -a.r;
+    // Boss arenas hold still: a fixed anomaly ignores later scroll changes.
+    if (ev.vy === 0) pinAnomaly(a);
+  }
+  const v = ev.variant ? ` ${ev.variant}` : '';
+  logLine(st, `${fmt(st.t)} anomaly ${ev.kind}${v} x=${fmt(x)}${a ? '' : ' (pool full)'}`);
+}
+
+/** Starts a linear ramp of `w.scrollSpeed` (the director advances it); `over` 0 is instant. */
+export function startScrollRamp(w: World, st: DirectorState, ev: ScrollEvent): void {
+  const r = st.scroll;
+  r.from = w.scrollSpeed;
+  r.to = ev.to;
+  r.over = Math.max(0, ev.over);
+  r.t = 0;
+  r.active = r.over > 0;
+  if (!r.active) setScrollSpeed(w, ev.to);
+}
+
+/** Advances the scroll ramp; runs every director tick in every phase. */
+export function tickScrollRamp(w: World, st: DirectorState, dt: number): void {
+  const r = st.scroll;
+  if (!r.active) return;
+  r.t += dt;
+  const k = Math.min(1, r.t / r.over);
+  setScrollSpeed(w, r.from + (r.to - r.from) * k);
+  if (k >= 1) r.active = false;
 }
 
 export function emitToast(w: World, text: string): void {
@@ -109,7 +160,7 @@ export function fireEvent(w: World, st: DirectorState, ev: TimelineEvent): void 
   } else if ('spawn' in ev) {
     fireSpawn(w, st, ev.spawn);
   } else if ('escapePod' in ev) {
-    firePod(w, st, ev.escapePod.x);
+    firePod(w, st, ev.escapePod.x, Math.max(1, Math.round(ev.escapePod.hp ?? 1)));
   } else if ('drop' in ev) {
     const d = ev.drop;
     const x = resolveX(d.x, w.rng, POD_HALF_WIDTH, w.width);
@@ -122,9 +173,14 @@ export function fireEvent(w: World, st: DirectorState, ev: TimelineEvent): void 
   } else if ('bossWarning' in ev) {
     w.events.emit('bossWarning', NO_PAYLOAD);
     logLine(st, `${fmt(st.t)} bossWarning`);
-  } else if ('anomaly' in ev || 'scroll' in ev || 'script' in ev) {
-    // T21 implements these; until then they only log.
-    logLine(st, `${fmt(st.t)} unhandled ${Object.keys(ev).join(',')}`);
+  } else if ('anomaly' in ev) {
+    fireAnomaly(w, st, ev.anomaly);
+  } else if ('scroll' in ev) {
+    startScrollRamp(w, st, ev.scroll);
+    logLine(st, `${fmt(st.t)} scroll ${fmt(ev.scroll.to)} over ${fmt(ev.scroll.over)}`);
+  } else if ('script' in ev) {
+    const ran = runLevelScript(w, ev.script, ev.args);
+    logLine(st, `${fmt(st.t)} script ${ev.script}${ran ? '' : ' (unknown)'}`);
   } else {
     // The boss module (T16) answers with bossSpawned; the field yields to its thrown rocks.
     st.phase = 'boss';

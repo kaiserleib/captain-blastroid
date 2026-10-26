@@ -1,9 +1,9 @@
-import { ENEMIES } from '../../content/enemies';
 import type { SpriteOpts } from '../../gfx/renderer';
 import { warm } from '../../gfx/spriteCache';
 import type { Bullet, Enemy } from '../../sim/types';
 import type { DrawLayer } from '../../sim/world';
 import { ENEMY_SPRITE_IDS } from './enemies.sprites';
+import { enemyDrawFn, rosterDef } from './roster';
 
 const ANIM_FPS = 8;
 const BULLET_PULSE_FPS = 10;
@@ -17,7 +17,7 @@ function warmOnce(): void {
   warmed = true;
 }
 
-/** Roster enemies only; boss parts and other defs draw themselves. */
+/** Registered roster enemies only (plus their `registerEnemyDraw` extras); boss parts draw themselves. */
 export const enemiesLayer: DrawLayer = {
   name: 'enemies',
   z: 40,
@@ -28,17 +28,17 @@ export const enemiesLayer: DrawLayer = {
     for (let i = 0; i < n; i++) {
       const e = items[i] as Enemy;
       if (!e.active) continue;
-      const def = ENEMIES[e.defId];
+      const def = rosterDef(e.defId);
       if (def === undefined) continue;
-      // Per-id phase so a formation doesn't flicker in lockstep.
-      opts.frame = Math.floor((w.time + e.id * 0.37) * ANIM_FPS);
-      opts.flash = e.flashT > 0;
-      r.sprite(
-        def.sprite,
-        e.prevX + (e.x - e.prevX) * alpha,
-        e.prevY + (e.y - e.prevY) * alpha,
-        opts,
-      );
+      const x = e.prevX + (e.x - e.prevX) * alpha;
+      const y = e.prevY + (e.y - e.prevY) * alpha;
+      if (def.sprite !== '') {
+        // Per-id phase so a formation doesn't flicker in lockstep.
+        opts.frame = Math.floor((w.time + e.id * 0.37) * ANIM_FPS);
+        opts.flash = e.flashT > 0;
+        r.sprite(def.sprite, x, y, opts);
+      }
+      enemyDrawFn(e.defId)?.(w, r, e, x, y);
     }
   },
 };

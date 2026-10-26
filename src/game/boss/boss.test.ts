@@ -19,7 +19,7 @@ import {
   Phase,
   spawnBoss,
   updateBoss,
-  type RockHauler,
+  RockHauler,
 } from './index';
 
 const DT = 1 / 60;
@@ -51,7 +51,7 @@ function run(w: World, seconds: number, each?: () => void): void {
 
 function spawned(w: World): RockHauler {
   const b = spawnBoss(w, 'rock_hauler');
-  if (b === null) throw new Error('no boss');
+  if (!(b instanceof RockHauler)) throw new Error('no boss');
   return b;
 }
 

@@ -50,7 +50,7 @@ Wave 7  T31 campaign integration + bots + balance                            │
 | [T18](T18-integration-balance.md) | End-to-end integration + balance pass | all of waves 1–3 | done |
 | [T19](T19-mobile-pwa-capacitor.md) | PWA, device perf, Capacitor wrapper | T18 | done |
 | [T20](T20-test-bots-e2e.md) | Headless bot playthrough + Playwright smoke | T18 | done |
-| [T21](T21-level-framework.md) | Level framework: registries, new timeline actions, scroll changes, sector stubs | T00–T20 | todo |
+| [T21](T21-level-framework.md) | Level framework: registries, new timeline actions, scroll changes, sector stubs | T00–T20 | done |
 | [T22](T22-sector-select-flow.md) | Sector select, campaign flow, per-sector records, e2e scene hook | T00–T20 | done |
 | [T23](T23-hazards.md) | Hazards: tractor beams, black-hole variants, pulsar gaps | T00–T20 | done |
 | [T24](T24-roster-ships-pilots.md) | 4 ships, 3 pilots, 2 upgrades, scalable select screens | T00–T20 | done |

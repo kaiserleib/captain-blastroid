@@ -36,11 +36,32 @@ export function shotStyle(size: EnemyBulletSize): Readonly<ShotStyle> {
 
 const init: ShotInit = { x: 0, y: 0, vx: 0, vy: 0, r: 2, damage: 1, ttl: 4, sprite: '' };
 
+// Level `enemyShotSpeedMul`, per world. Read once per shot, so the last
+// world's value is cached instead of hitting the WeakMap every bullet.
+const shotMuls = new WeakMap<World, number>();
+let mulWorld: World | null = null;
+let mulValue = 1;
+
+/** Multiplies the speed of every enemy and boss shot fired through this module (the director sets it). */
+export function setEnemyShotSpeedMul(w: World, mul: number): void {
+  shotMuls.set(w, mul);
+  if (mulWorld === w) mulValue = mul;
+}
+
+export function enemyShotSpeedMul(w: World): number {
+  if (mulWorld !== w) {
+    mulWorld = w;
+    mulValue = shotMuls.get(w) ?? 1;
+  }
+  return mulValue;
+}
+
 function shoot(w: World, x: number, y: number, angle: number, speed: number, s: ShotStyle): number {
+  const v = speed * enemyShotSpeedMul(w);
   init.x = x;
   init.y = y;
-  init.vx = Math.cos(angle) * speed;
-  init.vy = Math.sin(angle) * speed;
+  init.vx = Math.cos(angle) * v;
+  init.vy = Math.sin(angle) * v;
   init.r = s.r;
   init.damage = s.damage ?? 1;
   init.ttl = s.ttl ?? ENEMY_FAIRNESS.shotTtl;
@@ -67,6 +88,22 @@ function spread(
   let fired = 0;
   for (let i = 0; i < n; i++) fired += shoot(w, x, y, a0 + step * i, speed, s);
   return fired;
+}
+
+/**
+ * One shot from (x, y) heading `deg` (0 = right, 90 = down) at `speed` (the
+ * level's shot-speed multiplier applies). Returns 1, or 0 if the pool is full.
+ * Custom behaviors that fire bespoke shapes build them from this.
+ */
+export function shootDir(
+  w: World,
+  x: number,
+  y: number,
+  deg: number,
+  speed: number,
+  s: ShotStyle = SHOT_SMALL,
+): number {
+  return shoot(w, x, y, deg * DEG, speed, s);
 }
 
 /** Degrees from (x, y) to the player's current position (no lead). Straight down if dead. */
@@ -230,7 +267,20 @@ export function burst(
 ): number {
   if (count <= 0) return 0;
   const fired = volley(w, source.x, muzzleY(source), inner, s);
-  if (count === 1) return fired;
+  if (count > 1) scheduleBurst(w, source, count - 1, interval, inner, s, fair);
+  return fired;
+}
+
+/** Queues `left` follow-up volleys of `inner` from `source`, `interval` s apart. */
+function scheduleBurst(
+  w: World,
+  source: Enemy,
+  left: number,
+  interval: number,
+  inner: VolleyPattern,
+  s: ShotStyle,
+  fair: boolean,
+): void {
   const t = burstTable(w);
   for (let i = 0; i < t.length; i++) {
     const b = t[i] as PendingBurst;
@@ -238,7 +288,7 @@ export function burst(
     b.active = true;
     b.source = source;
     b.sourceId = source.id;
-    b.left = count - 1;
+    b.left = left;
     b.interval = interval;
     b.timer = interval;
     b.inner = inner;
@@ -246,7 +296,6 @@ export function burst(
     b.fair = fair;
     break;
   }
-  return fired;
 }
 
 /** Advances pending bursts. Called once per tick by the enemies system. */
@@ -281,4 +330,41 @@ export function firePattern(
 ): number {
   if (p.kind === 'burst') return burst(w, source, p.count, p.interval, p.inner, s, fair);
   return volley(w, source.x, muzzleY(source), p, s);
+}
+
+/**
+ * Fires a pattern from `source` toward (targetX, targetY) instead of the
+ * player: `aimed` spreads around the target, `fan` centers on it, `ring`
+ * turns its first shot toward it. A `burst` fires its first volley at the
+ * target; its follow-ups aim at the player. Returns shots spawned now.
+ */
+export function fireAt(
+  w: World,
+  source: Enemy,
+  p: PatternDef,
+  targetX: number,
+  targetY: number,
+  s: ShotStyle = SHOT_SMALL,
+  fair = true,
+): number {
+  const x = source.x;
+  const y = muzzleY(source);
+  const deg = Math.atan2(targetY - y, targetX - x) / DEG;
+  const v = p.kind === 'burst' ? p.inner : p;
+  let n: number;
+  switch (v.kind) {
+    case 'aimed':
+      n = spread(w, x, y, v.n, v.spreadDeg, deg, v.speed, s);
+      break;
+    case 'fan':
+      n = spread(w, x, y, v.n, v.arcDeg, deg, v.speed, s);
+      break;
+    case 'ring':
+      n = ring(w, x, y, v.n, v.speed, v.rotOffset + deg, s);
+      break;
+  }
+  if (n > 0) emitEnemyShotSfx(w, x);
+  if (p.kind === 'burst' && p.count > 1)
+    scheduleBurst(w, source, p.count - 1, p.interval, p.inner, s, fair);
+  return n;
 }

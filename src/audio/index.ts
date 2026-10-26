@@ -2,6 +2,7 @@ import type { EventBus, GameEvents } from '../engine/events';
 import { resume, suspend } from './audio';
 import * as music from './music';
 import { playAt } from './sfx';
+import { SONG_IDS } from './songs';
 
 export {
   getVolume,
@@ -29,12 +30,36 @@ export { SFX_IDS, type SfxId } from './presets';
 export { SONG_IDS } from './songs';
 export { currentSong, fadeTo, playSong, stop as stopMusic } from './music';
 
+const warnedSongs = new Set<string>();
+
+/**
+ * `id` if it is a known song, else `fallback` (warning once per id). Lets a
+ * level name a song another ticket hasn't added yet.
+ */
+export function songOr(id: string, fallback: string): string {
+  if ((SONG_IDS as readonly string[]).includes(id)) return id;
+  if (!warnedSongs.has(id)) {
+    warnedSongs.add(id);
+    console.warn(`audio: unknown song "${id}", playing "${fallback}"`);
+  }
+  return fallback;
+}
+
+export interface AttachAudioOptions {
+  /** Song for `bossSpawned` (the level's `bossMusic`). Default `boss`. */
+  bossSong?: string;
+}
+
 /**
  * Subscribes audio to a world's events: every `sfx` event plays its preset
  * (panned by `x`), and the boss/level flow drives the music. Returns an
  * unsubscribe function; clearing the bus also detaches it.
  */
-export function attachAudio(events: EventBus<GameEvents>): () => void {
+export function attachAudio(
+  events: EventBus<GameEvents>,
+  opts: AttachAudioOptions = {},
+): () => void {
+  const bossSong = songOr(opts.bossSong ?? 'boss', 'boss');
   const offs = [
     events.on('sfx', (e) => {
       playAt(e.id, e.x);
@@ -47,7 +72,7 @@ export function attachAudio(events: EventBus<GameEvents>): () => void {
     events.on('enemyHit', (e) => {
       playAt('enemy_hit', e.enemy.x);
     }),
-    events.on('bossSpawned', () => music.playSong('boss')),
+    events.on('bossSpawned', () => music.playSong(bossSong)),
     events.on('bossDefeated', () => music.stop(0.4)),
     events.on('levelComplete', () => music.playSong('clear')),
   ];

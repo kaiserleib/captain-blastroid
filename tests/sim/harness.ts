@@ -1,17 +1,19 @@
-// Headless Level 1 runner (T20). Builds a World the way GameScene.enter does,
-// minus rendering, audio, fx and the DOM-bound input/background systems, then
-// steps it at 60 Hz with a bot writing `world.input`.
+// Headless level runner (T20; level-aware since T21). Builds a World the way
+// GameScene.enter does, minus rendering, audio, fx and the DOM-bound
+// input/background systems, then steps it at 60 Hz with a bot writing
+// `world.input`.
 //
 // Nothing here touches the DOM: sim/game/content import cleanly under Node.
 import { getLevel } from '../../src/content/levels';
 import type { GameEvents } from '../../src/engine/events';
 import type { Pool } from '../../src/engine/pool';
-import { activeBoss, bossSystem, Phase } from '../../src/game/boss';
+import { activeBoss, bossSystem } from '../../src/game/boss';
 import { directorSystem, startDirector } from '../../src/game/director';
 import { enemySystem } from '../../src/game/enemies';
 import { obstaclesSystem } from '../../src/game/obstacles';
 import { pickupsSystem } from '../../src/game/pickups';
 import { initPlayer, playerSystem, setGodMode } from '../../src/game/player';
+import '../../src/game/levels';
 import { weaponSystem } from '../../src/game/weapons';
 import { computePlayerStats, createDefaultSave, type SaveData } from '../../src/meta';
 import { cleanupSystem } from '../../src/sim/cleanup';
@@ -122,7 +124,8 @@ export interface RunStats {
   bossTime: number;
   bossDefeated: boolean;
   levelComplete: boolean;
-  bossPhaseAtEnd: number;
+  /** The boss controller's `phaseName()` at the end, or '' with no boss up. */
+  bossPhaseAtEnd: string;
   hits: number;
   hitsBefore45: number;
   hitsInBoss: number;
@@ -139,7 +142,10 @@ export interface RunStats {
   weaponCountAt: Record<number, number>;
   salvageAt: Record<number, number>;
   peakEnemyShotsLevel: number;
+  /** Peak over the whole fight (the Rock Hauler's peak is its exposed phase). */
   peakEnemyShotsBoss: number;
+  /** Boss peak per `phaseName()`. */
+  peakEnemyShotsByPhase: Record<string, number>;
   capsulesSpawned: number;
   pickupsCollected: Record<string, number>;
   podRescued: boolean;
@@ -160,6 +166,8 @@ export interface SimRun {
 }
 
 export interface SimOptions {
+  /** Level id (default `kessler`). */
+  levelId?: string;
   shipId?: string;
   pilotId?: string;
   save?: SaveData;
@@ -181,7 +189,7 @@ export function createSimWorld(seed: string, opts: SimOptions = {}): World {
   const w = createWorld(seed, {
     shipId,
     pilotId,
-    levelId: 'kessler',
+    levelId: opts.levelId ?? 'kessler',
     capacities: opts.capacities,
   });
   initPlayer(w, computePlayerStats(save, shipId, pilotId));
@@ -235,7 +243,7 @@ function play(seed: string, bot: Bot, seconds: number, opts: SimOptions): SimRun
     bossTime: 0,
     bossDefeated: false,
     levelComplete: false,
-    bossPhaseAtEnd: -1,
+    bossPhaseAtEnd: '',
     hits: 0,
     hitsBefore45: 0,
     hitsInBoss: 0,
@@ -251,6 +259,7 @@ function play(seed: string, bot: Bot, seconds: number, opts: SimOptions): SimRun
     salvageAt: {},
     peakEnemyShotsLevel: 0,
     peakEnemyShotsBoss: 0,
+    peakEnemyShotsByPhase: {},
     capsulesSpawned: 0,
     pickupsCollected: {},
     podRescued: false,
@@ -315,7 +324,9 @@ function play(seed: string, bot: Bot, seconds: number, opts: SimOptions): SimRun
     }
     const es = countActive(w.enemyShots.items, w.enemyShots.count);
     const boss = activeBoss(w);
-    if (boss !== null && boss.phase === Phase.Exposed) {
+    if (boss !== null && !st.bossDefeated) {
+      const ph = boss.phaseName();
+      if (es > (st.peakEnemyShotsByPhase[ph] ?? 0)) st.peakEnemyShotsByPhase[ph] = es;
       if (es > st.peakEnemyShotsBoss) st.peakEnemyShotsBoss = es;
     } else if (boss === null && es > st.peakEnemyShotsLevel) st.peakEnemyShotsLevel = es;
     for (let i = 0; i < w.pickups.count; i++) {
@@ -324,9 +335,8 @@ function play(seed: string, bot: Bot, seconds: number, opts: SimOptions): SimRun
     }
     if (opts.debug && boss !== null && w.time - lastLog > 2) {
       lastLog = w.time;
-      const core = boss.core.enemy;
       console.log(
-        `t${w.time.toFixed(0)} ph${boss.phase} core ${core?.hp.toFixed(0)} px ${w.player.x.toFixed(0)} es ${es} ${weaponsString(w)}`,
+        `t${w.time.toFixed(0)} ${boss.defId} ${boss.phaseName()} hp ${boss.rig.hp().toFixed(0)} px ${w.player.x.toFixed(0)} es ${es} ${weaponsString(w)}`,
       );
     }
   }
@@ -334,7 +344,7 @@ function play(seed: string, bot: Bot, seconds: number, opts: SimOptions): SimRun
   if (st.reachedBoss && !st.bossDefeated) st.bossTime = w.time - st.bossAt;
   for (const [name, p] of pools) st.pools[name]!.dropped = p.droppedSpawns;
   st.capsulesSpawned = capsuleIds.size;
-  st.bossPhaseAtEnd = activeBoss(w)?.phase ?? -1;
+  st.bossPhaseAtEnd = activeBoss(w)?.phaseName() ?? '';
   st.salvage = Math.floor(w.run.salvage);
   st.score = w.run.score;
   st.weaponsAtEnd = weaponsString(w);

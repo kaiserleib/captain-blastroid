@@ -1,4 +1,5 @@
 import type { LevelDef } from '../../content/levels';
+import type { System } from '../../sim/world';
 import type { AsteroidStream } from '../obstacles';
 import type { ScheduledFire } from './timeline';
 
@@ -35,6 +36,12 @@ export interface DirectorState {
   bossY: number;
   /** Firings per timeline index. */
   fires: number[];
+  /** Active `scroll` ramp: from → to over `over` s, `t` s in (inactive once t ≥ over). */
+  scroll: { active: boolean; from: number; to: number; over: number; t: number };
+  /** `guaranteeWeapon` has been checked (it fires at most once). */
+  guaranteeDone: boolean;
+  /** `registerLevelSystem` entries for this level (a live list). */
+  systems: readonly System[];
   /** Fired schedule entries, for tests and debugging. */
   log: string[];
   offs: (() => void)[];

@@ -1,4 +1,5 @@
 import type { Enemy } from '../../sim/types';
+import { bossDisplayName as registeredBossName } from '../boss';
 import type { World } from '../../sim/world';
 
 export const MAX_PIPS = 12;
@@ -147,12 +148,5 @@ export class HudState {
   }
 }
 
-/** `scrap_baron` → `SCRAP BARON`. Boss content can later supply a real display name. */
-export function bossDisplayName(defId: string): string {
-  return defId
-    .replace(/^boss[_-]?/i, '')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .trim()
-    .toUpperCase();
-}
+/** The boss registration's `displayName`, else `scrap_baron` → `SCRAP BARON` (T21). */
+export const bossDisplayName = registeredBossName;

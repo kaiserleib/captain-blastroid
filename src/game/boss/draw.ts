@@ -10,7 +10,7 @@ import {
   SMOKE_FRAMES,
   SPARK_FRAMES,
 } from './boss.sprites';
-import { activeBoss } from './bossSystem';
+import { drawActiveBoss } from './bossSystem';
 import type { PartSlot } from './parts';
 import { Phase, type RockHauler } from './rockHauler';
 
@@ -92,9 +92,8 @@ function drawTurret(
   sprite(r, SPR.turret, x, y, Math.floor(t * 3 + i), flashAll || s.enemy.flashT > 0);
 }
 
-function drawBoss(w: World, r: Renderer, alpha: number): void {
-  const b = activeBoss(w);
-  if (b === null || b.done) return;
+/** The Rock Hauler's `draw` (its registration in index.ts). */
+export function drawRockHauler(w: World, r: Renderer, alpha: number, b: RockHauler): void {
   if (!warmed) {
     warm(BOSS_SPRITE_IDS);
     warmed = true;
@@ -163,5 +162,5 @@ function drawBoss(w: World, r: Renderer, alpha: number): void {
   }
 }
 
-/** Between roster enemies (40) and enemy shots (50). */
-export const bossLayer: DrawLayer = { name: 'boss', z: 42, draw: drawBoss };
+/** Between roster enemies (40) and enemy shots (50); each boss draws through its registration. */
+export const bossLayer: DrawLayer = { name: 'boss', z: 42, draw: drawActiveBoss };
