@@ -14,7 +14,7 @@ import type { Anomaly } from '../../sim/types';
 import type { World } from '../../sim/world';
 import { spawnFormation } from '../enemies';
 import { spawnBlackHole, spawnPulsar, type AnomalyPlacement } from '../obstacles';
-import { spawnDrop, spawnEscapePod, spraySalvage } from '../pickups';
+import { cachePayload, spawnDrop, spawnEscapePod, spraySalvage } from '../pickups';
 import { runLevelScript } from './registry';
 import { logLine, type DirectorState } from './state';
 import { DEFAULT_SPACING, formationHalfWidth, resolveX } from './timeline';
@@ -100,6 +100,10 @@ function firePod(w: World, st: DirectorState, xSpec: number | 'rand', hp: number
   if (pilot !== null) {
     spawnEscapePod(w, pilot, x, hp);
     logLine(st, `${fmt(st.t)} escapePod ${pilot} x=${fmt(x)}${hp > 1 ? ` hp=${hp}` : ''}`);
+  } else if (hp > 1) {
+    // An escort beat (pod with HP) still has something to escort: an armored cache pod.
+    spawnEscapePod(w, cachePayload(st.level.podFallbackSalvage), x, hp);
+    logLine(st, `${fmt(st.t)} cachePod x=${fmt(x)} hp=${hp}`);
   } else {
     // Everyone here is rescued: a salvage cache takes the pod's place.
     spraySalvage(w, x, CACHE_Y, st.level.podFallbackSalvage);

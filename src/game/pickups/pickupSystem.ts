@@ -5,8 +5,8 @@ import type { Renderer } from '../../gfx/renderer';
 import { isOffscreen } from '../../sim/cleanup';
 import type { Pickup } from '../../sim/types';
 import type { DrawLayer, System, World } from '../../sim/world';
-import { attachDrops } from './drops';
-import { losePod } from './escapePod';
+import { attachDrops, spraySalvage } from './drops';
+import { cacheSalvage, isCachePod, losePod } from './escapePod';
 import { WEAPON_CAPSULE_SPRITES } from './pickups.sprites';
 import { drawRepulsor, drawShimmer, homePickup, updatePowerups } from './powerups';
 import { pollSandbox } from './sandbox';
@@ -67,8 +67,13 @@ export function collectPickup(w: World, k: Pickup): void {
       sfx = 'weapon_up';
       break;
     case 'escapePod': {
-      if (k.payload && !run.pilotsRescued.includes(k.payload)) run.pilotsRescued.push(k.payload);
-      emitToast(w, `PILOT RESCUED: ${upper(PILOTS[k.payload]?.name, k.payload)}`);
+      if (isCachePod(k)) {
+        spraySalvage(w, k.x, k.y, cacheSalvage(k));
+        emitToast(w, 'SALVAGE CACHE SECURED');
+      } else {
+        if (k.payload && !run.pilotsRescued.includes(k.payload)) run.pilotsRescued.push(k.payload);
+        emitToast(w, `PILOT RESCUED: ${upper(PILOTS[k.payload]?.name, k.payload)}`);
+      }
       const st = getPickupState(w);
       if (st.pods > 0) st.pods--;
       sfx = 'pod_rescue';

@@ -19,6 +19,7 @@ import {
 } from './drops';
 import {
   attachPickups,
+  cachePayload,
   collectPickup,
   pickCapsuleWeapon,
   pickupsSystem,
@@ -291,6 +292,22 @@ describe('collection', () => {
     tick(w);
     expect(w.run.pilotsRescued).toEqual(['juno']);
     expect(toasts).toEqual(['SCHEMATIC: BULWARK', 'PILOT RESCUED: JUNO SPARKS']);
+  });
+
+  it('a cache pod sprays its salvage instead of rescuing anyone', () => {
+    const w = makeWorld();
+    const toasts = capture(w, 'toast');
+    const pod = spawnEscapePod(w, cachePayload(40), w.player.x, 3)!;
+    pod.y = w.player.y;
+    tick(w);
+    expect(w.run.pilotsRescued).toEqual([]);
+    expect(toasts).toEqual(['SALVAGE CACHE SECURED']);
+    let salvage = 0;
+    for (let i = 0; i < w.pickups.count; i++) {
+      const k = w.pickups.items[i]!;
+      if (k.active && k.kind === 'salvage') salvage += k.amount;
+    }
+    expect(salvage).toBe(40);
   });
 
   it('collectPickup is a no-op on a released pickup', () => {

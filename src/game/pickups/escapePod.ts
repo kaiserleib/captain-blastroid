@@ -37,13 +37,28 @@ export function podHp(pod: Pickup): number {
   return Math.max(1, pod.amount);
 }
 
+const CACHE_PREFIX = 'cache:';
+
+/** A pod with no pilot aboard: an escort-able salvage cache worth `salvage` when collected. */
+export function cachePayload(salvage: number): string {
+  return `${CACHE_PREFIX}${Math.max(0, Math.round(salvage))}`;
+}
+
+export function isCachePod(pod: Pickup): boolean {
+  return pod.payload.startsWith(CACHE_PREFIX);
+}
+
+export function cacheSalvage(pod: Pickup): number {
+  return isCachePod(pod) ? Number(pod.payload.slice(CACHE_PREFIX.length)) || 0 : 0;
+}
+
 export function losePod(w: World, pod: Pickup): void {
   if (!pod.active) return;
   w.pickups.release(pod);
   const st = getPickupState(w);
   if (st.pods > 0) st.pods--;
   emitSfx(w, 'enemy_die_s', pod.x);
-  emitToast(w, 'POD LOST');
+  emitToast(w, isCachePod(pod) ? 'CACHE LOST' : 'POD LOST');
 }
 
 /** World time of each pod's last survived hit, checked by id since pool slots recycle. */
