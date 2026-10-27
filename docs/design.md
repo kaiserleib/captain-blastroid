@@ -33,7 +33,7 @@ The ship **always fires**, with no fire button. Weapons have no ammo.
 1. **Hangar:** choose pilot and ship, then launch.
 2. **Level:** about 3.5 minutes of scripted waves at a fixed scroll rate, ending in a boss.
 3. **Results:** score, salvage banked, discoveries (schematics, rescued pilots).
-4. Each level is its own run. Five sectors unlock in order (see "Campaign" below). After a victory, NEXT SECTOR launches the next one with a fresh loadout.
+4. Each level is its own run. Ten sectors in two acts unlock in order (see "Campaign" below). After a victory, NEXT SECTOR launches the next one with a fresh loadout.
 
 ### Death and damage
 - The ship has **shield segments** (Kestrel: 3). Each hit removes one segment and grants **1.0 s of invulnerability** (the sprite blinks).
@@ -170,7 +170,7 @@ Score = kills × enemy value, plus asteroid kills (10 each), pickups, and the bo
 
 ## Campaign structure
 
-- **Five sectors in a fixed order** (`LEVEL_ORDER`): `kessler` → `ionShoals` → `eventHorizon` → `pulsarNursery` → `armada`.
+- **Five sectors in a fixed order** (`LEVEL_ORDER`): `kessler` → `ionShoals` → `eventHorizon` → `pulsarNursery` → `armada`. Act II adds five more (see "Campaign: Act II").
 - **Each sector is its own run.** A run starts from the ship's starting loadout and ends on death, abandon or that sector's boss. Weapons, score and chain never carry between sectors. Only meta carries: salvage, schematics, ships, pilots and hangar upgrades. That keeps every sector a 3–4 minute mobile session, and lets a player replay any unlocked sector to farm salvage or hunt a pod.
 - **Unlocks:** sector N+1 unlocks when sector N has at least one clear (`save.levels[id].clears > 0`). Sector 1 is always open. `?save=all` unlocks everything, and `?level=N` still jumps straight in (dev).
 - **Hangar:** a new **SECTOR** row under SHIP shows the selected sector ("2 ION SHOALS"). It opens the **Sector Select** screen: five stacked cards, each with number, name, best score, a clear star (with the clear count), a "POD" marker while that sector still has an unrescued pilot, and a "SCHEMATIC" marker while its boss still has an unfound schematic. Locked cards are dimmed and read "CLEAR SECTOR N−1". LAUNCH flies `save.selectedLevel`.
@@ -433,3 +433,420 @@ The Syndicate fleet at anchor around a gas giant. It's UN Squadron's capital-shi
 | 5 | `armada` (**new**): gas-giant setpiece and distant fleet silhouettes | `armada`: a military march, 132 BPM | `armada_boss` (**new**): faster and minor-key, the final-boss theme | cold steel blues, Syndicate rust on the hull |
 
 `LevelDef` gains `bossMusic` (default `boss`) and `rockTheme`. All music stays procedural in `src/audio/songs/`.
+
+---
+
+# Campaign: Act II, Sectors 6–10 *(tickets T32–T43)*
+
+The Leviathan's escape core got away through a wormhole. Act II follows its trail to the **Foundry**, the Syndicate shipyard that built the fleet. Everything in "Campaign structure" still applies: each sector is its own 3–4 minute run from a fresh loadout, and only meta carries between them. Act II adds five sectors. Each one is built around one new mechanic, and the finale remixes all of them.
+
+## Act II structure
+
+- **`LEVEL_ORDER`** grows to ten: … `armada` → `corona` → `warrens` → `junction` → `chrono` → `foundry`. Unlocks work as before (sector N+1 unlocks on any clear of N), so Act II opens on the first Armada clear.
+- **Sector Select** pages by act. There are two pages of five cards ("ACT I" / "ACT II"), with left/right to switch, using the existing five-card layout. It opens on the page that holds `selectedLevel`. While Act II is locked, its page shows the five cards dimmed, reading "CLEAR SECTOR 5".
+- **Results:** the first Armada clear now shows **ACT I COMPLETE**, and NEXT SECTOR goes to Corona Drift. The first Foundry clear shows **CAMPAIGN COMPLETE**.
+- **Weapon unlocks (new meta).** Act II adds three weapons. A locked weapon never drops, with one exception: its home sector's supply run is a **field test** that gives it to you anyway. The first clear of the home sector unlocks it permanently, and from then on it is in the drop pool for every sector. The results screen shows "NEW WEAPON: ARC COIL". The save gains `weaponsUnlocked` (the five Act I weapons by default).
+- **Slots are capped at 6.** The Nova has 6, and Wren's passive can add one to any ship, up to that cap. The HUD weapon strip has room for six.
+- **The escape (Foundry only).** Killing the final boss doesn't end the run. A timed escape follows, and the run is won when it ends (see Level 10). `LevelDef` gains `escape?`.
+
+## Act II difficulty curve
+
+Balance is measured with an **`act1` save** (new debug preset `?save=act1`): Kestrel, Captain Blastroid, every Act I hangar upgrade bought, the Act I ships built and the Act I pilots rescued, but no Act II weapons unlocked. A player reaching sector 6 has banked about 2,500 salvage, so testing Act II from a fresh save would be wrong. The bots still fly the Kestrel with Captain Blastroid, so results stay comparable.
+
+| | L6 Corona Drift | L7 The Warrens | L8 Wormhole Junction | L9 Chrono Rift | L10 The Foundry |
+|---|---|---|---|---|---|
+| Scroll px/s | 30 | 26 (tunnels 22–34) | 32 | 30 | 30 → 60 → 30; escape 30 → 90 |
+| Length to boss | 178 s | 180 s | 179 s | 179 s | 200 s, then the boss, then a 40 s escape |
+| Roster HP mul (`enemyHpMul`) | 1.40 | 1.45 | 1.50 | 1.55 | 1.60 |
+| Enemy shot speed mul | 1.22 | 1.25 | 1.28 | 1.30 | 1.35 |
+| Peak enemy shots, waves / boss | 55 / 70 | 50 / 65 | 55 / 70 | 60 / 75 | 60 / 80 |
+| First forced capsule | ~8 s **Arc Coil** (field test) | ~6 s **Ricochet** (field test) | ~8 s **Flak** (field test) | ~8 s Spread | ~6 s Lance |
+| `guaranteeWeapon` fallback | Arc Coil by 25 s | Ricochet by 25 s | Flak by 25 s | Spread by 25 s | Lance by 25 s |
+| Boss salvage | 240 | 260 | 280 | 300 | 400 |
+| Typical clear salvage (target) | 560–750 | 600–800 | 640–850 | 680–900 | 900–1200 |
+| Typical-bot clear rate (target, `act1` save) | ~75% | ~72% | ~70% | ~68% | ~65% |
+| Novice-bot clear rate (target) | ≥ 15% | ≥ 14% | ≥ 12% | ≥ 10% | ≥ 8% |
+
+- The `guaranteeWeapon` fallback grants the field-test weapon even while it's locked.
+- New enemies are authored at their sector's numbers and ignore `enemyHpMul`, as in Act I.
+- **Silent assists** (see the difficulty philosophy: silent assists are fine, and under-equipped players may still lose):
+  - A flare that has no reachable shade fizzles.
+  - A gate that reaches the ship's row crumbles.
+  - Janus's portal wall flickers when the player hasn't landed a hit in a long time.
+  - The ship can't lose its last shield during the escape.
+  - The boss stall breaker applies to every Act II boss. The Architect has three forms, so its threshold is 150 s instead of 90 s.
+
+## Act II rewards
+
+| Sector | Pod pilot | Boss schematic | First-clear unlock | Pod fallback salvage |
+|---|---|---|---|---|
+| 6 Corona Drift | **Ines Solano** | **Shrike** | Arc Coil | 90 |
+| 7 The Warrens | **Rook Mbeki** | **Ferret** | Ricochet | 100 |
+| 8 Wormhole Junction | **Nyx Calder** | **Wraith** | Flak | 110 |
+| 9 Chrono Rift | **Dr. Imre Halász** | **Revenant** | none | 120 |
+| 10 The Foundry | **Wren Ashgrove** | **Nova** | none (CAMPAIGN COMPLETE) | 150 |
+
+### New weapons
+
+| Weapon | Capsule | L1 | Leveling | Role |
+|---|---|---|---|---|
+| **Arc Coil** | A | Every 1.2 s, an arc hits the nearest enemy within 90 px for 2 dmg and chains to 1 more enemy within 50 px of the last one | L2 +1 chain, L3 every 0.9 s, L4 range 120 and +1 chain, L5 3 dmg | Auto-targeting crowd control. It ignores geometry: no line of sight is needed, and gravity, portals and walls don't affect it. |
+| **Ricochet** | R | A disc every 1.1 s, 1 dmg, 200 px/s, alternating ±20° off vertical. It bounces off the side edges, terrain and indestructible objects, up to 2 bounces, and pierces 1. | L2 +1 bounce, L3 twin discs, L4 +1 dmg, L5 three discs and 4 bounces | Angles, walls, hitting things from the side |
+| **Flak** | F | A shell every 1.4 s at 140 px/s. It bursts after 0.6 s or on contact into 6 fragments (1 dmg, 0.25 s ttl, 160 px/s). The burst **erases enemy bullets** within 12 px. | L2 8 fragments, L3 every 1.1 s, L4 2-dmg fragments and an 18 px erase radius, L5 two shells | Area denial, a little bullet erasing |
+
+- Arcs are drawn as a jagged 1 px white-and-cyan polyline that re-jitters every 2 frames.
+- Discs are 4 px, spinning, in 2 frames.
+- Flak shells are 3 px with a 1-frame white burst ring.
+- All three draw from per-weapon scratch buffers, with no allocation per shot.
+- Weapon-capsule weighting and the Weapon Upgrade core don't change. The pool is simply limited to `weaponsUnlocked` plus the current sector's field-test weapon.
+
+### New ships
+
+| Ship | Shield | Speed | Slots | Starting weapons | Build cost |
+|---|---|---|---|---|---|
+| **Shrike** | 3 | 140 | 4 | Blaster L1 + Arc Coil L1 | 900 |
+| **Ferret** | 3 | 125 | 4 | Blaster L1 + Ricochet L1 | 1000 |
+| **Wraith** | 2 | 145 | 5 | Blaster L2 + Flak L1 | 1100 |
+| **Revenant** | 4 | 115 | 5 | Blaster L1 + Seeker L1 + Orbit Drones L1 | 1300 |
+| **Nova** | 4 | 130 | 6 | Blaster L2 | 2000 |
+
+Ship starting weapons work even while that weapon is locked. Each ship has its own silhouette:
+- **Shrike:** sharp forward-swept wings, white and sun-gold, with an arc-coil fin.
+- **Ferret:** stubby armored drill nose, ochre and gunmetal.
+- **Wraith:** a thin dark-green blade with portal-orange engine glows.
+- **Revenant:** bulky violet and silver, with a ring-shaped drone housing.
+- **Nova:** the Captain's new flagship, white and red with a gold crest. It should read as the hero ship.
+
+### New pilots
+
+| Pilot | Passive | Portrait notes |
+|---|---|---|
+| **Ines Solano** | **Solar cells:** after 25 s without being hit, regain 1 shield (up to max) | Sun-browned skin, short silver-blonde hair, gold mirrored visor pushed up, sail-courier patches |
+| **Rook Mbeki** | +50% damage to asteroids and gates, and asteroids drop +1 salvage | Dark skin, broad face, mining helmet with headlamp, dust smudges |
+| **Nyx Calder** | +25% chance on uncommon and rare drops (shield cells, upgrade cores, magnets, repulsors) | Pale skin, black bob with one teal streak, high collar, smuggler's earpiece |
+| **Dr. Imre Halász** | **Bullet time:** after a hit, enemy bullets move at 0.5× for 2 s | Older, wild white hair, round glasses, lab-coat collar over a flight suit |
+| **Wren Ashgrove** | +1 weapon slot (max 6), −1 max shield | Syndicate defector: rust-orange jumpsuit with the insignia torn off, buzz cut, a burn scar on the jaw |
+
+## Act II shared mechanics
+
+### Solar flares and shade (L6, L10)
+- **Flare cycle.** A timeline `flare { warn, burn }` event, or a repeating `flares { every, warn, burn }` system. It has three parts:
+  - **Warn:** default 1.2 s, and 2.0 s for the first two flares of the campaign. The top edge whitens, the screen takes an amber tint, and heat-shimmer pixels rise.
+  - **Burn:** default 1.2 s. The playfield is blown out except for the shadows.
+  - **Cool-down:** 0.4 s fade.
+- **Shade.** The sun is straight overhead, so every **caster** throws a vertical shadow strip:
+  - The strip is as wide as the caster minus 2 px, and runs from the caster's bottom edge for 160 px.
+  - Casters are medium and large asteroids, **shade slabs** (a new indestructible obstacle: 40×10, drifts with the scroll and absorbs shots), and anything a sector marks as a caster (boss hulls).
+  - Shadows are drawn as a dark dithered strip during warn and burn only.
+- **Damage:**
+  - During burn, the ship takes **1 hit per flare** unless its whole hitbox is inside a strip.
+  - Every non-boss enemy in the light takes 3 damage once per flare, so a flare thins out gnat swarms.
+  - Escape pods in the light lose 1 HP.
+  - Pickups and rocks are unaffected.
+- **Your guns wear down your cover.** Auto-fire keeps hitting the rocks you're hiding behind. That tension is the point of the sector. Shade slabs are the cover that lasts.
+- **Fairness:** if at warn start no strip is within 100 px horizontally of the ship and reachable at its speed before the burn starts, the flare **fizzles** silently. The warning plays, but nothing burns.
+
+### Terrain (L7, L10 escape)
+- **Tile terrain.** The tiles are 8 px, 30 columns across the 240 px playfield. Terrain is authored as **string-grid chunks** in content, in the same spirit as sprites:
+
+  | Char | Tile |
+  |---|---|
+  | `#` | rock (indestructible) |
+  | `%` | crumbly rock (3 HP) |
+  | `=` | gate (6 HP, hazard-striped) |
+  | `T` | turret socket (spawns the sector's wall turret) |
+  | `.` | empty |
+
+- A timeline `terrain { chunk, ... }` event appends chunk rows above the screen. The terrain scrolls with `world.scrollSpeed`.
+- **Player collision:**
+  - Walls **push** the ship out along the shortest axis. Touching a wall does no damage.
+  - If a wall pushes the ship into the bottom edge (**crush**), it costs 1 shield. The ship is then moved to the nearest open column at its row and gets the normal post-hit invulnerability.
+- **Other collisions:**
+  - Player and enemy bullets stop on solid tiles. Ricochet discs bounce off them.
+  - Rocks break on walls.
+  - Dumb enemies that touch a wall explode.
+  - Smart enemies steer around walls using a tile query in their avoidance.
+- **Authoring rules:**
+  - Corridors are never narrower than 6 tiles (48 px).
+  - No chunk forces a sideways move faster than 60% of the slowest ship's speed.
+  - A gate always has ≥ 3 s of scroll between appearing on screen and reaching the ship's row.
+- **Fairness:** a gate tile that reaches y = 300 crumbles by itself.
+- **Draw:** each tile gets a per-theme 8×8 sprite set (edge, inner, corner, crumbly and gate variants) chosen by a 4-neighbour mask at bake time. Terrain draws above the background and below everything else.
+
+### Portals (L8, L10)
+- **Portal pairs.** Two rings (r 14) in the same color, with pairs colored cyan, orange and lime. Both ends are entrances. A body whose center *crosses into* one ring comes out of the other with its velocity unchanged, placed r + 2 px out along its heading.
+- **What teleports:**
+  - Player shots, enemy shots, rocks, pickups and escape pods. They get a per-body cooldown of 0.35 s, so nothing ping-pongs.
+  - The **ship**, with a 1.0 s cooldown.
+  - Generic enemies don't, apart from those whose behavior opts in (the Blinker).
+- **Safety:** an end whose partner sits off-screen or inside a hazard is **closed to the ship**. It's drawn dim, and the ship passes over it.
+- **Moving and swapping:**
+  - Each end can be fixed, drift with the scroll, or be carried by an owner (Gate Pylon, boss).
+  - `swapPortals(a, b)` re-pairs two pairs. It has a 0.8 s color-flicker telegraph.
+- **Draw:** a 2 px ring with a rotating dithered swirl inside, and a short white flash on each exit.
+
+### Time bubbles (L9, L10)
+- **Bubbles.** Circles of r 36 / 52 / 70.
+  - `slow` (×0.35): a blue ring with tick marks.
+  - `fast` (×1.8): an amber ring with streaks.
+  - `flip`: alternates slow and fast every 3 s, with a 0.6 s flicker before each switch.
+- **Effect:** inside a bubble, a body's movement **and timers** run at that rate. This covers bullets (both sides), rocks, pickups, and enemies' movement and fire clocks.
+  - The **ship is never scaled.** Its movement must stay crisp, but its shots slow down like everything else.
+  - Bullets inside a slow bubble leave 2 ghost pixels behind them so the slowdown reads.
+- **Implementation note:** one time-scale lookup per body per tick through a hook (like `isAsteroidHeld`). The same hook carries Dr. Halász's bullet time, a global 0.5× scale on enemy bullets.
+
+### The ship's own history (L9 boss)
+The player module keeps a ring buffer of the ship's position for the last 10 s, at the fixed step, preallocated. `playerPastPos(w, secondsAgo, out)` reads from it, and the Echo boss uses it.
+
+## Level 6: "Corona Drift"
+
+A blinding white-gold star fills the top of the screen. Syndicate sail-ships skim its corona. The sector is about **cover**: you hide in the shadows of rocks your own guns keep chipping away. Rock theme `basalt`, weighted to larges. About 178 s to the boss.
+
+**New enemies**
+
+| Enemy | HP | Smart? | Movement | Attack | Salvage |
+|---|---|---|---|---|---|
+| **Sunskimmer** | 3 | Dumb | Fast diagonal pass (120 px/s) in pairs. Immune to flares, and speeds up ×1.5 during a burn. | One aimed shot halfway across | 2 |
+| **Shade** | 6 | Smart | Descends and tucks into the nearest shadow strip, so it competes with you for cover. Leaves after 12 s. | An aimed pair every 1.8 s | 4 |
+| **Lens Drone** | 9 | Smart | Holds near the top | During each burn it focuses the light: a 0.6 s telegraph line at the ship, then a 0.4 s beam (a dense line of bullets, like the L4 Warden Ray) | 6 |
+
+**Timeline**
+
+| Time | Beat |
+|---|---|
+| 0–10 s | Sparse basalt and a drifting shade slab. A toast reads "SOLAR FLARES — HIDE IN THE SHADOWS". |
+| 8 s | Supply run: a gnat V with a forced **Arc Coil** capsule (field test) |
+| 12 s | **Practice flare:** a 2.0 s warn, then a burn that does no damage. The shadows are outlined white. |
+| 14–40 s | Sunskimmer pairs and gnat lines. Flares every 14 s, each preceded by a large-rock band. |
+| 32 s | Carrier |
+| 40–70 s | Shades lurking in rock shadows, interceptors. The first Lens Drone at 55 s. |
+| 70–75 s | Breather and a shield |
+| 75–110 s | **Corona storm:** flares every 10 s, a lane of shade slabs, gunboats, two Lens Drones |
+| ~95 s | **Pod (Ines Solano)**, 2 HP, drifting beside a shade slab. Flares and Shades can both take its HP. |
+| 110–145 s | A mixed finale-lite: sunskimmers, swoopers, flares every 9 s, larges weighted. A magnet at 120 s. |
+| 145–172 s | **Coronal mass ejection:** a 3 s burn every 12 s and big rocks only. Gnat swarms burn up in the light. |
+| 174 s | Warning. Boss at 178 s. |
+
+**Boss: Heliostat** (a mirror-array sun collector, about 120×56).
+- **Parts:**
+  - 4 mirrors on articulated arms, 60 HP each.
+  - A focus core, 280 HP, armored until 3 mirrors fall.
+  - The hull is a shade **caster**.
+- **Phase 1:**
+  - The boss strafes slowly. Two mirrors at a time reflect sunlight into **beams**: lines of bullets from the mirror at a 25° slant, sweeping ±30° over 3 s. Each beam has a 0.6 s telegraph line first.
+  - The pairs alternate every 6 s.
+  - A flare comes every 11 s. Before each flare, the boss drops a **shade slab** at a random x in the lower half.
+- **Phase 2 (3 mirrors down):** "SOLAR FURNACE".
+  - The core fires a 6-arm spiral (one 6-way ring every 0.2 s for 1.6 s, then a 2 s pause, turning 11°).
+  - Flares come every 7 s, and the last mirror bends one beam through the burn.
+  - The boss still drops two slabs before each flare, so cover always exists.
+- **Defeat:** the mirrors shatter into glinting particles. Shrike schematic, 240 salvage.
+
+## Level 7: "The Warrens"
+
+The escape core's trail leads into a hollowed-out asteroid, honeycombed with Syndicate mining tunnels. This is the first sector with **terrain**: walls, corridors, gates and turrets in the rock. Rock theme `basalt`, sparse (rocks only out in the open). About 180 s to the boss.
+
+**New enemies**
+
+| Enemy | HP | Smart? | Movement | Attack | Salvage |
+|---|---|---|---|---|---|
+| **Wall Turret** | 4 | — | Fixed in a `T` socket, scrolls with the terrain | An aimed 3-burst every 2.2 s, starting no earlier than 0.6 s after it comes on screen | 3 |
+| **Borer** | 6 | Dumb | Warns with a 0.6 s dust plume on a wall, bursts out, crosses the corridor at 90 px/s and digs into the far wall, **carving** a 2-tile hole along its path | Contact; drops a 4-shot ring as it enters the far wall | 4 |
+| **Cave Bat** | 1 | Dumb | Flocks of 8–12 with loose boids flocking. They follow the ship at 70 px/s and lose interest after 6 s. | Contact | 1 |
+
+**Timeline (scroll speed in brackets)**
+
+| Time | Beat |
+|---|---|
+| 0–14 s [30] | Open space in front of the asteroid's face, plus a few rocks |
+| 6 s | Supply run: a gnat column with a forced **Ricochet** capsule (field test) |
+| 15 s [30 → 26] | **The cave mouth** closes in. A toast reads "THE WARRENS". |
+| 15–40 s [26] | A wide tunnel (14+ tiles) with wall turrets. The first cave-bat flock at 30 s. |
+| 32 s | A chamber (24 tiles wide) with the carrier |
+| 40–70 s | The tunnel narrows. The first gates, with a toast: "SHOOT THE GATES". Borers. |
+| 70–75 s | Chamber breather and a shield |
+| 75–110 s | **The fork:** a wall splits the tunnel. The left branch is tight with turrets. The right branch has two gates and an upgrade core behind them. They rejoin at 105 s. |
+| ~98 s | **Pod (Rook Mbeki)** in an alcove on the left wall behind a gate. Shoot the gate and the pod drifts out. |
+| 110–145 s [26 → 34] | **The crush:** S-bend corridors, faster scroll, bats and borers. A magnet at 120 s. |
+| 145–172 s [34 → 26] | **Collapse:** crumbly walls and rock falls from the ceiling, with gunboats holding in chambers |
+| 176 s | Warning. The tunnel opens into the Wyrm's den, and the scroll stops at 180 s. |
+
+**Boss: Wyrm** (a Syndicate tunnel-boring worm, a head of about 32×32 plus 8 segments of about 16×16).
+- **Arena:**
+  - A cavern 26 tiles wide with 2 pillars.
+  - The scroll is 0 for the whole fight. The terrain is fixed.
+- **Parts:**
+  - The head, 260 HP, armored except while **surfacing**: for 1.4 s after it emerges, its mouth opens.
+  - 8 segments, 30 HP each. Destroying a segment shortens the worm and drops a small rock.
+- **Phase 1:**
+  - The Wyrm burrows into a wall. A dust trail in the rock shows where it will come out, 0.8 s ahead.
+  - It emerges from another wall or pillar and crosses the cavern in a smooth arc (110 px/s), then dives back in.
+  - Each living segment fires one sideways shot as it passes the middle of the cavern.
+- **Phase 2 (< 50%):** "FRENZY". It moves at 150 px/s, makes two crossings per burrow, the mouth spits a 7-way fan while surfacing, and its path **carves** the pillars.
+- **Defeat:** the head bursts, then the segments pop in sequence along its body. Ferret schematic, 260 salvage.
+
+## Level 8: "Wormhole Junction"
+
+A transit hub of Syndicate ring-gates in a green-black void. Things that go in one ring come out the other: your shots, theirs, rocks, pods and you. The trick to learn is **shooting through portals** at targets you can't hit directly. Rock theme `ion`, light. About 179 s to the boss.
+
+**New enemies**
+
+| Enemy | HP | Smart? | Movement | Attack | Salvage |
+|---|---|---|---|---|---|
+| **Blinker** | 4 | Smart | Dives into a portal and comes out of its partner, holding there 1.2 s before it dives again. With no portals on screen, it swoops like a Swooper. | An aimed 3-shot burst each time it comes out (after a 0.5 s flash) | 3 |
+| **Gate Pylon** | 10 | Dumb | Slow drift (18 px/s) carrying one end of a portal pair, so that exit moves | None. Killing it collapses its pair. | 5 |
+| **Aegis** | 10 | Smart | Holds near the top. A **front shield** absorbs every shot from below. | A 5-way fan every 2.0 s | 6 |
+
+The Aegis is the portal teacher. It can be hit from above or the sides: through a portal exit placed above it, or with Ricochet, Seekers, Arc Coil or drones.
+
+**Timeline**
+
+| Time | Beat |
+|---|---|
+| 0–10 s | One fixed pair: one end low-left, the other high-right. Rocks drift through it. A toast reads "PORTALS: WHAT GOES IN COMES OUT". |
+| 8 s | Supply run: a forced **Flak** capsule (field test) |
+| 14–40 s | Swoopers and gnats. At 25 s, the first Aegis, with a portal end below it at the ship's level and its partner just above the Aegis. A toast reads "SHOOT THROUGH THE RING". |
+| 32 s | Carrier |
+| 40–70 s | Blinkers. Two pairs on screen. Aegis pairs with portal exits above them. |
+| 70–75 s | Breather and a shield |
+| 75–110 s | Gate Pylons carrying moving exits, rocks fed through the rings, interceptors |
+| ~100 s | **Pod (Nyx Calder)** comes out of a portal mid-screen and keeps getting teleported by the rings it drifts through |
+| 110–145 s | **Junction rush:** three pairs, a `swapPortals` every 10 s, mixed waves. A magnet at 120 s. |
+| 145–172 s | **Feedback loop:** a pair stacked vertically (one end above the other), so rock streams and gnat swarms fall through it in loops |
+| 175 s | Warning. Boss at 179 s. |
+
+**Boss: Janus** (a two-faced gate station, about 128×64).
+- **Arena:**
+  - The station sits at the top behind an indestructible **portal wall**, a shimmering barrier that absorbs every shot from below.
+  - Two portal pairs connect the ship's half of the screen to two exits **above the station**, aimed at its back.
+- **Parts:**
+  - Two faces, Dawn (left) and Dusk (right), 200 HP each.
+  - 2 ring generators, 60 HP each. Each one holds an exit in place.
+  - The generators sit in front of the wall's edges and can be shot directly.
+- **Phase 1:**
+  - The entry rings are fixed left and right at y≈260.
+  - The faces can only be hit through the rings.
+  - The boss fires aimed 3-bursts every 1.6 s and a 16-shot ring every 2.5 s. Those shots go through the rings too.
+  - Destroying a generator makes its exit drift.
+- **Phase 2 (one face down):**
+  - The entry rings **drift** and the pairs **swap** every 6 s, with a 0.8 s flicker first.
+  - The remaining face fires a 4-arm spiral.
+  - Blinkers spawn from the exits every 8 s.
+- **Fairness:** a toast at fight start reads "SHOOT THROUGH THE RINGS". If 40 s pass without a face hit, the portal wall **flickers off** for 3 s every 10 s (silent).
+- **Defeat:** both faces crack, the wall collapses, and the rings implode. Wraith schematic, 280 salvage.
+
+## Level 9: "Chrono Rift"
+
+The jump drops you into a wound in time: desaturated violet space where bullets crawl in some places and race in others. The sector is about **timing space**: slow bubbles hold walls of shots back, and fast bubbles fire them at you. Rock theme `kessler`, light. About 179 s to the boss.
+
+**New enemies**
+
+| Enemy | HP | Smart? | Movement | Attack | Salvage |
+|---|---|---|---|---|---|
+| **Stutterer** | 3 | Dumb | Moves in 0.4 s bursts and freezes for 0.6 s, in columns | A 4-shot cross ring on every second freeze | 2 |
+| **Rewinder** | 8 | Smart | Interceptor-like. It records its last 2 s. The first time it drops below 50% HP, it rewinds after 1.0 s to its position and HP from 2 s earlier, with clock hands spinning backward as the 1.0 s warning. Kill it inside the window to deny it. | An aimed pair every 1.8 s | 5 |
+| **Bubble Mine** | 5 | Dumb | Drifts with the scroll | Pops into a 6 s **slow** bubble (r 52) when shot or after 6 s. The bubble can help you or hurt you. | 2 |
+
+**Timeline**
+
+| Time | Beat |
+|---|---|
+| 0–10 s | A slow bubble drifts down the center and rocks crawl through it. A toast reads "SLOW FIELD: SHOTS CRAWL". |
+| 8 s | Supply run: a forced Spread capsule |
+| 14–40 s | Stutterer columns. A fast bubble at 28 s, with a toast: "FAST FIELD". |
+| 32 s | Carrier |
+| 40–70 s | Rewinders (toast: "FINISH THEM FAST") and lines of bubble mines |
+| 70–75 s | Breather and a shield |
+| 75–110 s | Gunboats behind slow bubbles: their fans pile up inside and spill out together. Interceptors. |
+| ~100 s | **Pod (Dr. Imre Halász):** a ghostly **echo pod** appears at 100 s and drifts on the path the real pod will take. It can't be collected. The real pod follows the same path 6 s later. |
+| 110–145 s | Mixed waves and bubble-mine fields. A magnet at 120 s. |
+| 145–172 s | **Time storm:** `flip` bubbles and stutterer swarms |
+| 175 s | Warning. Boss at 179 s. |
+
+**Boss: Echo** (a dark mirror of the player's own ship, drawn at 2×, about 48×48, palette-swapped to violet, black and white).
+- **Movement:** it flies the ship's path **from 8 s ago** (`playerPastPos`). x is copied directly. y is mapped into the top band: `y = clamp(60 + (pastY − 240) × 0.5, 40, 140)`. If there's no history yet (in the sandbox), it strafes.
+- **It fires your loadout.** The Echo mirrors up to 3 of the ship's weapons (the highest-level ones, ties to the oldest), translated into enemy patterns with fixed caps:
+
+  | Your weapon | Echo pattern |
+  |---|---|
+  | Blaster | An aimed shot every 0.9 s; a twin from L3 |
+  | Spread | A 3-way ±14° fan every 1.6 s; 5-way from L4 |
+  | Pulse Lance | A 0.6 s telegraph line, then a 200 px/s bolt, every 2.4 s |
+  | Seeker | A shootable homing missile (1 HP) every 3 s; 2 from L3 |
+  | Orbit Drones | 1–3 orbiting blockers that absorb player shots |
+  | Arc Coil | A zap that can't miss if the ship is within 60 px (with a 0.5 s crackle telegraph) |
+  | Ricochet | A disc that bounces off the side edges, every 2.2 s |
+  | Flak | A shell that bursts into 6 slow shards, every 2.6 s |
+
+  More weapons make the Echo hit harder, but they also give you more damage. That's fair under the difficulty philosophy.
+- **Parts:** the core, 520 HP. Any blocker drones have 20 HP each and respawn after 8 s.
+- **Phase 1 (100–60%):** one Echo, 8 s behind.
+- **Phase 2 (60–25%):** a second **Ghost Echo** splits off, 4 s behind. It has 160 HP as its own part, is translucent, and fires only its first weapon.
+- **Phase 3 (< 25%):** "PARADOX". A `flip` bubble covers the Echo, and slow bubbles spawn on the ship's past positions.
+- **Defeat:** the Echo freezes, rewinds 1 s, and shatters. Revenant schematic, 300 salvage.
+
+## Level 10: "The Foundry"
+
+The Syndicate shipyard, built into a broken Dyson ring around a dying red sun. The escape core docked here. The finale is a **remix**: each stretch brings back one earlier mechanic in Foundry dress, and the last boss uses all of them. Rock theme `basalt` (hull scrap). About 200 s to the boss, then the fight, then a 40 s escape.
+
+**New enemies**
+
+| Enemy | HP | Smart? | Movement | Attack | Salvage |
+|---|---|---|---|---|---|
+| **Riveter** | 2 | Dumb | Conveyor lines of 8–14 crossing horizontally at a fixed y (60 px/s) | Contact | 1 |
+| **Crane** | 12 | Smart | Holds near the top. Tows a large hull-scrap rock with `towRock`, then flings it, like a Tug. | One aimed shot when it has no rock | 6 |
+| **Sentinel** | 16 | Smart | Holds and turns slowly to face the ship (0.8 rad/s). A front shield covers a 120° arc. | A 3-way fan every 1.8 s | 8 |
+
+The Sentinel is the Aegis, grown up: you get around it by flanking, through portals, or with Ricochet, Seeker or Arc Coil. The Foundry may also spawn Act I enemies by id. It does **not** use Act II sector enemies, because those are built in parallel.
+
+**Timeline (scroll speed in brackets)**
+
+| Time | Beat |
+|---|---|
+| 0–40 s [30] | **The yard:** gantry silhouettes. Cranes towing hull scrap, riveter conveyors, Escort Fighters (Act I, by id). |
+| 6 s | Supply run: a forced Lance capsule |
+| 30 s | Carrier |
+| 40–75 s [30] | **Containment:** a captive `massive` black hole drifting inside a ring of shade slabs, with Orbiters and Lancers (Act I, by id), and Sentinels |
+| 75–80 s | Breather and a shield |
+| 80–115 s [30 → 60] | **The welding line:** `turning` pulsars on the beat during a scroll surge, Streakers (Act I, by id) and riveters |
+| 115–150 s [60 → 30] | **The furnace:** flares with shade slabs, a portal conveyor (two pairs feeding riveter lines across the screen), and Sentinels behind portals |
+| ~130 s | **Pod (Wren Ashgrove)**, carried by the portal conveyor |
+| 150–190 s [30] | **Assembly:** terrain corridors (Foundry tiles) with time bubbles parked in the bends, gates and Cranes in chambers. A magnet at 160 s. |
+| 194 s | Warning. Boss at 200 s, in an open chamber. |
+
+**Boss: The Architect** (the Syndicate's master builder, fused with the Leviathan's escape core). It has three forms on one boss bar. Each form honors earlier bosses.
+- **Form 1, "Scaffold"** (Shepherd and Rock Hauler):
+  - 2 crane arms (90 HP each) and a core (220 HP, armored until both arms fall).
+  - Each arm tows a hull-scrap rock into orbit as a shield and throws it every 5 s.
+  - The core fires aimed 5-way fans.
+- **Form 2, "Singularity Engine"** (Perihelion and Magnetar):
+  - The scaffold falls away. The core ignites a captive `massive` black hole below itself.
+  - 4 pylons (60 HP each) and a core (300 HP, shielded until 3 pylons fall).
+  - It pulses `magnetar` rings with gaps every 2.5 s, and the hole bends both your shots and its own.
+- **Form 3, "Paradox Core"** (Heliostat, Janus and Echo):
+  - The hole collapses. The bare core (260 HP) fights with everything left:
+    - Flares every 8 s, with the boss dropping shade slabs.
+    - A portal pair that swaps every 6 s.
+    - A `flip` bubble around the core.
+    - A 6-arm spiral.
+- **Stall breaker:** the Architect's threshold is **150 s** from the fight start (three forms), not 90 s.
+- **The escape.** Killing the core starts it:
+  - A toast reads "CORE BREACH — ESCAPE!" and a 40 s countdown appears on the HUD. The music switches to `escape`.
+  - The scroll ramps from 30 to 90 px/s over 6 s.
+  - Terrain corridors close in (Foundry tiles, every corridor ≥ 7 tiles at this speed), with debris rocks falling and no enemies.
+  - Hits still cost shields, but **the last shield can't be lost** (silent).
+  - An **escape bonus** of 100 salvage minus 20 per hit (minimum 0) is paid when the countdown ends.
+  - The run is won when the countdown reaches 0: white-out, then results.
+- **Rewards:** Nova schematic, 400 boss salvage, and **CAMPAIGN COMPLETE** on the first clear.
+
+## Act II presentation
+
+| Sector | Background theme | Level song | Boss song | Palette notes |
+|---|---|---|---|---|
+| 6 | `corona`: a white-hot limb across the top edge, amber dust bands, heat shimmer | `corona`: bright Lydian lead, 140 BPM | `boss2` | white, gold, amber; shadows in deep umber |
+| 7 | `warrens`: dark rock strata behind the terrain, with faint mining lights | `warrens`: 110 BPM, percussive noise, a low square ostinato | `boss2` | ochre, umber, gunmetal; gates hazard yellow and black |
+| 8 | `junction`: a green-black void with distant ring-gates and lens flares | `junction`: 126 BPM, syncopated, call and response between pulse channels | `boss2` | black-green, with portal cyan, orange and lime |
+| 9 | `rift`: desaturated violet, stars with afterimage trails, faint clock-face arcs | `rift`: 96 BPM, reversed-envelope arps, tempo dips | `boss2` | violet, grey, white; bubbles blue (slow) and amber (fast) |
+| 10 | `foundry`: Dyson-ring girders, a red sun, molten seams | `foundry`: an industrial march, 136 BPM | `foundry_boss`: the final theme, quoting `armada_boss`; then `escape` at 160 BPM | rust, molten orange, black steel |
+
+`boss2` is the shared Act II boss theme: faster than `boss`, in a minor key.

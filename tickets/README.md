@@ -25,6 +25,15 @@ Wave 6  T27 L2 Ion Shoals   T28 L3 Event Horizon   T29 L4 Pulsar Nursery     │
         T30 L5 The Armada                                                    │
                                                                              │
 Wave 7  T31 campaign integration + bots + balance                            │
+                                                                             │
+──── Act II (docs/design.md → "Campaign: Act II, Sectors 6–10") ──────────────┤
+Wave 8  T32 act II framework   T33 hazards II   T34 terrain                  │  (parallel; see WAVE8-NOTES,
+        T35 weapons   T36 roster   T37 music+backgrounds                     │   after a contracts-first commit)
+                                                                             │
+Wave 9  T38 L6 Corona Drift   T39 L7 The Warrens   T40 L8 Wormhole Junction  │  (parallel; see WAVE9-NOTES,
+        T41 L9 Chrono Rift   T42 L10 The Foundry                             │   written after wave 8 merges)
+                                                                             │
+Wave 10 T43 act II integration + bots + balance                              │
 ```
 
 | ID | Title | Depends on | Status |
@@ -61,6 +70,18 @@ Wave 7  T31 campaign integration + bots + balance                            │
 | [T29](T29-pulsarNursery.md) | Level 4: Pulsar Nursery + Magnetar | wave 5 | done |
 | [T30](T30-armada.md) | Level 5: The Armada + Dreadnought Leviathan | wave 5 | done |
 | [T31](T31-campaign-balance.md) | Campaign integration, bots, balance | T21–T30 | done |
+| [T32](T32-act2-framework.md) | Act II framework: ten sectors, act paging, escape phase, HUD | T31 + contracts | todo |
+| [T33](T33-hazards-act2.md) | Hazards II: solar flares and shade, portals, time bubbles | T31 + contracts | todo |
+| [T34](T34-terrain.md) | Terrain: tile walls, gates, crush, turret sockets | T31 + contracts | todo |
+| [T35](T35-weapons-act2.md) | Weapons: Arc Coil, Ricochet, Flak, unlock pool, field tests | T31 + contracts | todo |
+| [T36](T36-roster-act2.md) | Act II roster: 5 ships, 5 pilots, passives, ship history | T31 + contracts | todo |
+| [T37](T37-music-backgrounds-act2.md) | Act II music and backgrounds | T31 | todo |
+| [T38](T38-corona.md) | Level 6: Corona Drift + Heliostat | wave 8 | todo |
+| [T39](T39-warrens.md) | Level 7: The Warrens + Wyrm | wave 8 | todo |
+| [T40](T40-junction.md) | Level 8: Wormhole Junction + Janus | wave 8 | todo |
+| [T41](T41-chrono.md) | Level 9: Chrono Rift + Echo | wave 8 | todo |
+| [T42](T42-foundry.md) | Level 10: The Foundry + The Architect + escape | wave 8 | todo |
+| [T43](T43-act2-balance.md) | Act II integration, bots, balance | T32–T42 | todo |
 
 Wave 2 tickets can start as soon as their listed dependencies merge, without waiting for the whole of Wave 1.
 
