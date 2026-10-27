@@ -2,10 +2,21 @@ import { describe, expect, it } from 'vitest';
 import { DRUMS } from '../notes';
 import { advanceCursor, CHANNELS, compileSong, type SongCursor } from '../song';
 import { SONGS } from './index';
+import { ACT2_SONG_BPM, beatSeconds } from './bpm';
 import { estimateLoudness } from './loudness';
 import { PULSAR_SONG_PERIOD } from './pulsar';
 
-const SECTOR_SONGS = ['ion', 'horizon', 'pulsar', 'armada', 'armada_boss'] as const;
+const ACT2_SONGS = [
+  'corona',
+  'warrens',
+  'junction',
+  'rift',
+  'foundry',
+  'boss2',
+  'foundry_boss',
+  'escape',
+] as const;
+const SECTOR_SONGS = ['ion', 'horizon', 'pulsar', 'armada', 'armada_boss', ...ACT2_SONGS] as const;
 const level1 = SONGS.level1!;
 
 describe('sector songs', () => {
@@ -33,7 +44,9 @@ describe('sector songs', () => {
 
   it.each(SECTOR_SONGS)('%s is mixed no hotter than level1', (id) => {
     const def = SONGS[id]!;
-    for (const ch of CHANNELS) expect(def[ch].vol).toBeLessThanOrEqual(level1[ch].vol);
+    // Peak envelope level: a sustain above 1 (rift's swelling arps) rises past `vol`.
+    const peakOf = (ch: (typeof CHANNELS)[number]) => def[ch].vol * Math.max(1, def[ch].sustain);
+    for (const ch of CHANNELS) expect(peakOf(ch)).toBeLessThanOrEqual(level1[ch].vol);
     expect(def.drums).toBeLessThanOrEqual(level1.drums);
     const ref = estimateLoudness(level1);
     const l = estimateLoudness(def);
@@ -52,6 +65,38 @@ describe('sector songs', () => {
   it('loudness estimate ranks a denser mix louder', () => {
     const loud = { ...level1, drums: 1, p1: { ...level1.p1, vol: 0.3 } };
     expect(estimateLoudness(loud).rms).toBeGreaterThan(estimateLoudness(level1).rms);
+  });
+});
+
+describe('Act II songs', () => {
+  it('have the design tempos, noted in bpm.ts', () => {
+    for (const id of ACT2_SONGS) expect(SONGS[id]!.bpm).toBe(ACT2_SONG_BPM[id]);
+    expect(ACT2_SONG_BPM).toMatchObject({
+      corona: 140,
+      warrens: 110,
+      junction: 126,
+      rift: 96,
+      foundry: 136,
+      escape: 160,
+    });
+    expect(SONGS.boss2!.bpm).toBeGreaterThan(SONGS.boss!.bpm);
+    expect(SONGS.foundry_boss!.bpm).toBeGreaterThan(SONGS.armada_boss!.bpm);
+    expect(beatSeconds('escape')).toBeCloseTo(0.375, 9);
+  });
+
+  it.each(ACT2_SONGS)('%s has whole-bar patterns, so beats stay on the bar grid', (id) => {
+    const s = compileSong(SONGS[id]!);
+    for (const e of s.entries) expect(e.pattern.steps % 16).toBe(0);
+  });
+
+  it('foundry_boss quotes armada_boss note for note', () => {
+    const quote = SONGS.foundry_boss!.patterns.Q!.p1;
+    expect(quote).toBe(SONGS.armada_boss!.patterns.A!.p1);
+    expect(SONGS.foundry_boss!.patterns.Q2!.p1).toBe(SONGS.armada_boss!.patterns.B!.p1);
+  });
+
+  it('the escape loop outlasts the 40 s countdown', () => {
+    expect(compileSong(SONGS.escape!).loopSeconds).toBeGreaterThan(40);
   });
 });
 
