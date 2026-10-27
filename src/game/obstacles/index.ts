@@ -4,9 +4,11 @@ import { flags } from '../../debug/flags';
 import type { System } from '../../sim/world';
 import { registerAnomalyHooks, updateAnomalies } from './anomalySystem';
 import { attachObstacles, tickAsteroidStreams, updateAsteroids } from './asteroidSystem';
+import { registerHazardIIHooks, updateHazardsII } from './hazards2';
 import { installObstacleSandbox, runObstacleSandbox } from './sandbox';
 import { sweepTows } from './tractor';
 import './obstacles.sprites';
+import './hazards2/hazards2.sprites';
 
 export {
   AsteroidStream,
@@ -44,7 +46,68 @@ export { anomalyVariant, isFieldOnly } from './anomalies/state';
 export { drawTractorBeam, flingRock, isTowed, releaseRock, towRock } from './tractor';
 export { rockIdsForTheme } from './obstacles.sprites';
 
+// Act II hazards (T33)
+export {
+  flareProgress,
+  flarePhase,
+  flareState,
+  hazardLog,
+  isFlareBurning,
+  setFlareImmune,
+  shadeReachable,
+  startFlare,
+  startFlares,
+  stopFlares,
+  type FlareOptions,
+  type FlaresOptions,
+} from './hazards2/flare';
+export {
+  forEachStrip,
+  inShade,
+  nearestShadeSpot,
+  registerShadeCaster,
+  removeShadeSlab,
+  shadeSlabs,
+  slabSolidQuery,
+  spawnShadeSlab,
+  unregisterShadeCaster,
+  type ShadeSpot,
+  type SlabOptions,
+  type Strip,
+} from './hazards2/shade';
+export {
+  collapsePortalPair,
+  partnerOf,
+  portalOptIn,
+  portalPairs,
+  setPortalEnd,
+  sinceShipPorted,
+  spawnPortalPair,
+  swapPortals,
+  type PortalPairOptions,
+} from './hazards2/portals';
+export {
+  bubbleScale,
+  bubbleTimeScale,
+  bubbles,
+  flipFlickering,
+  flipIsSlow,
+  removeBubble,
+  spawnBubble,
+  type BubbleOptions,
+} from './hazards2/bubbles';
+export { clearHazardsII, registerHazardIIHooks, updateHazardsII } from './hazards2';
+export type {
+  Bubble,
+  FlarePhase,
+  FlareState,
+  PortalEnd,
+  PortalPair,
+  ShadeSlab,
+} from './hazards2/state';
+
 registerAnomalyHooks();
+registerHazardIIHooks();
 installObstacleSandbox();
 
 /**
@@ -60,5 +123,6 @@ export const obstaclesSystem: System = {
     tickAsteroidStreams(w, dt);
     updateAnomalies(w, dt);
     updateAsteroids(w, dt);
+    updateHazardsII(w, dt);
   },
 };
