@@ -35,16 +35,30 @@ function allowed(e: DropEntry, filter: number): boolean {
   return true;
 }
 
+/** Drop kinds Nyx's `rareDropMul` weights up. */
+function isRareKind(kind: DropEntry['kind']): boolean {
+  return kind === 'shield' || kind === 'upgrade' || kind === 'magnet' || kind === 'repulsor';
+}
+
+function weightOf(e: DropEntry, rareMul: number): number {
+  return isRareKind(e.kind) ? e.weight * rareMul : e.weight;
+}
+
 /**
  * Weighted pick among the entries the filter allows. Excluding an entry is the
  * same distribution as re-rolling until something else comes up. Null if the
- * filter leaves nothing.
+ * filter leaves nothing. `rareMul` scales the uncommon/rare entries (×1 is exact).
  */
-export function rollDrop(table: DropTable, rng: Rng, filter = ROLL_ANY): DropEntry | null {
+export function rollDrop(
+  table: DropTable,
+  rng: Rng,
+  filter = ROLL_ANY,
+  rareMul = 1,
+): DropEntry | null {
   let total = 0;
   for (let i = 0; i < table.length; i++) {
     const e = table[i] as DropEntry;
-    if (allowed(e, filter)) total += e.weight;
+    if (allowed(e, filter)) total += weightOf(e, rareMul);
   }
   if (total <= 0) return null;
   let x = rng.next() * total;
@@ -52,7 +66,7 @@ export function rollDrop(table: DropTable, rng: Rng, filter = ROLL_ANY): DropEnt
   for (let i = 0; i < table.length; i++) {
     const e = table[i] as DropEntry;
     if (!allowed(e, filter)) continue;
-    x -= e.weight;
+    x -= weightOf(e, rareMul);
     last = e;
     if (x < 0) return e;
   }
@@ -225,10 +239,11 @@ export function rollAndSpawn(w: World, table: DropTable, x: number, y: number): 
   const st = getPickupState(w);
   let filter = p.shield >= p.maxShield ? ROLL_NO_SHIELD : ROLL_ANY;
   if (st.sinceItem >= PICKUP_TUNING.pityTime) filter |= ROLL_ITEMS_ONLY;
-  let e = rollDrop(table, w.rng, filter);
+  const rare = p.stats.rareDropMul;
+  let e = rollDrop(table, w.rng, filter, rare);
   // A table with no eligible items under pity falls back to the common table.
   if (e === null && filter & ROLL_ITEMS_ONLY) {
-    e = rollDrop(DROP_TABLES[DEFAULT_ENEMY_DROP_TABLE] as DropTable, w.rng, filter);
+    e = rollDrop(DROP_TABLES[DEFAULT_ENEMY_DROP_TABLE] as DropTable, w.rng, filter, rare);
   }
   if (e !== null) spawnEntry(w, e, x, y);
 }
@@ -278,6 +293,9 @@ const ASTEROID_TABLE: Readonly<Record<Asteroid['size'], string>> = {
 export function onAsteroidDestroyed(w: World, size: Asteroid['size'], x: number, y: number): void {
   const table = DROP_TABLES[ASTEROID_TABLE[size]];
   if (table !== undefined) rollAndSpawn(w, table, x, y);
+  // Rook's bonus; after the roll, and skipped at zero, so other pilots' rng streams don't move.
+  const bonus = w.player.stats.rockSalvage;
+  if (bonus > 0) spraySalvage(w, x, y, bonus);
 }
 
 /**

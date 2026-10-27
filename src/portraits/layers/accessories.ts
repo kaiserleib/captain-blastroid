@@ -1,4 +1,4 @@
-import { FACE, GLOW, METAL, SKIN } from '../palette';
+import { FACE, GLOW, HAIR, METAL, SKIN } from '../palette';
 import type { Geo, Pixels } from '../pixels';
 import type { Accessory, PortraitTraits } from '../traits';
 
@@ -37,6 +37,62 @@ function draw(p: Pixels, t: PortraitTraits, g: Geo, a: Accessory): void {
       p.rect(FACE.plaster, eyeRX, noseY + 1, 4, 2);
       p.px(FACE.plasterShade, eyeRX + 1, noseY + 1);
       p.px(FACE.plasterShade, eyeRX + 2, noseY + 2);
+      break;
+    case 'glasses':
+      // Round wire rims with a lens glint, bridged over the nose.
+      for (const ex of [eyeLX, eyeRX]) {
+        p.rect(METAL.dark, ex, eyeY - 2, ew, 1);
+        p.rect(METAL.dark, ex, eyeY + 3, ew, 1);
+        p.rect(METAL.dark, ex - 1, eyeY - 1, 1, 4);
+        p.rect(METAL.dark, ex + ew, eyeY - 1, 1, 4);
+        p.px(FACE.lens, ex, eyeY - 1);
+      }
+      p.rect(METAL.dark, eyeLX + ew + 1, eyeY - 1, eyeRX - eyeLX - ew - 2, 1);
+      p.rect(METAL.dark, fx - 1, eyeY - 1, eyeLX - fx, 1);
+      p.rect(METAL.dark, eyeRX + ew + 1, eyeY - 1, fx + fw - eyeRX - ew, 1);
+      break;
+    case 'hairStreak': {
+      // One dyed lock through the fringe and down the near side.
+      const c = HAIR.cyan;
+      p.rect(c.base, fx + 2, fy - 3, 2, 5);
+      p.px(c.light, fx + 2, fy - 3);
+      p.rect(c.shadow, fx - 2, fy, 2, 8);
+      p.px(c.light, fx - 2, fy);
+      break;
+    }
+    case 'dust':
+      // Smudges on the brow and cheek, as if wiped with a glove.
+      for (const [dx, dy] of [
+        [2, -3],
+        [3, -3],
+        [5, -4],
+        [fw - 6, -3],
+        [fw - 5, -2],
+      ] as const)
+        p.px(s.dark, fx + dx, eyeY + dy);
+      p.rect(s.shadow, eyeRX, noseY + 2, 4, 1);
+      p.rect(s.dark, eyeRX + 1, noseY + 3, 2, 1);
+      p.px(s.shadow, eyeLX, noseY + 3);
+      p.px(s.dark, eyeLX + 1, noseY + 3);
+      break;
+    case 'burnScar': {
+      // Mottled patch along the jaw on the shadow side.
+      const y0 = g.mouthY + 1;
+      const x0 = fx + fw - 6;
+      p.rect(FACE.burn, x0, y0, 4, 3);
+      p.rect(FACE.burn, x0 + 1, y0 + 3, 3, 1);
+      p.px(s.shadow, x0 + 1, y0 + 1);
+      p.px(FACE.scar, x0 + 2, y0);
+      p.px(FACE.scar, x0, y0 + 2);
+      p.px(s.dark, x0 + 3, y0 + 2);
+      break;
+    }
+    case 'earpiece':
+      // A single bud on the near ear with a status light and a coiled lead.
+      p.rrect(METAL.dark, fx - 3, g.earY, 3, 5);
+      p.px(METAL.light, fx - 3, g.earY + 1);
+      p.px(GLOW.cyan, fx - 2, g.earY + 2);
+      for (let y = g.earY + 5; y < g.bodyTop; y++) p.px(y % 2 ? METAL.dark : METAL.base, fx - 2, y);
       break;
     case 'freckles':
       // A sparse band across the cheek tops and nose bridge.

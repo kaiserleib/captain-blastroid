@@ -83,6 +83,8 @@ export const HELMET = {
   white: ramp('#484c60', '#9098a8', '#d0d8e0', '#f8f8f8'),
   metal: METAL,
   dark: ramp('#101018', '#282830', '#404050', '#686878'),
+  /** Hazard yellow: mining hard hats. Not in the random helmet pool. */
+  hazard: ramp('#584000', '#987000', '#d8a818', '#f8e060'),
 } as const;
 export type HelmetColor = keyof typeof HELMET | 'uniform';
 
@@ -134,6 +136,8 @@ export const FACE = {
   plasterShade: snes('#b89870'),
   patch: snes('#181018'),
   tattoo: snes('#2858a0'),
+  lens: snes('#a8d8e8'),
+  burn: snes('#c07868'),
 } as const;
 
 export const GLOW = {

@@ -1,4 +1,11 @@
-import { SHIPS, SHIP_ORDER, WEAPONS, type ShipDef, type WeaponId } from '../content';
+import {
+  MAX_WEAPON_SLOTS,
+  SHIPS,
+  SHIP_ORDER,
+  WEAPONS,
+  type ShipDef,
+  type WeaponId,
+} from '../content';
 import type { Renderer } from '../gfx/renderer';
 import { drawBar, drawWindow } from '../gfx/ui';
 import '../game/hud';
@@ -41,7 +48,7 @@ import {
 // Bar maxima: the best value any ship has.
 const MAX_SHIELD = 5;
 const MAX_SPEED = 150;
-const MAX_SLOTS = 5;
+const MAX_SLOTS = MAX_WEAPON_SLOTS;
 
 const CARD_H = 184;
 const THUMB_W = 52;

@@ -3,18 +3,27 @@
 // cruise flame, 3–5 long flame while climbing; `_bank_l/_r` for strafing.
 // Campaign ships swap the hull (k d b l h) and trim (n c s u) ramps.
 import {
+  ARMOR,
   CANOPY,
   COBALT,
   CORSAIR,
+  CREST,
+  FERRET,
   FLAME,
   GILT,
   HALCYON,
+  NOVA,
   OUTLINE,
   PARAGON,
   PLAYER,
+  PORTAL,
+  REVENANT,
+  SHRIKE,
+  SILVER,
   SKY,
   TEAL,
   WARDEN,
+  WRAITH,
 } from '../../gfx/palette';
 import { defineSprite, gridRows } from '../../gfx/sprite';
 
@@ -74,6 +83,9 @@ const DARKER: Readonly<Record<string, string>> = {
   w: 'a',
   a: 'g',
   g: 'q',
+  j: 'v',
+  v: 'z',
+  z: 'x',
 };
 const LIGHTER: Readonly<Record<string, string>> = {
   l: 'h',
@@ -86,6 +98,9 @@ const LIGHTER: Readonly<Record<string, string>> = {
   a: 'w',
   g: 'a',
   q: 'g',
+  v: 'j',
+  z: 'v',
+  x: 'z',
 };
 // Canopy glass keeps its glint on the lit side only.
 const MIRROR_SHADE: Readonly<Record<string, string>> = { ...DARKER, w: 'g', a: 'g' };
@@ -347,3 +362,158 @@ const PARAGON_HULL = symmetric(`
 `);
 
 defineShip('paragon', PARAGON_HULL, [9, 13], 4, [8, 15], 11, shipPalette(PARAGON, GILT));
+
+// ---------------------------------------------------------------------------
+// Act II (T36). Gold crest keys for the Nova: x z v j, dark → highlight.
+
+const NOVA_GOLD: Readonly<Record<string, string>> = {
+  x: GILT.dark,
+  z: GILT.base,
+  v: GILT.light,
+  j: GILT.highlight,
+};
+
+// Shrike: white and sun-gold, needle wings swept hard forward, and an arc-coil
+// fin down the spine (gold coil bands). Single engine.
+
+const SHRIKE_HULL = symmetric(`
+  ...........o
+  ..........oh
+  ..........ol
+  o.........ol
+  ouo.......ol
+  osuo.....ohw
+  .ohso....owa
+  .ohlso...olg
+  ..ohlso..olq
+  ..ohllsooolq
+  ...ohlbsoolu
+  ...ohlbbsoln
+  ....ohlbbslu
+  ....olbbbbln
+  .....odbbdbu
+  .....oddkdbn
+  ..oo..oddkbu
+  .ohsooookkbn
+  .onccdddookd
+  ..oooooo.okk
+  .........ooo
+`);
+
+defineShip('shrike', SHRIKE_HULL, [11], 4, [9, 14], 11, shipPalette(SHRIKE, GILT));
+
+// Ferret: a stubby ochre digger. Gunmetal drill-bit nose with spiral flutes,
+// armored cheek plates and stub wings, twin engines.
+
+const FERRET_HULL = symmetric(`
+  ..........oo
+  .........osu
+  .........onc
+  ........oscn
+  ........ocns
+  .......oscnu
+  .......ocnsc
+  ......oohhll
+  .....ohlbbwa
+  ....ohlbbbag
+  ..oohlbbbbgq
+  .ohsclbbbbqq
+  ohsccnbbbbbb
+  olsccnlbbdbb
+  olnccnbbbdbb
+  odnnnkdbbdbb
+  okkkkodbdddb
+  .ooooodkkokb
+  ......okko.o
+`);
+
+defineShip('ferret', FERRET_HULL, [7, 15], 5, [6, 17], 10, shipPalette(FERRET, ARMOR));
+
+// Wraith: a thin dark-green blade. Long needle nose, a narrow arrowhead body and
+// portal-orange engine glows.
+
+const WRAITH_HULL = symmetric(`
+  ...........o
+  ..........oh
+  ..........ol
+  ..........ol
+  ..........ol
+  .........ohl
+  .........ohw
+  .........ola
+  .........olg
+  ........ohlq
+  ........ohlb
+  .......ohlbb
+  ......ohlbbd
+  .....ohlbbdb
+  ....ohlbbdkb
+  ...ohlbdkosb
+  ..ohbdkoousb
+  .ohdkoo.ocub
+  ohkoo...osco
+  ooo.....onno
+  ........ooo.
+`);
+
+defineShip('wraith', WRAITH_HULL, [9, 13], 4, [8, 15], 11, shipPalette(WRAITH, PORTAL));
+
+// Revenant: bulky violet, with a silver ring-shaped drone housing around the hull.
+
+const REVENANT_HULL = symmetric(`
+  ...........o
+  ..........oh
+  .........ohl
+  .........ohw
+  ........ohla
+  ......oooolg
+  ....oosssohq
+  ...osuoo.olq
+  ..osoo..ohlb
+  ..oco.oohlbb
+  .osc.ohllbbb
+  .oco.olbbbbb
+  .oco.olbbbbb
+  .osc.odbbbdb
+  .onc.odbbddb
+  ..onooddddkb
+  ..oncoookkdb
+  ...onnooookk
+  ....oonnnnoo
+  ......ooooko
+  .........oko
+`);
+
+defineShip('revenant', REVENANT_HULL, [10, 12], 4, [6, 17], 11, shipPalette(REVENANT, SILVER));
+
+// Nova: the Captain's flagship. White hull, broad swept wings with hero-red
+// stripes, gold crest canards and a gold nose chevron.
+
+const NOVA_HULL = symmetric(`
+  ...........o
+  ..........oh
+  ..........ol
+  .........ohj
+  .........ovz
+  .........ohw
+  ........ohwa
+  ........olag
+  ...o...ohlgq
+  ..ojo..olbqq
+  ..ovzooolbbu
+  ..ozxohllbsc
+  .ohllhlbbbsc
+  ohllbblbbbsc
+  ohcsllbbbbsc
+  olccssbbbbsc
+  olnccssbbdsc
+  odnnccdbbdnc
+  okkkkkddbdkc
+  .oooooodkkoo
+  .......okko.
+`);
+
+defineShip('nova', NOVA_HULL, [9, 13], 4, [7, 16], 11, {
+  ...shipPalette(NOVA, CREST),
+  ...NOVA_GOLD,
+});

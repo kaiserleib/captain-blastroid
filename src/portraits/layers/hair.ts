@@ -130,6 +130,23 @@ export function drawHair(p: Pixels, t: PortraitTraits, g: Geo): void {
       p.rect(h.shadow, fx + fw, fy - 1, 3, Math.floor(fh * 0.55));
       p.rect(h.light, fx - 3, fy, 1, 4);
       break;
+    case 'wild':
+      // Receding crown, big uncombed tufts flaring out over the ears.
+      p.rect(h.shadow, fx + 2, fy - 2, fw - 4, 2);
+      p.rect(h.base, fx + 3, fy - 3, 4, 1);
+      p.rect(h.base, fx + fw - 6, fy - 3, 3, 1);
+      p.rrect(h.base, fx - 5, fy - 4, 7, sideH + 6);
+      p.rrect(h.shadow, fx + fw - 2, fy - 4, 7, sideH + 6);
+      p.rect(h.light, fx - 4, fy - 3, 3, 2);
+      p.rect(h.light, fx - 5, fy, 2, 3);
+      p.px(h.base, fx - 6, fy - 2);
+      p.px(h.base, fx - 7, fy + 2);
+      p.px(h.base, fx - 2, fy - 5);
+      p.px(h.shadow, fx + fw + 1, fy - 5);
+      p.px(h.shadow, fx + fw + 5, fy - 2);
+      p.px(h.dark, fx + fw + 6, fy + 2);
+      p.rect(h.dark, fx + fw + 3, fy + sideH, 2, 2);
+      break;
     case 'long':
       p.rrect(h.base, fx - 1, fy - 5, fw + 2, 7);
       p.rect(h.light, fx + 1, fy - 4, 5, 1);

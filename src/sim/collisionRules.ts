@@ -53,7 +53,7 @@ export function playerShotVsAsteroid(w: World, shot: Bullet, a: Asteroid): boole
     return true;
   }
   if (alreadyHit(shot, a.id)) return false;
-  damageAsteroid(w, a, shot.damage, true);
+  damageAsteroid(w, a, shot.damage * w.player.stats.rockDmgMul, true);
   return spendPierce(w, shot, a.id);
 }
 

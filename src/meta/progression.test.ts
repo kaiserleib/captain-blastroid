@@ -373,6 +373,44 @@ describe('computePlayerStats', () => {
     expect(computePlayerStats(save, 'dart', 'juno').stats.fireRateMul).toBeCloseTo(1.15);
   });
 
+  it('Act II stat passives compose (Rook, Nyx) and stay neutral for everyone else', () => {
+    const save = createDefaultSave();
+    const rook = computePlayerStats(save, 'ferret', 'rook').stats;
+    expect(rook.rockDmgMul).toBeCloseTo(1.5);
+    expect(rook.rockSalvage).toBe(1);
+    expect(rook.rareDropMul).toBe(1);
+    const nyx = computePlayerStats(save, 'wraith', 'nyx').stats;
+    expect(nyx.rareDropMul).toBeCloseTo(1.25);
+    expect(nyx.rockDmgMul).toBe(1);
+    for (const pilot of ['blastroid', 'juno', 'grieg', 'zzkar', 'sable', 'pip', 'vale']) {
+      const s = computePlayerStats(save, 'kestrel', pilot).stats;
+      expect([s.rockDmgMul, s.rareDropMul, s.extraSlots, s.rockSalvage]).toEqual([1, 1, 0, 0]);
+    }
+  });
+
+  it('Wren: +1 slot capped at 6, -1 shield floored at 1', () => {
+    const save = createDefaultSave();
+    const kestrel = computePlayerStats(save, 'kestrel', 'wren');
+    expect(kestrel.weaponSlots).toBe(5);
+    expect(kestrel.maxShield).toBe(2);
+    const nova = computePlayerStats(save, 'nova', 'wren');
+    expect(nova.weaponSlots).toBe(6);
+    expect(nova.maxShield).toBe(3);
+    // The 2-shield ships land exactly on the floor.
+    expect(computePlayerStats(save, 'wraith', 'wren').maxShield).toBe(1);
+    expect(computePlayerStats(save, 'dart', 'wren').maxShield).toBe(1);
+    expect(computePlayerStats(save, 'nova', 'blastroid').weaponSlots).toBe(6);
+  });
+
+  it('Act II ships keep their starting weapons even while locked', () => {
+    const p = computePlayerStats(createDefaultSave(), 'revenant', 'blastroid');
+    expect(p.startingWeapons.map((w) => w.weaponId)).toEqual(['blaster', 'seeker', 'orbitDrones']);
+    expect(computePlayerStats(createDefaultSave(), 'shrike', 'blastroid').startingWeapons).toEqual([
+      { weaponId: 'blaster', level: 1 },
+      { weaponId: 'arc', level: 1 },
+    ]);
+  });
+
   it('throws on unknown ids', () => {
     expect(() => computePlayerStats(createDefaultSave(), 'nope', 'blastroid')).toThrow();
     expect(() => computePlayerStats(createDefaultSave(), 'kestrel', 'nope')).toThrow();
