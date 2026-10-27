@@ -51,8 +51,6 @@ export const TERRAIN = {
   shipHalfH: 6,
   /** Push-outs longer than this per tick don't count as a way out (that's a crush). */
   maxPush: 8,
-  /** Pilot passives on breakable tiles (Rook: +50% to rock and gates). */
-  tileDamageMul: { rook: 1.5 } as Readonly<Record<string, number>>,
   /** Score for breaking a tile (player shots only). */
   score: { [Tile.Crumbly]: 10, [Tile.Gate]: 25 } as Readonly<Partial<Record<TileCode, number>>>,
   /** Broken-tile dust puffs kept for drawing. */

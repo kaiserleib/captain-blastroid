@@ -154,9 +154,9 @@ export function breakTile(w: World, st: TerrainState, k: number, c: number, byPl
   }
 }
 
-/** Tile damage multiplier for the current pilot (Rook's passive). */
+/** Tile damage multiplier from the ship's stats (Rook's passive, the same one rocks use). */
 export function tileDamageMul(w: World): number {
-  return TERRAIN.tileDamageMul[w.run.pilotId] ?? 1;
+  return w.player.stats.rockDmgMul;
 }
 
 /**

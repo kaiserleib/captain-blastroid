@@ -251,9 +251,8 @@ describe('gates and breakable tiles', () => {
   });
 
   it("Rook's passive breaks gates faster", () => {
-    // Rook joins in T36; the passive keys off the pilot id.
-    const w = world();
-    w.run.pilotId = 'rook';
+    const w = world('rook');
+    expect(w.player.stats.rockDmgMul).toBeCloseTo(1.5);
     queueChunk(w, 't34_gate', { theme: 'warrens' });
     advance(w, 200);
     for (let i = 0; i < 3; i++) expect(damageTile(w, 20, 196, 1)).toBe(false);
