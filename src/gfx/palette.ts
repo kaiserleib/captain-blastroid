@@ -256,6 +256,70 @@ export const PARAGON = ramp({
   highlight: '#a8c8f8',
 });
 
+/** Act II ship hulls and trims (T36). Same key layout as the T24 ramps. */
+export const SHRIKE = ramp({
+  shadow: '#484030',
+  dark: '#908870',
+  base: '#d0c8b0',
+  light: '#f0e8d0',
+  highlight: '#f8f8f0',
+});
+export const FERRET = ramp({
+  shadow: '#301808',
+  dark: '#684010',
+  base: '#a87828',
+  light: '#d0a040',
+  highlight: '#f0d078',
+});
+/** Ferret's armor trim: GUNMETAL with a brighter top so plates read against ochre. */
+export const ARMOR = ramp({
+  dark: '#202430',
+  base: '#485060',
+  light: '#788090',
+  highlight: '#b0b8c8',
+});
+export const WRAITH = ramp({
+  shadow: '#081810',
+  dark: '#183820',
+  base: '#286040',
+  light: '#408858',
+  highlight: '#78b890',
+});
+/** Portal orange: the Wraith's engine glows and blade edges. */
+export const PORTAL = ramp({
+  dark: '#782000',
+  base: '#d85810',
+  light: '#f89830',
+  highlight: '#f8e088',
+});
+export const REVENANT = ramp({
+  shadow: '#180828',
+  dark: '#381858',
+  base: '#603890',
+  light: '#8868c0',
+  highlight: '#c0a8e8',
+});
+export const SILVER = ramp({
+  dark: '#505060',
+  base: '#8890a0',
+  light: '#c0c8d0',
+  highlight: '#f0f0f8',
+});
+export const NOVA = ramp({
+  shadow: '#383850',
+  dark: '#787890',
+  base: '#c0c0d0',
+  light: '#e8e8f0',
+  highlight: '#f8f8f8',
+});
+/** The Nova's hero red. */
+export const CREST = ramp({
+  dark: '#600810',
+  base: '#c01820',
+  light: '#f04030',
+  highlight: '#f89878',
+});
+
 /** Every named ramp, for the gallery and the quantization test. Append new ramps here. */
 export const RAMPS: Readonly<Record<string, Ramp>> = {
   PLAYER,
@@ -281,5 +345,14 @@ export const RAMPS: Readonly<Record<string, Ramp>> = {
   HALCYON,
   SKY,
   PARAGON,
+  SHRIKE,
+  FERRET,
+  ARMOR,
+  WRAITH,
+  PORTAL,
+  REVENANT,
+  SILVER,
+  NOVA,
+  CREST,
   MISC: { OUTLINE, WHITE, BLACK },
 };

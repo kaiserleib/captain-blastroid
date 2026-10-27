@@ -1,18 +1,42 @@
 import { describe, expect, it } from 'vitest';
 import { LEVEL_ORDER } from './levels';
 import { PILOTS, PILOT_ORDER } from './pilots';
-import { SHIPS, SHIP_ORDER } from './ships';
+import { MAX_WEAPON_SLOTS, SHIPS, SHIP_ORDER } from './ships';
 import { UPGRADES, UPGRADE_ORDER } from './upgrades';
 import { WEAPONS } from './weapons';
 
-// WAVE5-NOTES' level ids; T21 adds the last four to LEVEL_ORDER.
-const CAMPAIGN = ['kessler', 'ionShoals', 'eventHorizon', 'pulsarNursery', 'armada'];
+// WAVE5/WAVE8-NOTES' level ids; T32 adds the Act II five to LEVEL_ORDER.
+const ACT1 = ['kessler', 'ionShoals', 'eventHorizon', 'pulsarNursery', 'armada'];
+const ACT2 = ['corona', 'warrens', 'junction', 'chrono', 'foundry'];
+const CAMPAIGN = [...ACT1, ...ACT2];
 
 describe('roster content', () => {
   it('lists every ship once, and every ship in the order', () => {
     expect(new Set(SHIP_ORDER).size).toBe(SHIP_ORDER.length);
     expect([...SHIP_ORDER].sort()).toEqual(Object.keys(SHIPS).sort());
-    expect(SHIP_ORDER.slice(3)).toEqual(['warden', 'corsair', 'halcyon', 'paragon']);
+    expect(SHIP_ORDER.slice(3, 7)).toEqual(['warden', 'corsair', 'halcyon', 'paragon']);
+    expect(SHIP_ORDER.slice(7)).toEqual(['shrike', 'ferret', 'wraith', 'revenant', 'nova']);
+  });
+
+  it('matches the Act II ship table', () => {
+    const row = (id: string) => {
+      const s = SHIPS[id];
+      if (!s || s.unlock.kind !== 'schematic') throw new Error(id);
+      return [s.shield, s.speed, s.weaponSlots, s.unlock.cost];
+    };
+    expect(row('shrike')).toEqual([3, 140, 4, 900]);
+    expect(row('ferret')).toEqual([3, 125, 4, 1000]);
+    expect(row('wraith')).toEqual([2, 145, 5, 1100]);
+    expect(row('revenant')).toEqual([4, 115, 5, 1300]);
+    expect(row('nova')).toEqual([4, 130, 6, 2000]);
+    expect(SHIPS.shrike?.startingWeapons.map((w) => w.weaponId)).toEqual(['blaster', 'arc']);
+    expect(SHIPS.ferret?.startingWeapons.map((w) => w.weaponId)).toEqual(['blaster', 'ricochet']);
+    expect(SHIPS.wraith?.startingWeapons).toEqual([
+      { weaponId: 'blaster', level: 2 },
+      { weaponId: 'flak', level: 1 },
+    ]);
+    for (const id of SHIP_ORDER)
+      expect(SHIPS[id]?.weaponSlots ?? 0).toBeLessThanOrEqual(MAX_WEAPON_SLOTS);
   });
 
   it('gives every ship valid starting weapons within its slots', () => {
@@ -51,6 +75,18 @@ describe('roster content', () => {
     expect(PILOTS.pip?.unlock).toEqual({ kind: 'rescue', levelId: 'pulsarNursery' });
     expect(PILOTS.vale?.unlock).toEqual({ kind: 'rescue', levelId: 'armada' });
     expect(PILOTS.zzkar?.unlock).toEqual({ kind: 'rescue', levelId: 'ionShoals' });
+    const act2 = ['ines', 'rook', 'nyx', 'halasz', 'wren'].map((id) => PILOTS[id]?.unlock);
+    expect(act2).toEqual(ACT2.map((levelId) => ({ kind: 'rescue', levelId })));
+  });
+
+  it('rescues one pilot per Act II sector, so each pod has someone to carry', () => {
+    for (const lid of ACT2) {
+      const n = PILOT_ORDER.filter((id) => {
+        const u = PILOTS[id]?.unlock;
+        return u?.kind === 'rescue' && u.levelId === lid;
+      }).length;
+      expect(n, lid).toBe(1);
+    }
   });
 
   it.runIf(LEVEL_ORDER.length >= CAMPAIGN.length)(

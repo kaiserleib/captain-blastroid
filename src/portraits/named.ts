@@ -6,7 +6,19 @@ export interface PortraitSpec {
   overrides: PortraitOverrides;
 }
 
-export type NamedPilotId = 'blastroid' | 'juno' | 'grieg' | 'zzkar' | 'sable' | 'pip' | 'vale';
+export type NamedPilotId =
+  | 'blastroid'
+  | 'juno'
+  | 'grieg'
+  | 'zzkar'
+  | 'sable'
+  | 'pip'
+  | 'vale'
+  | 'ines'
+  | 'rook'
+  | 'nyx'
+  | 'halasz'
+  | 'wren';
 
 /**
  * Fixed portraits for the named roster, keyed by pilot id. Overrides pin every trait that
@@ -205,6 +217,147 @@ export const NAMED_PORTRAITS: Readonly<Record<NamedPilotId, PortraitSpec>> = {
       insignia: 'star',
       patchColor: 'gold',
       background: 'hangar',
+      bgTint: 'rust',
+    },
+  },
+  // Act II (T36).
+  ines: {
+    seed: 'INESOLAN',
+    overrides: {
+      sex: 'f',
+      age: 'middle',
+      alien: false,
+      skin: 'tan',
+      head: 'oval',
+      eyes: 'normal',
+      irisColor: IRIS.blue,
+      nose: 'straight',
+      mouth: 'smirk',
+      facialHair: 'none',
+      hair: 'crop',
+      hairColor: 'platinum',
+      headgear: 'helmetUp',
+      // Sand shell so the gold visor doesn't read as Blastroid's white helmet.
+      helmetColor: 'uniform',
+      visorTint: 'gold',
+      accessories: ['freckles'],
+      uniform: 'sand',
+      suit: 'flightSuit',
+      shoulderPads: false,
+      tubes: false,
+      insignia: 'ring',
+      patchColor: 'yellow',
+      background: 'porthole',
+      bgTint: 'rust',
+    },
+  },
+  rook: {
+    seed: 'ROOKMBEK',
+    overrides: {
+      sex: 'm',
+      age: 'middle',
+      alien: false,
+      skin: 'deep',
+      head: 'heavy',
+      eyes: 'normal',
+      irisColor: IRIS.dark,
+      nose: 'broad',
+      mouth: 'grin',
+      facialHair: 'stubble',
+      hair: 'buzz',
+      hairColor: 'black',
+      headgear: 'minerHelmet',
+      helmetColor: 'hazard',
+      accessories: ['dust'],
+      uniform: 'olive',
+      suit: 'jacket',
+      shoulderPads: false,
+      tubes: false,
+      insignia: 'chevron',
+      patchColor: 'yellow',
+      background: 'bulkhead',
+      bgTint: 'rust',
+    },
+  },
+  nyx: {
+    seed: 'NYXCALDR',
+    overrides: {
+      sex: 'f',
+      age: 'young',
+      alien: false,
+      skin: 'pale',
+      head: 'long',
+      eyes: 'narrow',
+      irisColor: IRIS.gray,
+      nose: 'button',
+      mouth: 'smirk',
+      facialHair: 'none',
+      hair: 'bob',
+      hairColor: 'black',
+      headgear: 'none',
+      accessories: ['hairStreak', 'earpiece'],
+      uniform: 'purple',
+      // The standing flight-suit collar is her high collar.
+      suit: 'flightSuit',
+      shoulderPads: false,
+      tubes: false,
+      insignia: 'bolt',
+      patchColor: 'cyan',
+      background: 'porthole',
+      bgTint: 'moss',
+    },
+  },
+  halasz: {
+    seed: 'IMREHLSZ',
+    overrides: {
+      sex: 'm',
+      age: 'old',
+      alien: false,
+      skin: 'light',
+      head: 'long',
+      eyes: 'round',
+      irisColor: IRIS.hazel,
+      nose: 'long',
+      mouth: 'open',
+      facialHair: 'none',
+      hair: 'wild',
+      hairColor: 'white',
+      headgear: 'none',
+      accessories: ['glasses'],
+      uniform: 'teal',
+      suit: 'labCoat',
+      shoulderPads: false,
+      tubes: false,
+      insignia: 'ring',
+      patchColor: 'cyan',
+      background: 'bulkhead',
+      bgTint: 'steel',
+    },
+  },
+  wren: {
+    seed: 'WRENASHG',
+    overrides: {
+      sex: 'f',
+      age: 'young',
+      alien: false,
+      skin: 'brown',
+      head: 'square',
+      eyes: 'narrow',
+      irisColor: IRIS.green,
+      nose: 'straight',
+      mouth: 'grim',
+      facialHair: 'none',
+      hair: 'buzz',
+      hairColor: 'auburn',
+      headgear: 'none',
+      accessories: ['burnScar'],
+      uniform: 'orange',
+      suit: 'flightSuit',
+      shoulderPads: false,
+      tubes: false,
+      insignia: 'torn',
+      patchColor: 'red',
+      background: 'bulkhead',
       bgTint: 'rust',
     },
   },
