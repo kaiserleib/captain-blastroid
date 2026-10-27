@@ -1,3 +1,4 @@
+import { BOSS_ASSIST } from '../../content/bosses';
 import type { Renderer } from '../../gfx/renderer';
 import { registerEnemyDefs, type SimEnemyDef } from '../../sim/spawn';
 import type { Enemy } from '../../sim/types';
@@ -51,6 +52,8 @@ export interface BossRegistration<C extends BossController = BossController> {
   parts?: Readonly<Record<string, SimEnemyDef>>;
   /** Sprite ids GameScene bakes at load, so the first frame of the fight doesn't hitch. */
   spriteIds?: readonly string[];
+  /** Fight seconds before BOSS_ASSIST starts ramping. Default `BOSS_ASSIST.after`. */
+  assistAfter?: number;
 }
 
 const registry = new Map<string, BossRegistration>();
@@ -99,6 +102,8 @@ interface BossWorld {
   reg: BossRegistration | null;
   requests: string[];
   off: (() => void) | null;
+  /** World time the active boss spawned. */
+  since: number;
 }
 
 const state = new WeakMap<World, BossWorld>();
@@ -107,7 +112,7 @@ const SPAWNED_P = { defId: '' };
 function stateOf(w: World): BossWorld {
   let s = state.get(w);
   if (s === undefined) {
-    s = { boss: null, reg: null, requests: [], off: null };
+    s = { boss: null, reg: null, requests: [], off: null, since: 0 };
     state.set(w, s);
   }
   return s;
@@ -139,6 +144,7 @@ export function spawnBoss(w: World, defId: string): BossController | null {
   }
   s.boss = boss;
   s.reg = reg;
+  s.since = w.time;
   SPAWNED_P.defId = defId;
   w.events.emit('bossSpawned', SPAWNED_P);
   return boss;
@@ -171,6 +177,20 @@ export function bossDamageHook(w: World, part: Enemy, amount: number): boolean {
   const i = b.rig.slotOf(part);
   if (i < 0) return false;
   return b.onDamage(part, b.rig.slots[i] as PartSlot, amount);
+}
+
+/** Player damage multiplier on boss parts after `fightT` seconds of one fight (see BOSS_ASSIST). */
+export function bossAssistMul(fightT: number, after: number = BOSS_ASSIST.after): number {
+  const k = (fightT - after) / BOSS_ASSIST.ramp;
+  if (k <= 0) return 1;
+  return 1 + (BOSS_ASSIST.maxMul - 1) * Math.min(1, k);
+}
+
+/** `registerBossDamageScale` hook: only the active boss's own parts are scaled. */
+export function bossDamageScale(w: World, part: Enemy): number {
+  const s = state.get(w);
+  if (s === undefined || s.boss === null || s.boss.rig.slotOf(part) < 0) return 1;
+  return bossAssistMul(w.time - s.since, s.reg?.assistAfter);
 }
 
 /** `registerTargetFilter` hook: seekers skip parts the active boss says can't be hurt now. */

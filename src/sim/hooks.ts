@@ -23,7 +23,11 @@ export type TargetFilter = (w: World, e: Enemy) => boolean;
  */
 export type AsteroidHeldCheck = (w: World, a: Asteroid) => boolean;
 
+/** Multiplier on damage to an `isBoss` enemy, applied before the boss damage hooks. */
+export type BossDamageScale = (w: World, part: Enemy) => number;
+
 let asteroidHeld: AsteroidHeldCheck | null = null;
+let bossDamageScale: BossDamageScale | null = null;
 
 const shotBlockers: ShotBlocker[] = [];
 const targetFilters: TargetFilter[] = [];
@@ -88,9 +92,22 @@ export function isAsteroidHeld(w: World, a: Asteroid): boolean {
   return asteroidHeld !== null && asteroidHeld(w, a);
 }
 
+/** One scale; registering again replaces it. */
+export function registerBossDamageScale(fn: BossDamageScale): () => void {
+  bossDamageScale = fn;
+  return () => {
+    if (bossDamageScale === fn) bossDamageScale = null;
+  };
+}
+
+export function scaleBossDamage(w: World, part: Enemy, amount: number): number {
+  return bossDamageScale === null ? amount : amount * bossDamageScale(w, part);
+}
+
 /** For tests. */
 export function clearHooks(): void {
   asteroidHeld = null;
+  bossDamageScale = null;
   shotBlockers.length = 0;
   bossDamageHooks.length = 0;
   targetFilters.length = 0;

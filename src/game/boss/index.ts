@@ -2,15 +2,22 @@
 // Rock Hauler registers here; sector bosses register from game/levels/<id>.
 import { BOSS_PART_DEFS, ROCK_HAULER } from '../../content/bosses';
 import { flags } from '../../debug/flags';
-import { registerBossDamage, registerTargetFilter } from '../../sim/hooks';
+import { registerBossDamage, registerBossDamageScale, registerTargetFilter } from '../../sim/hooks';
 import type { System } from '../../sim/world';
 import { BOSS_SPRITE_IDS } from './boss.sprites';
-import { bossDamageHook, bossTargetFilter, registerBoss, updateBoss } from './bossSystem';
+import {
+  bossDamageHook,
+  bossDamageScale,
+  bossTargetFilter,
+  registerBoss,
+  updateBoss,
+} from './bossSystem';
 import { drawRockHauler } from './draw';
 import { RockHauler } from './rockHauler';
 import { installBossSandbox, runBossSandbox } from './sandbox';
 
 registerBossDamage(bossDamageHook);
+registerBossDamageScale(bossDamageScale);
 registerTargetFilter(bossTargetFilter);
 registerBoss(ROCK_HAULER.id, {
   create: () => new RockHauler(),
@@ -24,7 +31,9 @@ export { BOSS_SPRITE_IDS } from './boss.sprites';
 export {
   activeBoss,
   attachBoss,
+  bossAssistMul,
   bossDamageHook,
+  bossDamageScale,
   bossDisplayName,
   bossHp,
   bossIds,

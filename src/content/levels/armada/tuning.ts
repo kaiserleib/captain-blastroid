@@ -121,6 +121,11 @@ export const LEVIATHAN = {
   hullSpeed: 20,
   /** The anchor stops when the bridge reaches this y; scroll goes to 0. */
   lockY: 110,
+  /**
+   * Seconds of hull pass before the bridge locks in ((lockY + bridge oy 690 − startY) / hullSpeed);
+   * BOSS_ASSIST waits this much longer than for other bosses.
+   */
+  approachT: 41,
   /** Parts below this y are released (scrolled past; not a kill). */
   passY: 400,
   /** Seconds a part must be on screen before it may fire (fairness). */

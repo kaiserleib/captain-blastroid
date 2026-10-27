@@ -1,5 +1,5 @@
 import { flags } from '../debug/flags';
-import { getBossDamageHooks } from './hooks';
+import { getBossDamageHooks, scaleBossDamage } from './hooks';
 import { getEnemyDef } from './spawn';
 import type { Asteroid, Enemy } from './types';
 import type { World } from './world';
@@ -114,6 +114,7 @@ export function formationMemberGone(w: World, e: Enemy, byPlayer: boolean): void
 export function damageEnemy(w: World, e: Enemy, amount: number, source: DamageSource): boolean {
   if (!e.active || e.hp <= 0 || amount <= 0) return false;
   if (e.isBoss) {
+    if (source === 'player') amount = scaleBossDamage(w, e, amount);
     const hooks = getBossDamageHooks();
     for (let i = 0; i < hooks.length; i++) {
       if ((hooks[i] as (typeof hooks)[number])(w, e, amount)) return false;

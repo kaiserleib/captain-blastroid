@@ -209,6 +209,8 @@ The ship always starts weak, so later sectors get harder through **density, bull
 | 4 Pulsar Nursery | **Pip Tanaka** | **Halcyon** | |
 | 5 The Armada | **Commodore Vale** | **Paragon** | Final boss. A first clear shows "CAMPAIGN COMPLETE" on results. |
 
+**Boss stall breaker (silent):** a boss fight that runs past 90 s (the Leviathan: 90 s after its 41 s hull pass) ramps the player's damage against boss parts linearly to ×5 over the next 60 s (`BOSS_ASSIST`). Median fights take 35–65 s, so typical play never sees it. A player who reaches a boss with only a Blaster L2 can still win, in about 2½–3 minutes, if they survive that long. There's no UI for it.
+
 When a sector has no rescuable pilot left, its pod becomes a salvage cache (`podFallbackSalvage`: 30 / 40 / 50 / 60 / 80). When its schematics are all found, the boss drops +50% boss salvage instead.
 
 ### New ships

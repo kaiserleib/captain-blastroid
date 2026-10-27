@@ -41,6 +41,7 @@ describe('armada: fresh Kestrel, god bot', () => {
       // Hull plus bridge: never faster than the hull takes to scroll in.
       const lockT = (LEVIATHAN.lockY + 690 - LEVIATHAN.startY) / LEVIATHAN.hullSpeed;
       expect(r.stats.bossTime).toBeGreaterThan(lockT);
+      expect(Math.abs(LEVIATHAN.approachT - lockT)).toBeLessThan(1);
       for (const [name, u] of Object.entries(r.stats.pools)) {
         expect(u.dropped, `pool ${name}`).toBe(0);
       }

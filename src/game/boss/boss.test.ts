@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ROCK_HAULER } from '../../content/bosses';
+import { BOSS_ASSIST, ROCK_HAULER } from '../../content/bosses';
 import type { WeaponId } from '../../content/weapons';
 import { cleanupSystem } from '../../sim/cleanup';
 import { collisionSystem } from '../../sim/collision';
@@ -14,6 +14,7 @@ import { pickSeekerTarget, weaponSystem } from '../weapons';
 import {
   activeBoss,
   attachBoss,
+  bossAssistMul,
   bossHp,
   bossMaxHp,
   Phase,
@@ -326,5 +327,42 @@ describe('seeker targeting (T18)', () => {
     run(w, ROCK_HAULER.coreOpenTime + 0.1);
     collisionSystem.update(w, DT);
     expect(pickSeekerTarget(w, b.rig.x, b.rig.y + 60)).toBe(b.core.enemy);
+  });
+});
+
+describe('boss assist', () => {
+  it('ramps from 1× after BOSS_ASSIST.after to maxMul over the ramp', () => {
+    expect(bossAssistMul(0)).toBe(1);
+    expect(bossAssistMul(BOSS_ASSIST.after)).toBe(1);
+    expect(bossAssistMul(BOSS_ASSIST.after + BOSS_ASSIST.ramp / 2)).toBeCloseTo(
+      (1 + BOSS_ASSIST.maxMul) / 2,
+      6,
+    );
+    expect(bossAssistMul(BOSS_ASSIST.after + BOSS_ASSIST.ramp)).toBe(BOSS_ASSIST.maxMul);
+    expect(bossAssistMul(1e6)).toBe(BOSS_ASSIST.maxMul);
+  });
+
+  it('scales player damage on a long fight only, and never enemy damage', () => {
+    const w = world();
+    const b = fighting(w);
+    const turret = b.rig.slots.find((s) => s.spec.role === 'turret')!.enemy as Enemy;
+    const hp0 = turret.hp;
+    damageEnemy(w, turret, 1, 'player');
+    expect(turret.hp).toBe(hp0 - 1);
+    w.time += BOSS_ASSIST.after + BOSS_ASSIST.ramp;
+    damageEnemy(w, turret, 1, 'player');
+    expect(turret.hp).toBe(hp0 - 1 - BOSS_ASSIST.maxMul);
+    damageEnemy(w, turret, 1, 'hazard');
+    expect(turret.hp).toBe(hp0 - 2 - BOSS_ASSIST.maxMul);
+  });
+
+  it('leaves regular enemies alone', () => {
+    const w = world();
+    fighting(w);
+    w.time += BOSS_ASSIST.after + BOSS_ASSIST.ramp;
+    const e = spawnEnemy(w, 'gnat', 120, 100)!;
+    const hp0 = e.hp;
+    damageEnemy(w, e, 1, 'player');
+    expect(e.hp).toBe(hp0 - 1);
   });
 });

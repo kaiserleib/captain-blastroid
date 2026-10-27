@@ -146,6 +146,14 @@ export const ROCK_HAULER: RockHaulerDef = {
   turretShake: { mag: 3, dur: 0.35 },
 };
 
+/**
+ * Silent stall breaker: a fight that outlasts `after` seconds (median clears
+ * take ~55 s, the slowest ~125 s) ramps player damage on boss parts linearly
+ * up to `maxMul` over `ramp` seconds. A weak loadout can then still finish the
+ * boss, but only by surviving that long.
+ */
+export const BOSS_ASSIST = { after: 90, ramp: 60, maxMul: 5 } as const;
+
 export const BOSSES = { rock_hauler: ROCK_HAULER } as const;
 export type BossId = keyof typeof BOSSES;
 

@@ -1,5 +1,6 @@
 // Sector 5, The Armada (T30): roster behaviors, the frigate mid-boss, the
 // Dreadnought Leviathan, the pod scripts, and the hull and wreck layers.
+import { BOSS_ASSIST } from '../../../content/bosses';
 import {
   FRIGATE_PART_DEFS,
   LEVEL,
@@ -50,6 +51,7 @@ registerBoss(LEVIATHAN.id, {
   displayName: LEVIATHAN.name,
   parts: LEVIATHAN_PART_DEFS,
   spriteIds: AR_SPRITE_IDS,
+  assistAfter: BOSS_ASSIST.after + LEVIATHAN.approachT,
 });
 
 registerLevelScript('armada.podArm', podArm);

@@ -168,7 +168,7 @@ FPS 118–120, TPS 60 throughout, far under the 4 ms tick / 8 ms frame budget. L
 - `hazards.test.ts` assumed `turning` has 2 gaps; it now reads `PULSAR_VARIANTS.turning.gaps`.
 
 ### Deferred
-- **Expert's 80–100 s Rock Hauler turret phase** and **Blaster L2-only can't finish a boss** (T26): not addressed. L1 typical/expert timeouts are 0–4% in the 100-seed pass. A minimum-DPS floor (e.g. Blaster L1–2 gets a boss-damage multiplier, or turrets lose HP over time) is a design call for the user.
+- **Expert's 80–100 s Rock Hauler turret phase** and **Blaster L2-only can't finish a boss** (T26): resolved after T31 by the silent `BOSS_ASSIST` ramp (design.md, "Boss stall breaker"; `tests/sim/weakLoadout.test.ts`). Original note: not addressed. L1 typical/expert timeouts are 0–4% in the 100-seed pass. A minimum-DPS floor (e.g. Blaster L1–2 gets a boss-damage multiplier, or turrets lose HP over time) is a design call for the user.
 
 ## Follow-ups
 - Novice L4/L5 (see Gaps): hand-playtest before tuning further. If they're too hard for people, the cheapest levers are more shield drops and longer telegraphs, not fewer rings.
