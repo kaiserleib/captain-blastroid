@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ASTEROID_SIZES, BUBBLE, FLARE, PORTAL, SHADE } from '../../content/obstacles';
-import { clearHooks, getTimelineAction, isSolidAt, raycastSolid, timeScaleAt } from '../../sim/hooks';
+import {
+  clearHooks,
+  getTimelineAction,
+  isSolidAt,
+  raycastSolid,
+  timeScaleAt,
+} from '../../sim/hooks';
 import { bulletsSystem } from '../../sim/motion';
 import { spawnEnemy, spawnEnemyShot, spawnPickup, spawnPlayerShot } from '../../sim/spawn';
 import type { Bullet } from '../../sim/types';

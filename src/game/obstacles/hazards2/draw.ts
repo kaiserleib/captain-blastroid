@@ -27,7 +27,10 @@ const PATTERN_DEFS: Record<PatternKey, { n: number; on: readonly number[]; a: st
     umber50: { n: 2, on: [0, 3], a: '#382010', b: '' },
   };
 
-const patterns = new WeakMap<CanvasRenderingContext2D, Partial<Record<PatternKey, CanvasPattern>>>();
+const patterns = new WeakMap<
+  CanvasRenderingContext2D,
+  Partial<Record<PatternKey, CanvasPattern>>
+>();
 
 function pattern(r: Renderer, key: PatternKey): CanvasPattern | string {
   const ctx = r.ctx;
@@ -60,12 +63,7 @@ function fill(r: Renderer, key: PatternKey, x: number, y: number, w: number, h: 
   if (x1 <= x0 || y1 <= y0) return;
   const ctx = r.ctx;
   ctx.fillStyle = pattern(r, key);
-  ctx.fillRect(
-    Math.round(x0 + r.shakeX),
-    Math.round(y0 + r.offsetY + r.shakeY),
-    x1 - x0,
-    y1 - y0,
-  );
+  ctx.fillRect(Math.round(x0 + r.shakeX), Math.round(y0 + r.offsetY + r.shakeY), x1 - x0, y1 - y0);
 }
 
 function withAlpha(r: Renderer, a: number): void {
@@ -284,7 +282,8 @@ function drawEnd(
 ): void {
   const cx = Math.round(e.prevX + (e.x - e.prevX) * alpha);
   const cy = Math.round(e.prevY + (e.y - e.prevY) * alpha);
-  if (cx < -PORTAL.r || cx > WORLD_W + PORTAL.r || cy < -PORTAL.r || cy > WORLD_H + PORTAL.r) return;
+  if (cx < -PORTAL.r || cx > WORLD_W + PORTAL.r || cy < -PORTAL.r || cy > WORLD_H + PORTAL.r)
+    return;
   const R = PORTAL.r;
   // Closed to the ship: drawn dim (dark ring, sparse swirl).
   const ring = e.open ? pal[1] : pal[0];

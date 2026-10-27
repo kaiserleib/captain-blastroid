@@ -71,7 +71,13 @@ export function spawnPortalPair(
 }
 
 /** Owners (Gate Pylons, bosses) carry an end: call every tick with its position. */
-export function setPortalEnd(w: World, pair: PortalPair, end: 'a' | 'b', x: number, y: number): void {
+export function setPortalEnd(
+  w: World,
+  pair: PortalPair,
+  end: 'a' | 'b',
+  x: number,
+  y: number,
+): void {
   if (!pair.active) return;
   const e = end === 'a' ? pair.a : pair.b;
   e.owned = true;

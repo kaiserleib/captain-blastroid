@@ -18,7 +18,12 @@ export interface SlabOptions {
 }
 
 /** Spawns an indestructible 40×10 shade slab centered at (x, y). Null when all slots are used. */
-export function spawnShadeSlab(w: World, x: number, y: number, o: SlabOptions = {}): ShadeSlab | null {
+export function spawnShadeSlab(
+  w: World,
+  x: number,
+  y: number,
+  o: SlabOptions = {},
+): ShadeSlab | null {
   const s = hz(w);
   for (let i = 0; i < s.slabs.length; i++) {
     const sl = s.slabs[i] as ShadeSlab;

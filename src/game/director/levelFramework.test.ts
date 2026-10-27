@@ -308,6 +308,8 @@ describe('registered timeline actions (Act II hazards)', () => {
 
   it('skips and logs an unregistered kind instead of throwing', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // T33 registers `bubble` at load; replacing it and removing the stand-in leaves it unregistered.
+    registerTimelineAction('bubble', () => {})();
     const w = setup(level('t32-none', [{ t: 0.1, bubble: { kind: 'slow', x: 120, r: 52 } }]));
     expect(() => run(w, 0.2)).not.toThrow();
     expect(getDirector(w)!.log.some((l) => l.includes('bubble (unregistered)'))).toBe(true);

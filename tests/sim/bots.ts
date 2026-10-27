@@ -407,7 +407,12 @@ class Dodger implements Bot {
       if (ts !== t && t > 0) {
         // Faster shots outrun the look-ahead samples: sweep back to the previous one.
         const back = ts / t;
-        d = Math.min(d, sweptGap(bx, by, b.vx * back, b.vy * back, this.skill.lookahead / LOOK_STEPS, sx, sy) - b.r - m);
+        d = Math.min(
+          d,
+          sweptGap(bx, by, b.vx * back, b.vy * back, this.skill.lookahead / LOOK_STEPS, sx, sy) -
+            b.r -
+            m,
+        );
       }
       if (d < 0) c += 100 - d * 10;
     }
