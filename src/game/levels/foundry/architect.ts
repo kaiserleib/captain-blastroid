@@ -12,6 +12,7 @@ import { BossRig, clearShotsToSalvage, type BossController, type PartSlot } from
 import { spraySalvage } from '../../pickups';
 import { aimAt, aimed, emitEnemyShotSfx, SHOT_SMALL, shootDir } from '../../enemies';
 import {
+  cancelFlare,
   collapseAnomaly,
   collapsePortalPair,
   flingRock,
@@ -734,6 +735,7 @@ export class Architect implements BossController {
       this.slabs[i] = null;
     }
     stopFlares(w);
+    cancelFlare(w);
     for (let k = 0; k < this.arms.length; k++) {
       const r = this.armRock(k);
       if (r !== null) releaseRock(r);

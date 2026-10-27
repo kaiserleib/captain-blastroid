@@ -81,7 +81,7 @@ Wave 10 T43 act II integration + bots + balance                              │
 | [T40](T40-junction.md) | Level 8: Wormhole Junction + Janus | wave 8 | done |
 | [T41](T41-chrono.md) | Level 9: Chrono Rift + Echo | wave 8 | done |
 | [T42](T42-foundry.md) | Level 10: The Foundry + The Architect + escape | wave 8 | done |
-| [T43](T43-act2-balance.md) | Act II integration, bots, balance | T32–T42 | todo |
+| [T43](T43-act2-balance.md) | Act II integration, bots, balance | T32–T42 | done |
 
 Wave 2 tickets can start as soon as their listed dependencies merge, without waiting for the whole of Wave 1.
 

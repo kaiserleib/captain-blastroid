@@ -69,7 +69,7 @@ export const ROSTER: Readonly<Record<string, EnemyDef>> = {
     avoidsAsteroids: false,
     contactDamage: 1,
     score: 120,
-    salvage: 2,
+    salvage: 3,
     dropTable: 'common',
   },
   cr_rewinder: {
@@ -88,7 +88,7 @@ export const ROSTER: Readonly<Record<string, EnemyDef>> = {
     avoidsAsteroids: true,
     contactDamage: 1,
     score: 300,
-    salvage: 5,
+    salvage: 7,
     dropTable: 'common',
   },
   cr_bubblemine: {

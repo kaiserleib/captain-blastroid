@@ -97,7 +97,7 @@ export const LEVEL: LevelDef = {
   duration: 250,
   rockTheme: 'basalt',
   enemyHpMul: 1.45,
-  enemyShotSpeedMul: 1.25,
+  enemyShotSpeedMul: 1.35,
   guaranteeWeapon: { by: 25, weapon: 'ricochet' },
   fieldTestWeapon: 'ricochet',
   bossSalvage: 260,

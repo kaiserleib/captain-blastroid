@@ -7,12 +7,12 @@ import { emitToast } from '../../director';
 import { spraySalvage } from '../../pickups';
 import { aimAt, emitEnemyShotSfx, shootDir, SHOT_SMALL } from '../../enemies';
 import {
+  cancelFlare,
   flarePhase,
   flareState,
   registerShadeCaster,
   spawnShadeSlab,
   startFlare,
-  type FlareState,
   type ShadeSlab,
 } from '../../obstacles';
 
@@ -544,11 +544,7 @@ export class Heliostat implements BossController {
     w.run.kills++;
     addKillScore(w, this.def.score);
     // The furnace is out: a flare still warning or burning just fades.
-    const f = flareState(w) as FlareState | undefined;
-    if (f !== undefined && (f.phase === 'warn' || f.phase === 'burn')) {
-      f.phase = 'cool';
-      f.t = 0;
-    }
+    cancelFlare(w);
     this.shatter();
     DEFEAT_P.defId = this.def.id;
     DEFEAT_P.x = this.rig.x;

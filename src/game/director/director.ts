@@ -7,7 +7,14 @@ import type { Pickup, WeaponInstance } from '../../sim/types';
 import type { System, World } from '../../sim/world';
 import { setEnemyHpMul, setEnemyShotSpeedMul } from '../enemies';
 import { spawnAsteroidStream } from '../obstacles';
-import { collectPickup, spawnDrop, spraySalvage } from '../pickups';
+import {
+  capsulePool,
+  capsuleWeights,
+  collectPickup,
+  pickCapsuleWeapon,
+  spawnDrop,
+  spraySalvage,
+} from '../pickups';
 import { emitToast, fireEvent, startScrollRamp, stopField, tickScrollRamp } from './events';
 import { levelSystems, runLevelScript } from './registry';
 import { logLine, type DirectorState } from './state';
@@ -283,7 +290,10 @@ function applyCapsuleFixes(w: World, st: DirectorState): void {
     for (let i = 0; i < n; i++) {
       const k = items[i] as Pickup;
       if (!k.active || k.kind !== 'weapon' || k.x !== fix.x || k.y !== fix.y) continue;
-      k.payload = fix.weaponId;
+      // Same rule as spawnDrop: a locked weapon only rides its home sector's field test.
+      k.payload = capsulePool(w).includes(fix.weaponId)
+        ? fix.weaponId
+        : pickCapsuleWeapon(w.rng, w.player.weapons, capsulePool(w), capsuleWeights(w));
       found = true;
       break;
     }

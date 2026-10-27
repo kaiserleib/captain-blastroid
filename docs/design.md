@@ -457,15 +457,23 @@ Balance is measured with an **`act1` save** (new debug preset `?save=act1`): Kes
 |---|---|---|---|---|---|
 | Scroll px/s | 30 | 26 (tunnels 22–34) | 32 | 30 | 30 → 60 → 30; escape 30 → 90 |
 | Length to boss | 178 s | 180 s | 179 s | 179 s | 200 s, then the boss, then a 40 s escape |
-| Roster HP mul (`enemyHpMul`) | 1.40 | 1.45 | 1.50 | 1.55 | 1.60 |
-| Enemy shot speed mul | 1.22 | 1.25 | 1.28 | 1.30 | 1.35 |
-| Peak enemy shots, waves / boss | 55 / 70 | 50 / 65 | 55 / 70 | 60 / 75 | 60 / 80 |
+| Roster HP mul (`enemyHpMul`) | 1.50 (T43; was 1.40) | 1.45 | 1.50 | 1.55 | 1.60 |
+| Enemy shot speed mul | 1.22 | 1.35 (T43; was 1.25) | 1.38 (T43; was 1.28) | 1.30 | 1.35 |
+| Peak enemy shots, waves / boss (planned) | 55 / 70 | 50 / 65 | 55 / 70 | 60 / 75 | 60 / 80 |
+| Peak enemy shots, waves / boss (measured, T43) | 34 / 58 | 23 / 15 | 34 / 53 | 73 / 39 | 16 / 58 |
 | First forced capsule | ~8 s **Arc Coil** (field test) | ~6 s **Ricochet** (field test) | ~8 s **Flak** (field test) | ~8 s Spread | ~6 s Lance |
 | `guaranteeWeapon` fallback | Arc Coil by 25 s | Ricochet by 25 s | Flak by 25 s | Spread by 25 s | Lance by 25 s |
 | Boss salvage | 240 | 260 | 280 | 300 | 400 |
 | Typical clear salvage (target) | 560–750 | 600–800 | 640–850 | 680–900 | 900–1200 |
 | Typical-bot clear rate (target, `act1` save) | ~75% | ~72% | ~70% | ~68% | ~65% |
 | Novice-bot clear rate (target) | ≥ 15% | ≥ 14% | ≥ 12% | ≥ 10% | ≥ 8% |
+| **Measured (T43, 200 seeds):** typical / novice / expert clear | 76 / 22 / 100% | 75 / 36 / 100% | 74 / 14 / 100% | 70 / 14 / 100% | 70 / 9 / 100% |
+| Measured: typical clear salvage (median) · boss fight (median) | 578 · 72 s | 633 · 51 s | 672 · 50 s | 772 · 61 s | 980 · 91 s |
+| Measured: fights that outlast the stall breaker (typical) | 34% | 23% | 19% | 21% | 13% |
+
+Measured with `SAVE=act1 RUNS=100 SKILLS=novice,typical,expert npm run balance` on two seed sets (`bal` and `SEEDS=nz`), averaged; seed noise is about ±5 points per 100 runs. The expert bot reaches 100% since T43 sampled its look-ahead finely enough (it used to dodge between samples), so expert is no longer a useful ceiling.
+
+**Peak shots are not a target for Act II.** The planned row came from Act I's curve, where bullets are the only pressure. Act II sectors carry their pressure in hazards instead: flares and rocks (L6), walls, bats and turret crossfire (L7), the Janus wall and the rings (L8), welding rings, flares and terrain (L10). Raising bullet counts toward the planned row pushed typical clears under target before the peak moved much (T38, T39, T40, T42). L9 runs over plan on purpose: the dammed gunboat's slow bubble is meant to hold a pile of fans.
 
 - The `guaranteeWeapon` fallback grants the field-test weapon even while it's locked.
 - New enemies are authored at their sector's numbers and ignore `enemyHpMul`, as in Act I.
@@ -474,7 +482,29 @@ Balance is measured with an **`act1` save** (new debug preset `?save=act1`): Kes
   - A gate that reaches the ship's row crumbles.
   - Janus's portal wall flickers when the player hasn't landed a hit in a long time.
   - The ship can't lose its last shield during the escape.
-  - The boss stall breaker applies to every Act II boss. The Architect has three forms, so its threshold is 150 s instead of 90 s.
+  - The boss stall breaker applies to every Act II boss. The Architect has three forms, so its threshold is 150 s instead of 90 s. Janus uses the default 90 s since T43 (it was 60 s while the bots couldn't read the rings).
+
+### Act II as built (T38–T43)
+
+Where the shipped sectors differ from the level write-ups below. Each ticket's Notes give the reasoning; T43's are the final balance pass.
+
+- **L6 Corona Drift:**
+  - Heliostat mirrors 45 HP and core 200 (design 60 / 280); its beams slant outward; it holds still while a flare warns or burns; its slabs land beside the ship, not over it.
+  - Flare warning 1.4 s after the 2.0 s intro (design 1.2; T38 had 1.6). Every timeline flare gets a slab near the ship; rock bands only at 26 and 40 s.
+  - Roster salvage: Sunskimmer 6, Shade 10, Lens Drone 18 (design 2 / 4 / 6). Each mirror sprays 45. The Shade fires every 1.4 s (design 1.8). Pod at 100 s.
+- **L7 The Warrens:**
+  - Wyrm head 260 HP, mouth open **1.7 s** (design 1.4) while it heaves out at 40% speed; in FRENZY each crossing re-opens it. Segment shots 80 px/s, FRENZY fan 84 px/s.
+  - Turret / Borer / Bat salvage 5 / 6 / 2 (design 3 / 4 / 1). Turrets hold fire below y 250.
+- **L8 Wormhole Junction:**
+  - Janus faces **460 HP** each (design 200): a player who reads the rings kills 200-HP faces in about 25 s. Generator bursts every 1.35 s, the 16-ring every 2.2 s (design 1.6 / 2.5). Entry rings at y 232 (design ≈260). Wrecked generators spray 45, the first face 90.
+  - The wall's silent flicker starts after 40 s with under 60 damage landed through the rings. The stall breaker is the default 90 s.
+  - Player shots leaving an aimed exit are turned toward the exit's target.
+- **L9 Chrono Rift:**
+  - Echo core **1150 HP**, Ghost 200 (design 520 / 160), with slower pattern caps (Blaster 1.3 s, twin from L4; Spread 2.2 s; Lance 2.8 s; Seeker 3.2 s; Ricochet 2.4 s; Flak 2.8 s).
+  - Stutterer / Rewinder salvage 3 / 7; the pod has 2 HP.
+- **L10 The Foundry:**
+  - The Architect: arms 75 HP, core 180; pylons 50, core 250; Paradox Core 220 (1,080 in all; design 1,200). The captive hole's pull follows the pylons (20–60% of `massive`).
+  - Roster salvage: Riveter 2, Crane 10, Sentinel 14. Arms spray 40, pylons 30, each broken core 45.
 
 ## Act II rewards
 
@@ -500,16 +530,19 @@ Balance is measured with an **`act1` save** (new debug preset `?save=act1`): Kes
 - All three draw from per-weapon scratch buffers, with no allocation per shot.
 - T35 raised Ricochet's damage to 2 and gave Flak its contact damage: at the original numbers, Ricochet L1 did 0.45 single-target DPS against the Blaster's 2.5, and a point-blank Flak burst hit with every fragment.
 - Weapon-capsule weighting and the Weapon Upgrade core don't change. The pool is simply limited to `weaponsUnlocked` plus the current sector's field-test weapon.
+- **In Act I sectors**, an unlocked Act II weapon is drawn at weight 0.4 against 1 for each Act I weapon (`PICKUP_TUNING.act2WeaponWeightInAct1`, T43), so a replay of Act I still feels like Act I. Measured with all eight unlocked (100 seeds per sector, then 200 on L1 with a second seed set), Act I clear rates stay within seed noise of the five-weapon pool.
 
 ### New ships
 
 | Ship | Shield | Speed | Slots | Starting weapons | Build cost |
 |---|---|---|---|---|---|
-| **Shrike** | 3 | 140 | 4 | Blaster L1 + Arc Coil L1 | 900 |
-| **Ferret** | 3 | 125 | 4 | Blaster L1 + Ricochet L1 | 1000 |
-| **Wraith** | 2 | 145 | 5 | Blaster L2 + Flak L1 | 1100 |
-| **Revenant** | 4 | 115 | 5 | Blaster L1 + Seeker L1 + Orbit Drones L1 | 1300 |
-| **Nova** | 4 | 130 | 6 | Blaster L2 | 2000 |
+| **Shrike** | 3 | 140 | 4 | Blaster L1 + Arc Coil L1 | 1400 |
+| **Ferret** | 3 | 125 | 4 | Blaster L1 + Ricochet L1 | 1600 |
+| **Wraith** | 2 | 145 | 5 | Blaster L2 + Flak L1 | 1800 |
+| **Revenant** | 4 | 115 | 5 | Blaster L1 + Seeker L1 + Orbit Drones L1 | 2100 |
+| **Nova** | 4 | 130 | 6 | Blaster L2 | 3000 |
+
+**Build pace (T43).** Costs were 900 / 1000 / 1100 / 1300 / 2000. With the measured Act II salvage (typical clear 580–980, deaths banking 120–440, 600 banked from Act I) a player building each ship as soon as its schematic and the salvage allow would have had all five after about 8 clears (1.6 per ship), and the Shrike right after Corona. At the new costs it is about 12 clears (2.4 per ship): the Shrike after the second clear, the Nova about three clears after CAMPAIGN COMPLETE.
 
 Ship starting weapons work even while that weapon is locked. Each ship has its own silhouette:
 - **Shrike:** sharp forward-swept wings, white and sun-gold, with an arc-coil fin.

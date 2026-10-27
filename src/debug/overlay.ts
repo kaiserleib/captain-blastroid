@@ -46,6 +46,18 @@ export class DebugOverlay {
     this.renderMs = this.renderMax = 0;
   }
 
+  /** The last full window's numbers (dev `window.__perf`, the perf e2e). */
+  stats(): { fps: number; tps: number; upd: number; updMax: number; rnd: number; rndMax: number } {
+    return {
+      fps: this.fps,
+      tps: this.tps,
+      upd: this.avgUpdateMs,
+      updMax: this.maxUpdateMs,
+      rnd: this.avgRenderMs,
+      rndMax: this.maxRenderMs,
+    };
+  }
+
   /** Resets the window so time spent paused doesn't drag the averages down. */
   reset(): void {
     this.windowStart = -1;

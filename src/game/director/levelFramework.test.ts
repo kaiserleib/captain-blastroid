@@ -369,7 +369,8 @@ describe('Act II sector stubs (T32)', () => {
       expect(l.schematicOnClear).toEqual([schematic]);
       expect(l.fieldTestWeapon).toBe(field);
       if (field !== undefined) expect(l.guaranteeWeapon).toEqual({ by: 25, weapon: field });
-      expect(l.timeline.filter((e) => 'escapePod' in e)).toHaveLength(1);
+      // At most one: a sector may spawn its pod from a level script instead.
+      expect(l.timeline.filter((e) => 'escapePod' in e).length).toBeLessThanOrEqual(1);
       expect(l.enemyHpMul).toBeGreaterThanOrEqual(1.4);
       expect(l.escape !== undefined).toBe(id === 'foundry');
     }

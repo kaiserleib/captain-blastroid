@@ -177,15 +177,15 @@ function part(
 
 /** Every part spawns with the fight (later forms parked off screen), so the bar spans all three. */
 export const ARCHITECT_PARTS: readonly ArchitectPartSpec[] = [
-  part('arm', 1, -46, 6, 50, 10),
-  part('arm', 1, 46, 6, 50, 10),
-  part('core1', 1, 0, 0, 120, 14),
-  part('pylon', 2, -46, -4, 30, 8),
-  part('pylon', 2, 46, -4, 30, 8),
-  part('pylon', 2, -24, 24, 30, 8),
-  part('pylon', 2, 24, 24, 30, 8),
-  part('core2', 2, 0, 0, 170, 13),
-  part('core3', 3, 0, 0, 170, 11),
+  part('arm', 1, -46, 6, 75, 10),
+  part('arm', 1, 46, 6, 75, 10),
+  part('core1', 1, 0, 0, 180, 14),
+  part('pylon', 2, -46, -4, 50, 8),
+  part('pylon', 2, 46, -4, 50, 8),
+  part('pylon', 2, -24, 24, 50, 8),
+  part('pylon', 2, 24, 24, 50, 8),
+  part('core2', 2, 0, 0, 250, 13),
+  part('core3', 3, 0, 0, 220, 11),
 ];
 
 export const ARCHITECT = {

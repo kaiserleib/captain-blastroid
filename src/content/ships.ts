@@ -109,7 +109,7 @@ export const SHIPS: Readonly<Record<string, ShipDef>> = {
       { weaponId: 'blaster', level: 1 },
       { weaponId: 'arc', level: 1 },
     ],
-    unlock: { kind: 'schematic', schematicId: 'shrike', cost: 900 },
+    unlock: { kind: 'schematic', schematicId: 'shrike', cost: 1400 },
   },
   ferret: {
     id: 'ferret',
@@ -121,7 +121,7 @@ export const SHIPS: Readonly<Record<string, ShipDef>> = {
       { weaponId: 'blaster', level: 1 },
       { weaponId: 'ricochet', level: 1 },
     ],
-    unlock: { kind: 'schematic', schematicId: 'ferret', cost: 1000 },
+    unlock: { kind: 'schematic', schematicId: 'ferret', cost: 1600 },
   },
   wraith: {
     id: 'wraith',
@@ -133,7 +133,7 @@ export const SHIPS: Readonly<Record<string, ShipDef>> = {
       { weaponId: 'blaster', level: 2 },
       { weaponId: 'flak', level: 1 },
     ],
-    unlock: { kind: 'schematic', schematicId: 'wraith', cost: 1100 },
+    unlock: { kind: 'schematic', schematicId: 'wraith', cost: 1800 },
   },
   revenant: {
     id: 'revenant',
@@ -146,7 +146,7 @@ export const SHIPS: Readonly<Record<string, ShipDef>> = {
       { weaponId: 'seeker', level: 1 },
       { weaponId: 'orbitDrones', level: 1 },
     ],
-    unlock: { kind: 'schematic', schematicId: 'revenant', cost: 1300 },
+    unlock: { kind: 'schematic', schematicId: 'revenant', cost: 2100 },
   },
   nova: {
     id: 'nova',
@@ -155,7 +155,7 @@ export const SHIPS: Readonly<Record<string, ShipDef>> = {
     speed: 130,
     weaponSlots: 6,
     startingWeapons: [{ weaponId: 'blaster', level: 2 }],
-    unlock: { kind: 'schematic', schematicId: 'nova', cost: 2000 },
+    unlock: { kind: 'schematic', schematicId: 'nova', cost: 3000 },
   },
 };
 

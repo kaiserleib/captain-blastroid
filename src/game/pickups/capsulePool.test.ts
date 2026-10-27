@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { capsuleWeaponPool } from '../../content/dropTables';
 import { LEVEL1, LEVELS, type LevelDef } from '../../content/levels';
-import { CAPSULE_WEAPON_IDS } from '../../content/pickups';
+import { CAPSULE_WEAPON_IDS, PICKUP_TUNING } from '../../content/pickups';
 import { DEFAULT_UNLOCKED_WEAPONS, WEAPON_ORDER, type WeaponId } from '../../content/weapons';
 import { createRng } from '../../engine/rng';
 import {
@@ -16,7 +16,13 @@ import {
 } from '../../meta';
 import { MemoryStorage } from '../../platform';
 import { createWorld } from '../../sim/world';
-import { capsulePool, DEFAULT_CAPSULE_POOL, ownedBias, pickCapsuleWeapon } from './drops';
+import {
+  capsulePool,
+  capsuleWeights,
+  DEFAULT_CAPSULE_POOL,
+  ownedBias,
+  pickCapsuleWeapon,
+} from './drops';
 import { spawnDrop } from './index';
 
 const TEST_LEVEL = 'zz_fieldtest';
@@ -84,6 +90,25 @@ describe('capsule pool', () => {
       expect(k.payload).not.toBe('flak');
       expect(capsulePool(w)).toContain(k.payload);
     }
+  });
+
+  it('Act II weapons drop at a lower weight in Act I sectors only (T43)', async () => {
+    await initSave(new MemoryStorage());
+    expect(capsuleWeights(createWorld('p', { levelId: 'kessler' }))).toBeNull();
+    setSave({ ...getSave(), weaponsUnlocked: [...WEAPON_ORDER] });
+    const k = PICKUP_TUNING.act2WeaponWeightInAct1;
+    const w = createWorld('p', { levelId: 'kessler' });
+    expect(capsuleWeights(w)).toEqual([1, 1, 1, 1, 1, k, k, k]);
+    expect(capsuleWeights(createWorld('q', { levelId: 'corona' }))).toBeNull();
+    // Uniform part only (no owned weapons): each Act II weapon at k / (5 + 3k).
+    const rng = createRng('weights');
+    let late = 0;
+    const n = 20000;
+    for (let i = 0; i < n; i++) {
+      const id = pickCapsuleWeapon(rng, [], capsulePool(w), capsuleWeights(w));
+      if (!(DEFAULT_UNLOCKED_WEAPONS as readonly string[]).includes(id)) late++;
+    }
+    expect(late / n).toBeCloseTo((3 * k) / (5 + 3 * k), 1);
   });
 
   it('authored forceCapsule / guaranteeWeapon only name a locked weapon as the field test', () => {

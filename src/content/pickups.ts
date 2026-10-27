@@ -1,7 +1,7 @@
 // Pickup tunables, per docs/design.md → Pickups.
 import { WEAPON_ORDER } from './weapons';
 
-/** Weapon ids a capsule can carry, in letter order B/S/L/M/D. */
+/** Weapon ids a capsule can carry, in letter order B/S/L/M/D/A/R/F (the run's pool narrows it to unlocked ones). */
 export const CAPSULE_WEAPON_IDS: readonly string[] = WEAPON_ORDER;
 
 /** Salvage bit denominations, smallest first. */
@@ -32,6 +32,12 @@ export const PICKUP_TUNING = {
   pityTime: 25,
   /** Formation / carrier capsules favor owned non-max weapons this often. */
   ownedWeaponBias: 0.5,
+  /**
+   * Relative capsule weight of an unlocked Act II weapon (Arc Coil, Ricochet,
+   * Flak) in an Act I sector, against 1 for each Act I weapon (T43). At 1, a
+   * replay of Act I with all eight unlocked found Spread/Lance/Seeker less often.
+   */
+  act2WeaponWeightInAct1: 0.4,
   /**
    * Seconds after a formation-clear capsule before another clear drops one
    * (T18: dropping one per clear maxed four weapons by mid-level).

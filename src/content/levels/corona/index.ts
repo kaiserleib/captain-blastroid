@@ -39,7 +39,7 @@ export const ROSTER: Readonly<Record<string, EnemyDef>> = {
     avoidsAsteroids: false,
     contactDamage: 1,
     score: 150,
-    salvage: 3,
+    salvage: 6,
     dropTable: 'common',
   },
   co_shade: {
@@ -69,13 +69,13 @@ export const ROSTER: Readonly<Record<string, EnemyDef>> = {
     fire: {
       pattern: { kind: 'aimed', n: 2, spreadDeg: 12, speed: 85 },
       firstDelay: 1.2,
-      interval: 1.8,
+      interval: 1.4,
       bullet: 's',
     },
     avoidsAsteroids: true,
     contactDamage: 1,
     score: 250,
-    salvage: 6,
+    salvage: 10,
     dropTable: 'common',
   },
   co_lens: {
@@ -106,7 +106,7 @@ export const ROSTER: Readonly<Record<string, EnemyDef>> = {
     avoidsAsteroids: true,
     contactDamage: 1,
     score: 400,
-    salvage: 10,
+    salvage: 18,
     dropTable: 'common',
   },
 };
@@ -253,7 +253,7 @@ export const HELIOSTAT: HeliostatDef = {
   },
   spiral: { arms: 6, interval: 0.2, rings: 8, pause: 2, turnDeg: 11, speed: 62 },
   furnaceAfter: 3,
-  mirrorSalvage: 15,
+  mirrorSalvage: 45,
   deathTime: 2.2,
   shotSalvageMax: 20,
   mirrorShake: { mag: 3, dur: 0.3 },
@@ -292,7 +292,7 @@ const FIELD: readonly AsteroidFieldSegment[] = [
  * 24 px wide under large rocks, 1.2 s left the typical bot short of cover on
  * about a third of flares; 1.6 s gives a human time to read and commit.
  */
-export const WARN = 1.6;
+export const WARN = 1.4;
 const CME_BURN = 3;
 const BURN = 1.2;
 
@@ -340,7 +340,7 @@ export const LEVEL: LevelDef = {
   scrollSpeed: 30,
   duration: 260,
   rockTheme: 'basalt',
-  enemyHpMul: 1.4,
+  enemyHpMul: 1.5,
   enemyShotSpeedMul: 1.22,
   guaranteeWeapon: { by: 25, weapon: 'arc' },
   fieldTestWeapon: 'arc',
