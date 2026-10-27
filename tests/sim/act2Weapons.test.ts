@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { WEAPON_ORDER, type WeaponId } from '../../src/content/weapons';
 import { weaponSystem } from '../../src/game/weapons';
+import { weaponsState } from '../../src/game/weapons/state';
 import { cleanupSystem } from '../../src/sim/cleanup';
 import { collisionSystem } from '../../src/sim/collision';
 import { bulletsSystem } from '../../src/sim/motion';
@@ -8,6 +9,8 @@ import { spawnEnemy, spawnEnemyShot } from '../../src/sim/spawn';
 import { rebuildSpatialHash } from '../../src/sim/spatialHash';
 import type { Bullet } from '../../src/sim/types';
 import { createWorld, type World } from '../../src/sim/world';
+import { godBot } from './bots';
+import { runSim } from './harness';
 
 // T35 balance probe: every weapon at every level against a dummy field.
 // Single = one dummy at the best of six spots 0 / 30 / 60 px off-axis and
@@ -130,4 +133,33 @@ describe.skipIf(SIM !== '1')('Act II weapon balance probe', () => {
     expect(Math.min(...table.flak!.erase)).toBeGreaterThan(0.3);
     expect(Math.max(...table.arc!.erase, ...table.ricochet!.erase)).toBe(0);
   }, 120_000);
+});
+
+// T36's ships start with the Act II weapons even while they're locked.
+describe('Act II starting weapons fire in a real run', () => {
+  for (const [shipId, weapon] of [
+    ['shrike', 'arc'],
+    ['ferret', 'ricochet'],
+    ['wraith', 'flak'],
+  ] as const) {
+    it(`${shipId} fires its ${weapon}`, () => {
+      let seen = false;
+      // The bot keeps its distance: nothing came inside Arc's 90 px for the first 40 s.
+      runSim(`start-${shipId}`, godBot(), weapon === 'arc' ? 150 : 40, {
+        shipId,
+        onTick: (w) => {
+          if (seen) return;
+          if (weapon === 'arc') {
+            seen = weaponsState(w).arcTick >= 0;
+            return;
+          }
+          for (let i = 0; i < w.playerShots.count; i++) {
+            const b = w.playerShots.items[i]!;
+            if (b.active && b.weaponId === weapon) seen = true;
+          }
+        },
+      });
+      expect(seen).toBe(true);
+    }, 60_000);
+  }
 });
