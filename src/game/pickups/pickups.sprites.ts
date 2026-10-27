@@ -23,6 +23,9 @@ export const CAPSULE_LETTERS: Readonly<Record<string, readonly string[]>> = {
   lance: ['#..', '#..', '#..', '#..', '###'],
   seeker: ['#.#', '###', '###', '#.#', '#.#'],
   orbitDrones: ['##.', '#.#', '#.#', '#.#', '##.'],
+  arc: ['.#.', '#.#', '###', '#.#', '#.#'],
+  ricochet: ['##.', '#.#', '##.', '#.#', '#.#'],
+  flak: ['###', '#..', '##.', '#..', '#..'],
 };
 
 /** Sprite id for a weapon capsule; unknown weapon ids fall back to the plain capsule. */
@@ -32,6 +35,9 @@ export const WEAPON_CAPSULE_SPRITES: Readonly<Record<string, string>> = {
   lance: 'capsule_l',
   seeker: 'capsule_m',
   orbitDrones: 'capsule_d',
+  arc: 'capsule_a',
+  ricochet: 'capsule_r',
+  flak: 'capsule_f',
 };
 
 for (const id in WEAPON_CAPSULE_SPRITES) {

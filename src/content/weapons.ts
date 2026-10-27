@@ -7,7 +7,7 @@ export type WeaponId =
   | 'lance'
   | 'seeker'
   | 'orbitDrones'
-  // Act II (T35 replaces the placeholder defs below).
+  // Act II (T35).
   | 'arc'
   | 'ricochet'
   | 'flak';
@@ -47,6 +47,18 @@ export interface WeaponLevel {
    * take turns, so the whole orbit fires every `sparkCooldown / count` s.
    */
   sparkCooldown: number;
+  /** Arc: enemies hit after the first. */
+  chain: number;
+  /** Arc: reach to the first target, px. */
+  range: number;
+  /** Ricochet: reflections before a disc stops bouncing. */
+  bounces: number;
+  /** Flak: fragments per burst (`damage` is the shell's impact hit). */
+  fragments: number;
+  /** Flak: per fragment. Multiplied by `stats.damageMul`. */
+  fragDamage: number;
+  /** Flak: enemy bullets within this many px of a burst are erased. */
+  eraseR: number;
 }
 
 export interface WeaponDef {
@@ -84,6 +96,12 @@ const BASE: WeaponLevel = {
   contactTick: 0,
   sprite: '',
   sparkCooldown: 0,
+  chain: 0,
+  range: 0,
+  bounces: 0,
+  fragments: 0,
+  fragDamage: 0,
+  eraseR: 0,
 };
 
 function lv(o: Partial<WeaponLevel>): WeaponLevel {
@@ -96,24 +114,6 @@ function levels(first: Partial<WeaponLevel>, ...deltas: Partial<WeaponLevel>[]):
   for (const d of deltas) out.push(lv({ ...out[out.length - 1], ...d }));
   if (out.length !== WEAPON_MAX_LEVEL) throw new Error('weapon needs 5 levels');
   return out;
-}
-
-function placeholder(id: WeaponId, name: string, letter: string): WeaponDef {
-  return {
-    id,
-    name,
-    letter,
-    icon: 'icon_blaster',
-    color: '#f8f8f8',
-    sfx: '',
-    levels: levels(
-      { cooldown: 1, damage: 1, count: 1, speed: 240, ttl: 1.8, sprite: 'pbullet_blaster' },
-      {},
-      {},
-      {},
-      {},
-    ),
-  };
 }
 
 export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
@@ -246,11 +246,83 @@ export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
       { damage: 2, count: 5, radius: 5, sprite: 'drone5', sparkCooldown: 0.5 },
     ),
   },
-  // Placeholders so Record<WeaponId, …> maps compile before T35. They never drop:
-  // capsules only draw from the save's `weaponsUnlocked`, and no ship starts with one.
-  arc: placeholder('arc', 'ARC COIL', 'A'),
-  ricochet: placeholder('ricochet', 'RICOCHET', 'R'),
-  flak: placeholder('flak', 'FLAK', 'F'),
+  // Every 1.2 s an arc hits the nearest enemy within 90 px, then chains 1 link
+  // (50 px hops); +1 link; every 0.9 s; range 120 and +1 link; 3 dmg.
+  arc: {
+    id: 'arc',
+    name: 'ARC COIL',
+    letter: 'A',
+    icon: 'icon_arc',
+    color: '#f8f8f8',
+    sfx: 'shot_lance',
+    levels: levels(
+      { cooldown: 1.2, damage: 2, count: 1, chain: 1, range: 90 },
+      { chain: 2 },
+      { cooldown: 0.9 },
+      { range: 120, chain: 3 },
+      { damage: 3 },
+    ),
+  },
+  // A disc every 1.1 s alternating ±20°, 2 bounces, pierce 1; +1 bounce; twin
+  // discs; +1 dmg; three discs and 4 bounces. Discs hit for 2, not design.md's
+  // 1: at 1 the L1 disc dealt under a quarter of the Blaster's damage (T35 table).
+  ricochet: {
+    id: 'ricochet',
+    name: 'RICOCHET',
+    letter: 'R',
+    icon: 'icon_ricochet',
+    color: '#a8f8f8',
+    sfx: 'shot_spread',
+    levels: levels(
+      {
+        cooldown: 1.1,
+        damage: 2,
+        count: 1,
+        spread: 20,
+        speed: 200,
+        ttl: 4,
+        pierce: 1,
+        radius: 2,
+        bounces: 2,
+        sprite: 'pbullet_disc',
+      },
+      { bounces: 3 },
+      { count: 2 },
+      { damage: 3 },
+      { count: 3, bounces: 4 },
+    ),
+  },
+  // A shell every 1.4 s at 140 px/s, bursting at 0.6 s (`ttl`) or on contact
+  // into 6 fragments that erase enemy bullets within 12 px; 8 fragments; every
+  // 1.1 s; 2-dmg fragments and an 18 px erase; two shells. `spread` fans the
+  // L5 pair; fragments fly at FLAK_FRAGMENT's speed and ttl.
+  flak: {
+    id: 'flak',
+    name: 'FLAK',
+    letter: 'F',
+    icon: 'icon_flak',
+    color: '#f8e030',
+    sfx: 'shot_seeker',
+    levels: levels(
+      {
+        cooldown: 1.4,
+        damage: 2,
+        count: 1,
+        speed: 140,
+        ttl: 0.6,
+        radius: 3,
+        offset: 5,
+        fragments: 6,
+        fragDamage: 1,
+        eraseR: 12,
+        sprite: 'pbullet_flak',
+      },
+      { fragments: 8 },
+      { cooldown: 1.1 },
+      { fragDamage: 2, eraseR: 18, damage: 3 },
+      { count: 2, spread: 8 },
+    ),
+  },
 };
 
 /**
@@ -269,17 +341,34 @@ export const DRONE_SPARK: WeaponLevel = lv({
 /** Drone spark auto-aim reach, px. */
 export const DRONE_SPARK_RANGE = 150;
 
-/** Display / sandbox key order (F1–F5). */
+/** Arc: max px from one link to the next. */
+export const ARC_CHAIN_RANGE = 50;
+/** Arc: seconds an arc stays on screen (render only). */
+export const ARC_SHOW = 0.13;
+
+/** Flak fragments: px/s, seconds alive, collision radius, sprite. */
+export const FLAK_FRAGMENT = { speed: 160, ttl: 0.25, radius: 2, sprite: 'pbullet_frag' } as const;
+
+/** Display and capsule-letter order. Sandbox keys: F1–F5 for the first five, F7–F9 for the rest. */
 export const WEAPON_ORDER: readonly WeaponId[] = [
   'blaster',
   'spread',
   'lance',
   'seeker',
   'orbitDrones',
+  'arc',
+  'ricochet',
+  'flak',
 ];
 
 /** What a fresh save may find in capsules; Act II weapons unlock on their home sector's first clear. */
-export const DEFAULT_UNLOCKED_WEAPONS: readonly WeaponId[] = WEAPON_ORDER;
+export const DEFAULT_UNLOCKED_WEAPONS: readonly WeaponId[] = [
+  'blaster',
+  'spread',
+  'lance',
+  'seeker',
+  'orbitDrones',
+];
 
 export function isWeaponId(id: string): id is WeaponId {
   return Object.prototype.hasOwnProperty.call(WEAPONS, id);

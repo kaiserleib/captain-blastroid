@@ -7,34 +7,35 @@ import {
 } from '../../content/weapons';
 import type { PlayerState, WeaponInstance } from '../../sim/types';
 import type { System, World } from '../../sim/world';
+import { fireArc } from './arc';
 import { fireBlaster } from './blaster';
 import { tickDroneContacts, updateDrones } from './drones';
+import { fireFlak, updateShells } from './flak';
 import { fireLance } from './lance';
 import { attachWeapons } from './resolvePickup';
+import { fireRicochet, updateRicochets } from './ricochet';
 import { fireSeeker } from './seeker';
 import { emitSfx } from './shots';
 import { fireSpread } from './spread';
 import { weaponsState } from './state';
 
+/** Returning false holds the volley (nothing to shoot at): no sfx, no cooldown. */
 export type FireFn = (
   w: World,
   p: PlayerState,
   inst: WeaponInstance,
   lv: WeaponLevel,
   def: WeaponDef,
-) => void;
-
-function noFire(): void {}
+) => boolean | void;
 
 const FIRE: Readonly<Record<Exclude<WeaponId, 'orbitDrones'>, FireFn>> = {
   blaster: fireBlaster,
   spread: fireSpread,
   lance: fireLance,
   seeker: fireSeeker,
-  // T35 implements these; until then an equipped placeholder just never fires.
-  arc: noFire,
-  ricochet: noFire,
-  flak: noFire,
+  arc: fireArc,
+  ricochet: fireRicochet,
+  flak: fireFlak,
 };
 
 const DEFS = WEAPONS as Readonly<Record<string, WeaponDef | undefined>>;
@@ -60,6 +61,9 @@ export function updateWeapons(w: World, dt: number): void {
   const s = weaponsState(w);
   s.droneN = 0;
   tickDroneContacts(s, dt);
+  // Shots already in flight keep going after the ship dies.
+  updateRicochets(w, dt);
+  updateShells(w, dt);
   const p = w.player;
   if (!p.alive) return;
   const list = p.weapons;
@@ -74,7 +78,10 @@ export function updateWeapons(w: World, dt: number): void {
     }
     inst.cooldown -= dt * p.stats.fireRateMul;
     if (inst.cooldown > 0) continue;
-    FIRE[def.id](w, p, inst, lv, def);
+    if (FIRE[def.id](w, p, inst, lv, def) === false) {
+      inst.cooldown = 0;
+      continue;
+    }
     emitSfx(w, def.sfx, p.x);
     inst.cooldown += lv.cooldown;
     // A huge fireRateMul can't bank shots into a burst.

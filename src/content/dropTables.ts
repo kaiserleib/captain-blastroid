@@ -69,3 +69,18 @@ export const DROP_TABLES: Readonly<Record<string, DropTable>> = {
 
 export const DEFAULT_ENEMY_DROP_TABLE = 'common';
 export const CARRIER_DROP_TABLE = 'carrier';
+
+/**
+ * Weapons a capsule may carry: the save's unlocked weapons plus the sector's
+ * field-test weapon, in capsule order (`ids`). A fresh save on an Act I sector
+ * gives exactly `ids` minus the Act II weapons, so Act I rolls are unchanged.
+ */
+export function capsuleWeaponPool(
+  ids: readonly string[],
+  unlocked: readonly string[],
+  fieldTest?: string,
+): string[] {
+  const out: string[] = [];
+  for (const id of ids) if (id === fieldTest || unlocked.includes(id)) out.push(id);
+  return out;
+}
