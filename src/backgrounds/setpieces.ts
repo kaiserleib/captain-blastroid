@@ -1,9 +1,26 @@
 import { createRng, type Rng } from '../engine/rng';
 import { createBitmap, get, plot, type IndexedBitmap } from './bitmap';
 import type { Rgb } from './color';
+import { clock, flare, girder, limb, ring, SHIMMER_PHASES, sun } from './act2pieces';
+import { LIGHT_A, LIGHT_B, lightCycle } from './lights';
 import { bayer4, ditherLevel, PeriodicValueNoise } from './noise';
 
-export type SetPieceKind = 'planet' | 'station' | 'belt' | 'giant' | 'fleet' | 'disk';
+export { LIGHT_PHASES, LIGHT_STEP } from './lights';
+export { SHIMMER_PHASES, SHIMMER_STEP, TOP_ANCHOR_BAND } from './act2pieces';
+
+export type SetPieceKind =
+  | 'planet'
+  | 'station'
+  | 'belt'
+  | 'giant'
+  | 'fleet'
+  | 'disk'
+  | 'limb'
+  | 'ring'
+  | 'flare'
+  | 'clock'
+  | 'sun'
+  | 'girder';
 
 export interface SetPieceSpec {
   kind: SetPieceKind;
@@ -15,30 +32,29 @@ export interface SetPieceSpec {
   at: number;
   /** Left edge in px; negative or > 240 - width crops it, e.g. for a planet limb. */
   x: number;
-  /** Planet radius, station height, or belt band height, px. */
+  /**
+   * Planet/sun radius, station height, belt/girder/flare band height, ring/clock
+   * diameter, or the limb's depth below the playfield top, px.
+   */
   size: number;
   /**
-   * Ramp, dark → light. Planet, giant, belt and disk use 4; station uses 3 (hull, lit
-   * edge, window); fleet uses 3 (hull, lit edge, rust).
+   * Ramp, dark → light. Planet, giant, belt, disk and sun use 4; station uses 3 (hull,
+   * lit edge, window); fleet uses 3 (hull, lit edge, rust); limb uses 5 (corona out
+   * to white-hot core); ring uses 3 (hull, lit edge, portal haze); girder uses 3
+   * (steel, lit edge, cooled seam); flare and clock use 3.
    */
   colors: readonly Rgb[];
   /** Scroll multiplier; defaults to `PARALLAX.setPiece` (0.1). */
   parallax?: number;
-  /** Fleet only: blinking running-light color, a point color (≤ MAX_POINT_VALUE). */
+  /** Fleet, ring and girder: blinking light color, a point color (≤ MAX_POINT_VALUE). */
   light?: Rgb;
+  /**
+   * `top` pins the piece to the playfield top instead of scrolling: its row
+   * `TOP_ANCHOR_BAND` sits on the playfield's first row, so taller buffers show
+   * more of it in the HUD band. `at` is ignored.
+   */
+  anchor?: 'top';
 }
-
-/** Fleet running lights blink in two groups across this many palette phases. */
-export const LIGHT_PHASES = 4;
-/** Seconds per running-light phase. */
-export const LIGHT_STEP = 0.4;
-// Which of the two light groups is lit at each phase.
-const LIGHT_CYCLE: readonly (readonly [boolean, boolean])[] = [
-  [true, false],
-  [false, false],
-  [false, true],
-  [false, false],
-];
 
 // Light comes from the top-left, per the art rules.
 const LX = -0.55;
@@ -60,12 +76,35 @@ export function generateSetPiece(seed: number, spec: SetPieceSpec): IndexedBitma
       return fleet(rng, spec.size);
     case 'disk':
       return disk(rng, spec.size, spec.colors.length);
+    case 'limb':
+      return limb(rng, spec.size, 0);
+    case 'ring':
+      return ring(rng, spec.size);
+    case 'flare':
+      return flare(rng, spec.size, spec.colors.length);
+    case 'clock':
+      return clock(rng, spec.size);
+    case 'sun':
+      return sun(rng, spec.size, spec.colors.length);
+    case 'girder':
+      return girder(rng, spec.size);
   }
+}
+
+/**
+ * One bitmap per animation frame. Only the limb animates by bitmap (its heat
+ * shimmer); everything else is a single bitmap, maybe palette-cycled.
+ */
+export function generateSetPieceFrames(seed: number, spec: SetPieceSpec): IndexedBitmap[] {
+  if (spec.kind !== 'limb') return [generateSetPiece(seed, spec)];
+  const out: IndexedBitmap[] = [];
+  for (let p = 0; p < SHIMMER_PHASES; p++) out.push(limb(createRng(seed), spec.size, p));
+  return out;
 }
 
 /** True for kinds whose bitmap carries blinking-light indices, so they need one canvas per phase. */
 export function hasLights(spec: SetPieceSpec): boolean {
-  return spec.kind === 'fleet';
+  return spec.kind === 'fleet' || spec.kind === 'ring' || spec.kind === 'girder';
 }
 
 /**
@@ -75,17 +114,19 @@ export function hasLights(spec: SetPieceSpec): boolean {
 export function setPiecePalette(spec: SetPieceSpec, phase = 0): (Rgb | null)[] {
   const pal: (Rgb | null)[] = [null, ...spec.colors];
   if (hasLights(spec)) {
-    const hull = spec.colors[0] ?? null;
+    // A cooled girder seam still glows faintly; other unlit lights show as hull.
+    const hull = (spec.kind === 'girder' ? spec.colors[2] : spec.colors[0]) ?? null;
     const lit = spec.light ?? spec.colors[spec.colors.length - 1] ?? null;
-    const on = LIGHT_CYCLE[((phase % LIGHT_PHASES) + LIGHT_PHASES) % LIGHT_PHASES]!;
+    const on = lightCycle(phase);
     pal[FLEET_LIGHT_A] = on[0] ? lit : hull;
     pal[FLEET_LIGHT_B] = on[1] ? lit : hull;
   }
   return pal;
 }
 
-const FLEET_LIGHT_A = 4;
-const FLEET_LIGHT_B = 5;
+/** Light indices for every kind with lights: group A and group B. */
+const FLEET_LIGHT_A = LIGHT_A;
+const FLEET_LIGHT_B = LIGHT_B;
 
 /** A shaded gas giant with banding, a dithered terminator and a thin lit rim. */
 function planet(rng: Rng, radius: number, levels: number): IndexedBitmap {

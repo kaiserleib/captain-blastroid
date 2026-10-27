@@ -1,14 +1,15 @@
-import { hashSeed } from '../engine/rng';
+import { PLAYFIELD_H } from '../engine/display';
+import { createRng, hashSeed } from '../engine/rng';
 import { bitmapToCanvas } from './bitmap';
 import { toCss } from './color';
-import { generateNebula, nebulaPalette } from './nebula';
-import { createRng } from '../engine/rng';
+import { LIGHT_PHASES, LIGHT_STEP } from './lights';
+import { EDGE_H, generateNebula, nebulaEdge, nebulaPalette, nebulaPhases } from './nebula';
 import {
-  generateSetPiece,
+  generateSetPieceFrames,
   hasLights,
-  LIGHT_PHASES,
-  LIGHT_STEP,
   setPiecePalette,
+  SHIMMER_STEP,
+  TOP_ANCHOR_BAND,
   type SetPieceSpec,
 } from './setpieces';
 import {
@@ -28,7 +29,7 @@ export const STRIP_W = 240;
 /** Seconds per twinkle palette step. */
 export const TWINKLE_STEP = 0.3;
 
-/** Speed lines: none at or below `from` px/s, full strength from `full` up. */
+/** Speed lines: none at or below `from` px/s, full strength from `full` up. Themes may override the look. */
 export const SPEED_LINES = {
   from: 50,
   full: 60,
@@ -40,6 +41,17 @@ export const SPEED_LINES = {
   alpha: 0.22,
 } as const;
 
+/** Upper bound on a theme's `speedLines.count`; the line tables are sized to it. */
+export const MAX_SPEED_LINES = 48;
+
+/** A theme's speed-line look; anything unset uses `SPEED_LINES`. */
+export interface SpeedLineStyle {
+  count?: number;
+  alpha?: number;
+  maxLen?: number;
+  lenPerSpeed?: number;
+}
+
 /** Speed-line strength 0..1 for a scroll speed: 0 up to 50 px/s, fading in to 1 at 60. */
 export function speedLineAlpha(speed: number): number {
   const t = (speed - SPEED_LINES.from) / (SPEED_LINES.full - SPEED_LINES.from);
@@ -47,18 +59,18 @@ export function speedLineAlpha(speed: number): number {
 }
 
 /** Speed-line length in px for a scroll speed, before the per-line 0.7..1 jitter. */
-export function speedLineLength(speed: number): number {
-  const l = SPEED_LINES.minLen + (speed - SPEED_LINES.from) * SPEED_LINES.lenPerSpeed;
-  return l < SPEED_LINES.minLen
-    ? SPEED_LINES.minLen
-    : l > SPEED_LINES.maxLen
-      ? SPEED_LINES.maxLen
-      : l;
+export function speedLineLength(speed: number, style?: SpeedLineStyle): number {
+  const max = style?.maxLen ?? SPEED_LINES.maxLen;
+  const per = style?.lenPerSpeed ?? SPEED_LINES.lenPerSpeed;
+  const l = SPEED_LINES.minLen + (speed - SPEED_LINES.from) * per;
+  return l < SPEED_LINES.minLen ? SPEED_LINES.minLen : l > max ? max : l;
 }
 
 interface BuiltSetPiece {
-  /** One canvas, or one per light phase for pieces with blinking lights. */
+  /** One canvas, or one per light phase / shimmer frame. */
   frames: HTMLCanvasElement[];
+  /** Seconds per frame. */
+  step: number;
   spec: SetPieceSpec;
   parallax: number;
   /** Scroll distance at which the top edge enters the screen. */
@@ -80,14 +92,20 @@ export class Background {
   private built = false;
   private baseCss = '';
   private starStrips: HTMLCanvasElement[] = [];
-  private nebulaStrip: HTMLCanvasElement | null = null;
+  private nebulaStrips: HTMLCanvasElement[] = [];
+  /** Layer scroll (nebula px) where a `start`-gated nebula begins, or −1 for always on. */
+  private nebulaStart = -1;
+  private nebulaLip: HTMLCanvasElement | null = null;
   private streakStrip: HTMLCanvasElement | null = null;
   private pieces: BuiltSetPiece[] = [];
+  private anchored = false;
   private speedCss = '';
+  private lineCount: number = SPEED_LINES.count;
+  private lineAlpha: number = SPEED_LINES.alpha;
   // Speed lines: fixed x, strip y and length factor per line, built once per theme/seed.
-  private readonly lineX = new Uint8Array(SPEED_LINES.count);
-  private readonly lineY = new Uint16Array(SPEED_LINES.count);
-  private readonly lineLen = new Float32Array(SPEED_LINES.count);
+  private readonly lineX = new Uint8Array(MAX_SPEED_LINES);
+  private readonly lineY = new Uint16Array(MAX_SPEED_LINES);
+  private readonly lineLen = new Float32Array(MAX_SPEED_LINES);
 
   constructor(themeId: ThemeId = 'kessler', seed = '') {
     this.themeIdV = themeId;
@@ -127,24 +145,46 @@ export class Background {
       this.starStrips.push(bitmapToCanvas(stars, starPalette(t.stars, p)));
     }
     const neb = generateNebula(layerSeed(s, id, 'nebula'), STRIP_W, STRIP_H, t.nebula);
-    this.nebulaStrip = bitmapToCanvas(neb, nebulaPalette(t.nebula));
+    this.nebulaStrips = [];
+    for (let p = 0; p < nebulaPhases(t.nebula); p++) {
+      this.nebulaStrips.push(bitmapToCanvas(neb, nebulaPalette(t.nebula, p)));
+    }
+    this.nebulaStart = -1;
+    this.nebulaLip = null;
+    if (t.nebula.start !== undefined) {
+      this.nebulaStart = Math.round(t.nebula.start * t.scrollSpeed * PARALLAX.nebula);
+      // The strip row that lands just under the leading edge, so the lip continues it.
+      const row0 = ((-this.nebulaStart % STRIP_H) + STRIP_H) % STRIP_H;
+      const lip = nebulaEdge(layerSeed(s, id, 'lip'), neb, row0, t.nebula.colors.length);
+      this.nebulaLip = bitmapToCanvas(lip, nebulaPalette(t.nebula));
+    }
     const streaks = generateStreaks(layerSeed(s, id, 'streaks'), STRIP_W, STRIP_H, t.streaks);
     this.streakStrip = bitmapToCanvas(streaks, streakPalette(t.streaks));
     this.pieces = t.setPieces.map((spec, i) => {
-      const bmp = generateSetPiece(layerSeed(s, id, `piece${i}`), spec);
+      const bmps = generateSetPieceFrames(layerSeed(s, id, `piece${i}`), spec);
       const frames: HTMLCanvasElement[] = [];
-      const n = hasLights(spec) ? LIGHT_PHASES : 1;
-      for (let p = 0; p < n; p++) frames.push(bitmapToCanvas(bmp, setPiecePalette(spec, p)));
+      let step = LIGHT_STEP;
+      if (bmps.length > 1) {
+        for (const bmp of bmps) frames.push(bitmapToCanvas(bmp, setPiecePalette(spec, 0)));
+        step = SHIMMER_STEP;
+      } else {
+        const n = hasLights(spec) ? LIGHT_PHASES : 1;
+        for (let p = 0; p < n; p++) frames.push(bitmapToCanvas(bmps[0]!, setPiecePalette(spec, p)));
+      }
       return {
         frames,
+        step,
         spec,
         parallax: spec.parallax ?? PARALLAX.setPiece,
         atScroll: spec.at * t.scrollSpeed,
       };
     });
-    this.speedCss = toCss(t.streaks.head);
+    this.anchored = t.setPieces.some((p) => p.anchor === 'top');
+    this.speedCss = toCss(t.speedLines?.color ?? t.streaks.head);
+    this.lineCount = Math.min(MAX_SPEED_LINES, t.speedLines?.count ?? SPEED_LINES.count);
+    this.lineAlpha = t.speedLines?.alpha ?? SPEED_LINES.alpha;
     const rng = createRng(layerSeed(s, id, 'speedlines'));
-    for (let i = 0; i < SPEED_LINES.count; i++) {
+    for (let i = 0; i < this.lineCount; i++) {
       this.lineX[i] = rng.int(0, STRIP_W - 1);
       this.lineY[i] = rng.int(0, STRIP_H - 1);
       this.lineLen[i] = rng.range(0.7, 1);
@@ -173,20 +213,50 @@ export class Background {
     if (stars) drawTiled(ctx, stars, scrollY * PARALLAX.stars, height);
 
     // Set pieces sit behind the nebula so the haze passes in front of them.
-    const lightPhase = Math.floor(time / LIGHT_STEP) % LIGHT_PHASES;
+    this.drawPieces(ctx, scrollY, time, height, false);
+    const nebN = this.nebulaStrips.length;
+    if (nebN > 0) {
+      const f = nebN > 1 ? Math.floor(time / LIGHT_STEP) % nebN : 0;
+      const neb = this.nebulaStrips[f < 0 ? 0 : f] as HTMLCanvasElement;
+      const ls = scrollY * PARALLAX.nebula;
+      if (this.nebulaStart < 0) {
+        drawTiled(ctx, neb, ls, height);
+      } else {
+        // A gated layer: drawn above its leading edge only, with the lip hanging below it.
+        const edge = Math.floor(ls) - this.nebulaStart;
+        if (edge >= height) drawTiled(ctx, neb, ls, height);
+        else if (edge > 0) drawTiledAbove(ctx, neb, ls, edge);
+        if (this.nebulaLip && edge > -EDGE_H && edge < height)
+          ctx.drawImage(this.nebulaLip, 0, edge);
+      }
+    }
+    // Top-anchored pieces (the corona limb) glow in front of the dust instead.
+    if (this.anchored) this.drawPieces(ctx, scrollY, time, height, true);
+    if (this.streakStrip) drawTiled(ctx, this.streakStrip, scrollY * PARALLAX.streaks, height);
+    this.drawSpeedLines(ctx, scrollY, height, scrollSpeed);
+  }
+
+  private drawPieces(
+    ctx: CanvasRenderingContext2D,
+    scrollY: number,
+    time: number,
+    height: number,
+    anchored: boolean,
+  ): void {
     for (let i = 0; i < this.pieces.length; i++) {
       const p = this.pieces[i] as BuiltSetPiece;
-      const canvas = p.frames.length > 1 ? p.frames[lightPhase < 0 ? 0 : lightPhase] : p.frames[0];
+      if ((p.spec.anchor === 'top') !== anchored) continue;
+      const n = p.frames.length;
+      const f = n > 1 ? Math.floor(time / p.step) % n : 0;
+      const canvas = p.frames[f < 0 ? 0 : f];
       if (!canvas) continue;
       const h = canvas.height;
-      const y = Math.floor((scrollY - p.atScroll) * p.parallax) - h;
+      const y = anchored
+        ? Math.floor((height - PLAYFIELD_H) / 2) - TOP_ANCHOR_BAND
+        : Math.floor((scrollY - p.atScroll) * p.parallax) - h;
       if (y >= height || y + h <= 0) continue;
       ctx.drawImage(canvas, p.spec.x, y);
     }
-
-    if (this.nebulaStrip) drawTiled(ctx, this.nebulaStrip, scrollY * PARALLAX.nebula, height);
-    if (this.streakStrip) drawTiled(ctx, this.streakStrip, scrollY * PARALLAX.streaks, height);
-    this.drawSpeedLines(ctx, scrollY, height, scrollSpeed);
   }
 
   private drawSpeedLines(
@@ -197,12 +267,12 @@ export class Background {
   ): void {
     const a = speedLineAlpha(speed);
     if (a <= 0) return;
-    const len = speedLineLength(speed);
+    const len = speedLineLength(speed, this.theme.speedLines);
     const off = stripOffset(scrollY * PARALLAX.streaks);
     const prevAlpha = ctx.globalAlpha;
-    ctx.globalAlpha = a * SPEED_LINES.alpha;
+    ctx.globalAlpha = a * this.lineAlpha;
     ctx.fillStyle = this.speedCss;
-    for (let i = 0; i < SPEED_LINES.count; i++) {
+    for (let i = 0; i < this.lineCount; i++) {
       const l = Math.round(len * (this.lineLen[i] as number));
       let y = (this.lineY[i] as number) + off;
       if (y >= STRIP_H) y -= STRIP_H;
@@ -230,4 +300,23 @@ function drawTiled(
   // Content moves down as scroll grows: we fly upward.
   if (off < height) ctx.drawImage(img, 0, off);
   if (off > 0) ctx.drawImage(img, 0, off - STRIP_H);
+}
+
+/** `drawTiled`, clipped to screen rows above `limit` (source rects, no ctx.clip). */
+export function drawTiledAbove(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLCanvasElement,
+  layerScroll: number,
+  limit: number,
+): void {
+  const off = stripOffset(layerScroll);
+  const w = img.width;
+  if (off < limit) {
+    const rows = Math.min(STRIP_H, limit - off);
+    ctx.drawImage(img, 0, 0, w, rows, 0, off, w, rows);
+  }
+  if (off > 0) {
+    const rows = Math.min(off, limit);
+    if (rows > 0) ctx.drawImage(img, 0, STRIP_H - off, w, rows, 0, 0, w, rows);
+  }
 }
