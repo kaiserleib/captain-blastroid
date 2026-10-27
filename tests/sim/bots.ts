@@ -1,6 +1,7 @@
 // Bots for the headless harness. Each writes `world.input` once per tick, the
 // same MoveIntent path the real game's input system fills.
 import { ENEMY_FAIRNESS } from '../../src/content/enemies';
+import { LEVEL_ORDER } from '../../src/content/levels';
 import { BLACK_HOLE, PULSAR, PULSAR_DOUBLE_DELAY } from '../../src/content/obstacles';
 import { createRng, type Rng } from '../../src/engine/rng';
 import { activeBoss } from '../../src/game/boss';
@@ -8,6 +9,11 @@ import { muzzleY } from '../../src/game/enemies';
 import { Lance } from '../../src/game/levels/eventHorizon/behaviors';
 import { Dive, divePoint, Perihelion } from '../../src/game/levels/eventHorizon/perihelion';
 import { Leviathan } from '../../src/game/levels/armada';
+import { Echo, type Emitter } from '../../src/game/levels/chrono/echo';
+import { Janus } from '../../src/game/levels/junction';
+import { Motion, Wyrm } from '../../src/game/levels/warrens';
+import { ownedBy, pairLive, peekJx } from '../../src/game/levels/junction/state';
+import { ECHO } from '../../src/content/levels/chrono';
 import { mem, RayPhase } from '../../src/game/levels/pulsarNursery/behaviors';
 import { getTerrainState, nearestOpenX } from '../../src/game/terrain';
 import { isSolidAt } from '../../src/sim/hooks';
@@ -142,6 +148,14 @@ const RINGS = [0, 8, 18, 32, 50];
 /** With pulsars up, gaps can be far off: sample wider (T29's ring-aware radii). */
 const RINGS_WIDE = [0, 8, 18, 32, 50, 72, 100, 130];
 const LOOK_STEPS = 4;
+/**
+ * Act II: the look-ahead is sampled at least this often (typical's own step).
+ * With T18's fixed 4 samples the expert's longer look-ahead stepped 0.14 s,
+ * and a sidestep through a pair of rounds fell between two samples: the
+ * expert took twice the typical's hits under the Echo.
+ */
+const STEP_DT = 0.1;
+const ACT1_SECTORS = 5;
 const PREF = { x: 0, y: 0 };
 
 // Hazard model (T31). A human reads these off the screen, so the costs use
@@ -199,6 +213,9 @@ class Dodger implements Bot {
   private readonly fronts: Front[] = Array.from({ length: 4 }, () => ({ start: 0, rot: 0 }));
   private readonly dive = new Float32Array((DIVE_SAMPLES + 1) * 2);
   private diveOn = false;
+  private echo: Echo | null = null;
+  /** Look-ahead samples per plan (see STEP_DT). */
+  private steps = LOOK_STEPS;
   private readonly pt = { x: 0, y: 0 };
   /** Act II hazards (T33), refreshed by `scanHazardsII`. */
   private readonly h2: HazardsIIView = newHazardsIIView();
@@ -218,6 +235,11 @@ class Dodger implements Bot {
     this.tx = w.player.x;
     this.ty = w.player.y;
     this.aimOff = 0;
+    // Act I keeps T18's sampling, so its numbers (and hashes) hold.
+    const act2 = this.hazards && LEVEL_ORDER.indexOf(w.run.levelId) >= ACT1_SECTORS;
+    this.steps = act2
+      ? Math.max(LOOK_STEPS, Math.ceil(this.skill.lookahead / STEP_DT - 1e-9))
+      : LOOK_STEPS;
   }
 
   decide(w: World): void {
@@ -248,7 +270,8 @@ class Dodger implements Bot {
     let best = Infinity;
     let bx = p.x;
     let by = p.y;
-    const radii = this.pulsars > 0 ? RINGS_WIDE : RINGS;
+    // Wide fans (pulsar rings, the Echo's mirrored Spread) need escape points further out.
+    const radii = this.pulsars > 0 || this.echo !== null ? RINGS_WIDE : RINGS;
     for (let ri = 0; ri < radii.length; ri++) {
       const rad = radii[ri] as number;
       const nd = rad === 0 ? 1 : DIRS;
@@ -286,6 +309,7 @@ class Dodger implements Bot {
     }
     this.diveOn = false;
     const boss = activeBoss(w);
+    this.echo = boss instanceof Echo ? boss : null;
     if (boss instanceof Perihelion && boss.dive !== Dive.None) {
       this.diveOn = true;
       for (let i = 0; i <= DIVE_SAMPLES; i++) {
@@ -330,10 +354,16 @@ class Dodger implements Bot {
     for (let i = 0; i < w.enemies.count; i++) {
       const e = w.enemies.items[i] as Enemy;
       if (!e.active || e.y < 0 || e.y > p.y - 30 || !isTargetable(w, e)) continue;
-      const d = Math.abs(e.x - p.x) + (p.y - e.y) * 0.3;
+      // Shielded fronts (Act II): shoot an Aegis through its own ring, and leave
+      // a Sentinel (its shield turns to face the ship) for last.
+      let ex = e.x;
+      let pen = 0;
+      if (this.hazards && e.defId === AEGIS_ID) ex = aegisRingX(w, e);
+      else if (this.hazards && e.defId === SENTINEL_ID) pen = SENTINEL_PENALTY;
+      const d = Math.abs(ex - p.x) + (p.y - e.y) * 0.3 + pen;
       if (d < bestD) {
         bestD = d;
-        out.x = e.x + this.aimOff;
+        out.x = ex + this.aimOff;
       }
     }
     if (bestD === Infinity) {
@@ -356,6 +386,18 @@ class Dodger implements Bot {
         if (Math.abs(out.x - a.x) < clear) out.x = a.x + (out.x < a.x ? -clear : clear);
       }
     }
+    // The Wyrm's head only takes damage with its mouth open, just after it
+    // surfaces: get under the dust trail's exit point before it bursts out.
+    if (this.hazards && boss instanceof Wyrm) {
+      const x = wyrmAimX(boss);
+      if (x === x) out.x = x + this.aimOff;
+    }
+    // Janus: behind the wall, the faces are hit through the rings. Stand under the
+    // entry whose exit hangs over a live face (the ring's color matches it).
+    if (this.hazards && boss instanceof Janus) {
+      const x = janusRingX(w, boss);
+      if (x === x) out.x = x + this.aimOff * 0.5;
+    }
     out.x = clamp(out.x, 12, 228);
     return out;
   }
@@ -366,12 +408,14 @@ class Dodger implements Bot {
     let cost = 0;
     const dist = Math.hypot(cx - p.x, cy - p.y);
     const reach = dist / Math.max(1, p.speed);
-    for (let s = 0; s <= LOOK_STEPS; s++) {
-      const t = (s / LOOK_STEPS) * sk.lookahead;
+    const steps = this.steps;
+    const stepWt = LOOK_STEPS / steps;
+    for (let s = 0; s <= steps; s++) {
+      const t = (s / steps) * sk.lookahead;
       const k = reach <= 0 ? 1 : Math.min(1, t / reach);
       const sx = p.x + (cx - p.x) * k;
       const sy = p.y + (cy - p.y) * k;
-      const wt = 1 / (1 + t * 3);
+      const wt = stepWt / (1 + t * 3);
       cost += wt * this.overlapShots(w.enemyShots.items, w.enemyShots.count, sx, sy, t);
       cost += wt * this.overlapRocks(w, sx, sy, t);
       cost += wt * this.overlapEnemies(w, sx, sy, t);
@@ -497,6 +541,7 @@ class Dodger implements Bot {
         if (d < 0) c += 80 - d * 6;
       }
     }
+    if (this.echo !== null) c += echoCost(this.echo, sx, sy, pr);
     if (this.diveOn) {
       const pad = DIVE_HALF + pr;
       let near = Infinity;
@@ -541,6 +586,84 @@ class Dodger implements Bot {
     }
     return c;
   }
+}
+
+const AEGIS_ID = 'wj_aegis';
+const SENTINEL_ID = 'fd_sentinel';
+/** Extra "distance" on a Sentinel as a drift target, px. */
+const SENTINEL_PENALTY = 120;
+
+/** x of the entry ring an Aegis owns (its exit hangs over its back), else its own x. */
+function aegisRingX(w: World, e: Enemy): number {
+  const o = ownedBy(w, e);
+  return o !== null && pairLive(o.pair, o.pairId) ? o.pair.a.x : e.x;
+}
+
+/** Lead on the Wyrm's open head, s (it heaves out slowly, then speeds up). */
+const WYRM_LEAD = 0.35;
+
+/** x under the Wyrm's exit point (telegraph) or its open head (led), or NaN. */
+function wyrmAimX(b: Wyrm): number {
+  if (b.motion === Motion.Telegraph) return b.tex;
+  if (b.open) return b.hx + b.hdx * b.crossSpeed() * WYRM_LEAD;
+  return NaN;
+}
+
+/**
+ * x of the Janus entry ring to shoot into, or NaN: the wall is down (shoot the
+ * faces directly) or no entry leads to a live face. A held exit (its generator
+ * standing) aims every shot at the face, so it wins over a wandering one.
+ */
+function janusRingX(w: World, b: Janus): number {
+  const wall = peekJx(w)?.wall;
+  if (wall === undefined || !wall.on || wall.down) return NaN;
+  const px = w.player.x;
+  let best = Infinity;
+  let bx = NaN;
+  for (let i = 0; i < 2; i++) {
+    const f = b.entryLeadsTo(i);
+    if (f < 0) continue;
+    const face = b.faces[f]!;
+    if (face.destroyed || !b.rig.alive(face)) continue;
+    const held = b.rig.alive(b.gens[f]!);
+    const x = b.entryX[i] as number;
+    const d = Math.abs(x - px) + (held ? 0 : 60);
+    if (d < best) {
+      best = d;
+      bx = x;
+    }
+  }
+  return bx;
+}
+
+// The Echo (T41). Its lance shows a dotted line locked on the ship for 0.6 s and
+// its arc a crackling range ring; both are read like the Lancer's line.
+const ECHO_LANCE_R = 5;
+const ARC_PAD = 14;
+
+function emitterCost(em: Emitter, sx: number, sy: number, pr: number): number {
+  let c = 0;
+  if (em.lanceT >= 0) {
+    const a = (em.lanceDeg * Math.PI) / 180;
+    const ax = Math.cos(a);
+    const ay = Math.sin(a);
+    const along = (sx - em.x) * ax + (sy - em.y) * ay;
+    if (along > 0) {
+      const off = Math.abs((sx - em.x) * ay - (sy - em.y) * ax);
+      const pad = ECHO_LANCE_R + pr + LANCE_PAD;
+      if (off < pad) c += 120 * (1 - off / pad) + 40;
+    }
+  }
+  if (em.arcT >= 0) {
+    const d = Math.hypot(sx - em.x, sy - (em.y - ECHO.muzzle));
+    const range = ECHO.patterns.arc.range + ARC_PAD;
+    if (d < range) c += 120 * (1 - d / range) + 40;
+  }
+  return c;
+}
+
+function echoCost(b: Echo, sx: number, sy: number, pr: number): number {
+  return emitterCost(b.echoE, sx, sy, pr) + emitterCost(b.ghostE, sx, sy, pr);
 }
 
 /**

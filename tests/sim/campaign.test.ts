@@ -1,17 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { PILOTS, SHIPS } from '../../src/content';
+import { WEAPON_ORDER, WEAPONS, type WeaponId } from '../../src/content';
 import { LEVEL_ORDER, getLevel } from '../../src/content/levels';
-import { createDefaultSave, isLevelUnlocked, type SaveData } from '../../src/meta';
+import { capsulePool } from '../../src/game/pickups';
+import { isLevelUnlocked, type SaveData } from '../../src/meta';
 import type { Pickup } from '../../src/sim/types';
 import type { World } from '../../src/sim/world';
-import { bankFinishedRun } from '../../src/ui/results';
+import { debugSave } from '../../src/ui/debugSaves';
+import { bankFinishedRun, type FinishedRun } from '../../src/ui/results';
 import { godBot, type Bot } from './bots';
 import { runSim } from './harness';
 
-// T31: the campaign end to end on one save, the way the results screen drives
-// it: fresh save → clear sector 1 → NEXT SECTOR → … → sector 5 → ACT I COMPLETE
-// → … → sector 10 (through the Foundry's escape) → CAMPAIGN COMPLETE (T32).
-// Banking goes through the same `bankFinishedRun` ResultsScene calls.
+// T31/T43: the campaign end to end, the way the results screen drives it.
+// Act I from `?save=mid` (sector 1 cleared): sector 2 → NEXT SECTOR → … →
+// sector 5 → ACT I COMPLETE. Act II from `?save=act1`: sector 6 → … → sector 10 (through the
+// Foundry's escape) → CAMPAIGN COMPLETE, with the three weapon unlocks feeding
+// later sectors' capsule pools. Banking goes through the same
+// `bankFinishedRun` ResultsScene calls.
 
 /** Boss schematic and pod pilot each sector's first clear should bank (design: Rewards by sector). */
 const REWARDS: Readonly<Record<string, { schematic: string; pilot: string }>> = {
@@ -20,12 +24,20 @@ const REWARDS: Readonly<Record<string, { schematic: string; pilot: string }>> = 
   eventHorizon: { schematic: 'corsair', pilot: 'sable' },
   pulsarNursery: { schematic: 'halcyon', pilot: 'pip' },
   armada: { schematic: 'paragon', pilot: 'vale' },
-  // Act II: T36 adds these ships and pilots; until then the boss and pod pay salvage.
   corona: { schematic: 'shrike', pilot: 'ines' },
   warrens: { schematic: 'ferret', pilot: 'rook' },
   junction: { schematic: 'wraith', pilot: 'nyx' },
   chrono: { schematic: 'revenant', pilot: 'halasz' },
   foundry: { schematic: 'nova', pilot: 'wren' },
+};
+
+/** Act II field-test weapons, unlocked by their home sector's first clear (design: Act II rewards). */
+const UNLOCKS: Readonly<Record<string, WeaponId | null>> = {
+  corona: 'arc',
+  warrens: 'ricochet',
+  junction: 'flak',
+  chrono: null,
+  foundry: null,
 };
 
 const BOOSTED = [
@@ -54,52 +66,92 @@ function podChaser(): Bot {
   };
 }
 
-describe('campaign flow', () => {
-  it('fresh save → ten sector clears via NEXT SECTOR → CAMPAIGN COMPLETE', () => {
-    let save: SaveData = createDefaultSave();
-    expect(save.selectedLevel).toBe(LEVEL_ORDER[0]);
-    const seen: string[] = [];
-    let levelId: string | null = save.selectedLevel;
-    while (levelId !== null) {
-      expect(isLevelUnlocked(save, levelId), `${levelId} unlocked`).toBe(true);
-      let world: World | null = null;
-      const r = runSim(`campaign-${levelId}`, podChaser(), 420, {
-        levelId,
-        save,
-        loadout: BOOSTED,
-        onTick: (w) => void (world ??= w),
-      });
-      expect(r.result.outcome, levelId).toBe('victory');
-      // Only the Foundry ends in an escape, and the god bot rides it out to the win.
-      const escaped = r.events.some((e) => e.type === 'escapeStarted');
-      expect(escaped, `${levelId} escape`).toBe(getLevel(levelId).escape !== undefined);
-      const banked = bankFinishedRun(save, world!.run, true);
-      save = banked.save;
-      seen.push(levelId);
+interface Step {
+  levelId: string;
+  banked: FinishedRun;
+  /** The run's capsule pool (from the save the sector launched with). */
+  pool: readonly string[];
+}
 
-      const want = REWARDS[levelId]!;
-      expect(banked.firstClear, levelId).toBe(true);
-      if (SHIPS[want.schematic] !== undefined)
-        expect(save.schematics, `${levelId} schematic`).toContain(want.schematic);
-      if (PILOTS[want.pilot] !== undefined)
-        expect(save.pilotsRescued, `${levelId} pod`).toContain(want.pilot);
-      expect(save.levels[levelId]?.clears, `${levelId} clears`).toBe(1);
-      expect(save.levels[levelId]?.best, `${levelId} best`).toBe(world!.run.score);
-      expect(save.highScores.some((h) => h.level === levelId)).toBe(true);
+/**
+ * Flies `save.selectedLevel`, banks it as ResultsScene does, then NEXT SECTOR
+ * (`banked.nextLevel`) until `until` is cleared. Checks what every first
+ * clear must bank.
+ */
+function fly(start: SaveData, until: string): { save: SaveData; steps: Step[] } {
+  let save = start;
+  const steps: Step[] = [];
+  let levelId: string | null = save.selectedLevel;
+  while (levelId !== null) {
+    expect(isLevelUnlocked(save, levelId), `${levelId} unlocked`).toBe(true);
+    let world: World | null = null;
+    const r = runSim(`campaign-${levelId}`, podChaser(), 420, {
+      levelId,
+      save,
+      loadout: BOOSTED,
+      onTick: (w) => void (world ??= w),
+    });
+    expect(r.result.outcome, levelId).toBe('victory');
+    // Only the Foundry ends in an escape, and the god bot rides it out to the win.
+    const escaped = r.events.some((e) => e.type === 'escapeStarted');
+    expect(escaped, `${levelId} escape`).toBe(getLevel(levelId).escape !== undefined);
+    const pool = capsulePool(world!);
+    const banked = bankFinishedRun(save, world!.run, true);
+    save = banked.save;
+    steps.push({ levelId, banked, pool });
 
-      const last = levelId === LEVEL_ORDER[LEVEL_ORDER.length - 1];
-      expect(banked.campaignComplete, `${levelId} campaignComplete`).toBe(last);
-      expect(banked.actComplete, levelId).toBe(levelId === 'armada' ? 'ACT I COMPLETE' : null);
-      // The first clear points LAUNCH at the next sector; NEXT SECTOR flies it.
-      expect(save.selectedLevel).toBe(last ? levelId : banked.nextLevel);
-      if (banked.nextLevel !== null) {
-        expect(isLevelUnlocked(save, banked.nextLevel)).toBe(true);
-        expect(getLevel(banked.nextLevel).number).toBe(getLevel(levelId).number + 1);
-      }
-      levelId = banked.nextLevel;
+    const want = REWARDS[levelId]!;
+    expect(banked.firstClear, levelId).toBe(true);
+    expect(save.schematics, `${levelId} schematic`).toContain(want.schematic);
+    expect(save.pilotsRescued, `${levelId} pod`).toContain(want.pilot);
+    expect(save.levels[levelId]?.clears, `${levelId} clears`).toBe(1);
+    expect(save.levels[levelId]?.best, `${levelId} best`).toBe(world!.run.score);
+    expect(save.highScores.some((h) => h.level === levelId)).toBe(true);
+
+    const last = levelId === LEVEL_ORDER[LEVEL_ORDER.length - 1];
+    expect(banked.campaignComplete, `${levelId} campaignComplete`).toBe(last);
+    expect(banked.actComplete, levelId).toBe(levelId === 'armada' ? 'ACT I COMPLETE' : null);
+    // The first clear points LAUNCH at the next sector; NEXT SECTOR flies it.
+    expect(save.selectedLevel).toBe(last ? levelId : banked.nextLevel);
+    if (banked.nextLevel !== null) {
+      expect(isLevelUnlocked(save, banked.nextLevel)).toBe(true);
+      expect(getLevel(banked.nextLevel).number).toBe(getLevel(levelId).number + 1);
     }
-    expect(seen).toEqual([...LEVEL_ORDER]);
-    expect(save.stats.bossKills).toBe(LEVEL_ORDER.length);
-    expect(save.salvage).toBeGreaterThan(0);
+    if (levelId === until) break;
+    levelId = banked.nextLevel;
+  }
+  return { save, steps };
+}
+
+describe('campaign flow', () => {
+  it('?save=mid (sector 1 cleared) → NEXT SECTOR → … → sector 5: ACT I COMPLETE', () => {
+    const start = debugSave('mid');
+    expect(start.selectedLevel).toBe(LEVEL_ORDER[1]);
+    const { save, steps } = fly(start, 'armada');
+    expect(steps.map((s) => s.levelId)).toEqual(LEVEL_ORDER.slice(1, 5));
+    expect(steps.at(-1)!.banked.actComplete).toBe('ACT I COMPLETE');
+    expect(save.selectedLevel).toBe('corona');
+    expect(save.stats.bossKills).toBe(5);
+    for (const s of steps) expect(s.banked.unlockedWeapon, s.levelId).toBeNull();
+  }, 300_000);
+
+  it('?save=act1 → sectors 6 → 10 via NEXT SECTOR: unlocks, pods, schematics, CAMPAIGN COMPLETE', () => {
+    const start = debugSave('act1');
+    expect(start.selectedLevel).toBe('corona');
+    const { save, steps } = fly(start, 'foundry');
+    expect(steps.map((s) => s.levelId)).toEqual(LEVEL_ORDER.slice(5));
+    const unlocked: string[] = [];
+    for (const s of steps) {
+      const want = UNLOCKS[s.levelId]!;
+      expect(s.banked.unlockedWeapon, `${s.levelId} unlock`).toBe(want);
+      if (want !== null) expect(s.banked.unlockedWeaponName).toBe(WEAPONS[want]!.name);
+      // A weapon unlocked earlier in the act drops in every later sector.
+      for (const id of unlocked) expect(s.pool, `${s.levelId} pool`).toContain(id);
+      if (want !== null) unlocked.push(want);
+    }
+    expect(save.weaponsUnlocked).toEqual(expect.arrayContaining([...WEAPON_ORDER]));
+    expect(steps.at(-1)!.banked.campaignComplete).toBe(true);
+    expect(save.stats.bossKills).toBe(start.stats.bossKills + 5);
+    expect(save.salvage).toBeGreaterThan(start.salvage);
   }, 300_000);
 });

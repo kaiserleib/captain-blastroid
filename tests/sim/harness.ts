@@ -8,7 +8,8 @@ import { getLevel } from '../../src/content/levels';
 import { PULSAR } from '../../src/content/obstacles';
 import type { GameEvents } from '../../src/engine/events';
 import type { Pool } from '../../src/engine/pool';
-import { activeBoss, bossSystem } from '../../src/game/boss';
+import { activeBoss, bossRegistration, bossSystem } from '../../src/game/boss';
+import { BOSS_ASSIST } from '../../src/content/bosses';
 import { directorSystem, startDirector } from '../../src/game/director';
 import { enemySystem } from '../../src/game/enemies';
 import {
@@ -28,7 +29,14 @@ import { lastCrushTick } from '../../src/game/terrain';
 import { initPlayer, playerSystem, setGodMode } from '../../src/game/player';
 import '../../src/game/levels';
 import { weaponSystem } from '../../src/game/weapons';
-import { computePlayerStats, createDefaultSave, type SaveData } from '../../src/meta';
+import {
+  computePlayerStats,
+  createDefaultSave,
+  getSaveStore,
+  initSave,
+  type SaveData,
+} from '../../src/meta';
+import { MemoryStorage } from '../../src/platform/web/storage';
 import { cleanupSystem } from '../../src/sim/cleanup';
 import { collisionSystem } from '../../src/sim/collision';
 import { bulletsSystem } from '../../src/sim/motion';
@@ -37,6 +45,10 @@ import { createWorld, type PoolCapacities, type System, type World } from '../..
 import { hazardsIIHitCause, type Bot } from './bots';
 
 export const DT = 1 / 60;
+
+// The game reads the save through `getSave()` (pod pilot, schematic, capsule
+// pool). Each run installs its own save there, as GameScene would find it.
+await initSave(new MemoryStorage());
 
 /** Stand-in for the background's system, which owns `scrollY` in GameScene. */
 const scrollSystem: System = {
@@ -137,6 +149,12 @@ export interface RunStats {
   /** Seconds from bossSpawned to bossDefeated (or to the end). */
   bossTime: number;
   bossDefeated: boolean;
+  /** The boss's id (from `bossSpawned`), or ''. */
+  bossId: string;
+  /** Fight seconds before the silent stall breaker (BOSS_ASSIST) starts ramping. */
+  assistAfter: number;
+  /** The fight outlasted `assistAfter`: the stall breaker was ramping by the end. */
+  assistFired: boolean;
   levelComplete: boolean;
   /** The boss controller's `phaseName()` at the end, or '' with no boss up. */
   bossPhaseAtEnd: string;
@@ -201,6 +219,7 @@ export interface SimOptions {
 /** Builds a world exactly as GameScene.enter does (save, loadout, scroll, director). */
 export function createSimWorld(seed: string, opts: SimOptions = {}): World {
   const save = opts.save ?? createDefaultSave();
+  getSaveStore().set(save);
   const shipId = opts.shipId ?? save.selectedShip;
   const pilotId = opts.pilotId ?? save.selectedPilot;
   const w = createWorld(seed, {
@@ -259,6 +278,9 @@ function play(seed: string, bot: Bot, seconds: number, opts: SimOptions): SimRun
     bossAt: -1,
     bossTime: 0,
     bossDefeated: false,
+    bossId: '',
+    assistAfter: 0,
+    assistFired: false,
     levelComplete: false,
     bossPhaseAtEnd: '',
     hits: 0,
@@ -295,7 +317,9 @@ function play(seed: string, bot: Bot, seconds: number, opts: SimOptions): SimRun
     if (st.reachedBoss) st.hitsInBoss++;
   });
   w.events.on('playerDied', () => void (died = true));
-  w.events.on('bossSpawned', () => {
+  w.events.on('bossSpawned', (e) => {
+    st.bossId = e.defId;
+    st.assistAfter = bossRegistration(e.defId)?.assistAfter ?? BOSS_ASSIST.after;
     st.reachedBoss = true;
     st.bossAt = w.time;
     st.weaponsAtBoss = weaponsString(w);
@@ -359,6 +383,7 @@ function play(seed: string, bot: Bot, seconds: number, opts: SimOptions): SimRun
   }
 
   if (st.reachedBoss && !st.bossDefeated) st.bossTime = w.time - st.bossAt;
+  st.assistFired = st.reachedBoss && st.bossTime > st.assistAfter;
   for (const [name, p] of pools) st.pools[name]!.dropped = p.droppedSpawns;
   st.capsulesSpawned = capsuleIds.size;
   st.bossPhaseAtEnd = activeBoss(w)?.phaseName() ?? '';

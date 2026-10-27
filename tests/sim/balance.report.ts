@@ -184,6 +184,10 @@ export function formatBalanceReport(
         .map(([k, v]) => `${k} ${v}`)
         .join(', ') || '-'
     }`,
+    `  stall breaker: ${assistLine(
+      boss,
+      wins.map((r) => r.stats),
+    )}`,
     `  peak enemy shots: waves ${Math.max(...st.map((r) => r.peakEnemyShotsLevel))} · boss ${Math.max(...st.map((r) => r.peakEnemyShotsBoss))}`,
     timeouts.length > 0
       ? `  timeouts: ${timeouts.map((r) => `[${r.stats.seed} ${r.stats.weaponsAtBoss} ${r.stats.bossPhaseAtEnd}]`).join(' ')}`
@@ -196,6 +200,15 @@ export function formatBalanceReport(
     `  tick ms avg ${mean(st.map((r) => r.updateMsAvg)).toFixed(4)} · worst ${Math.max(...st.map((r) => r.updateMsMax)).toFixed(2)}`,
   ];
   return lines.join('\n');
+}
+
+/** How often the silent stall breaker ramped: over every fight, and over clears. */
+export function assistLine(fights: readonly RunStats[], clears: readonly RunStats[]): string {
+  if (fights.length === 0) return '-';
+  const after = fights[0]!.assistAfter;
+  const fired = fights.filter((r) => r.assistFired).length;
+  const won = clears.filter((r) => r.assistFired).length;
+  return `after ${after} s · fired in ${pct(fired, fights.length)} of fights · ${pct(won, clears.length)} of clears`;
 }
 
 export interface SummaryRow {
@@ -222,6 +235,7 @@ export function formatSummaryTable(botName: string, rows: readonly SummaryRow[])
     'boss s',
     'peak shots',
     'pod%',
+    'assist%',
   ];
   const lines = rows.map(({ label, runs }) => {
     const n = runs.length;
@@ -253,6 +267,9 @@ export function formatSummaryTable(botName: string, rows: readonly SummaryRow[])
       wins.length ? median(wins.map((r) => r.stats.bossTime)).toFixed(0) : '-',
       `${Math.max(...st.map((r) => r.peakEnemyShotsLevel))} / ${Math.max(...st.map((r) => r.peakEnemyShotsBoss))}`,
       pc(st.filter((r) => r.podRescued).length),
+      boss.length
+        ? `${Math.round((100 * boss.filter((r) => r.assistFired).length) / boss.length)}`
+        : '-',
     ];
   });
   const all = [head, ...lines];
@@ -266,5 +283,6 @@ export function formatSummaryTable(botName: string, rows: readonly SummaryRow[])
     '  boss% reached the boss · deaths before the boss · in the fight (boss phase at death)',
     '  salvage: median on a clear (median over all runs) · at boss: weapons × average level',
     '  boss s: median fight on clears · peak shots: waves / boss',
+    '  assist%: boss fights that outlasted the stall breaker’s threshold',
   ].join('\n');
 }
