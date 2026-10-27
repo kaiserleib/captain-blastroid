@@ -1,6 +1,9 @@
 // Wave director (T15): runs a level's timeline and asteroid field, then the boss handoff and outro.
 export {
   DEBUG_LOADOUT,
+  ESCAPE_TOAST,
+  escapeBonus,
+  escapeTimeLeft,
   NO_SCHEMATIC_SALVAGE_MUL,
   OUTRO,
   SUPPLY_DROP,
@@ -22,7 +25,7 @@ export {
   type LevelScript,
   type LevelScriptArgs,
 } from './registry';
-export type { DirectorPhase, DirectorState } from './state';
+export type { DirectorPhase, DirectorState, EscapeState } from './state';
 export {
   buildSchedule,
   eventKind,

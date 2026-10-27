@@ -4,7 +4,8 @@ import type { System, World } from '../../sim/world';
 
 /**
  * `?sandbox&hud`: a scripted loop of fake state so every HUD widget can be seen
- * changing (weapons, hits, salvage, chain, timers, boss). Dev only; it writes the
+ * changing (all six weapon slots, hits, salvage, chain, timers, boss, the escape
+ * countdown and its white-out). Dev only; it writes the
  * world the way gameplay systems would, which the HUD itself never does.
  */
 export const hudDemoEnabled =
@@ -13,7 +14,10 @@ export const hudDemoEnabled =
   new URLSearchParams(location.search).has('hud');
 
 const LOOP = 26;
-const WEAPON_ORDER = ['blaster', 'spread', 'lance', 'seeker'];
+const WEAPON_ORDER = ['blaster', 'spread', 'lance', 'seeker', 'orbitDrones', 'arc'];
+/** The escape countdown starts once the demo boss is down and ends before the loop does. */
+const ESCAPE_AT = 20.5;
+const ESCAPE_DUR = 3.5;
 const BOSS_DEF = 'scrap_baron';
 const PART_HP = [120, 60, 60];
 
@@ -70,7 +74,7 @@ export function createHudDemoSystem(): System {
       if (crossed(0, t)) {
         p.maxShield = 5;
         p.shield = 5;
-        p.maxWeaponSlots = 5;
+        p.maxWeaponSlots = 6;
         p.weapons.length = 0;
         p.weapons.push(weapon('blaster'));
         run.score = 0;
@@ -98,6 +102,7 @@ export function createHudDemoSystem(): System {
       run.chain = t < 4 ? 1 : 1 + (Math.floor(t / 1.5) % 8);
 
       if (crossed(11, t)) w.events.emit('bossWarning', {});
+      if (crossed(ESCAPE_AT, t)) w.events.emit('escapeStarted', { dur: ESCAPE_DUR });
       if (crossed(13.5, t)) {
         spawnBossPart(w, 120, 70, PART_HP[0] as number);
         spawnBossPart(w, 80, 80, PART_HP[1] as number);

@@ -6,3 +6,8 @@ import './ionShoals';
 import './eventHorizon';
 import './pulsarNursery';
 import './armada';
+import './corona';
+import './warrens';
+import './junction';
+import './chrono';
+import './foundry';

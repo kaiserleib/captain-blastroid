@@ -1,14 +1,15 @@
 import { flags } from '../../debug/flags';
-import { getLevel, type LevelDef } from '../../content/levels';
+import { getLevel, type EscapeDef, type LevelDef } from '../../content/levels';
 import { clamp } from '../../engine/math';
 import { getSave } from '../../meta';
+import { registerShieldFloor } from '../../sim/hooks';
 import type { Pickup, WeaponInstance } from '../../sim/types';
 import type { System, World } from '../../sim/world';
 import { setEnemyHpMul, setEnemyShotSpeedMul } from '../enemies';
 import { spawnAsteroidStream } from '../obstacles';
 import { collectPickup, spawnDrop, spraySalvage } from '../pickups';
-import { emitToast, fireEvent, stopField, tickScrollRamp } from './events';
-import { levelSystems } from './registry';
+import { emitToast, fireEvent, startScrollRamp, stopField, tickScrollRamp } from './events';
+import { levelSystems, runLevelScript } from './registry';
 import { logLine, type DirectorState } from './state';
 import {
   buildSchedule,
@@ -26,6 +27,14 @@ export const OUTRO = {
   /** levelComplete + the results delay. */
   runOverAt: 5.5,
 } as const;
+
+/** `LevelDef.escape` toast when the def doesn't set one. */
+export const ESCAPE_TOAST = 'CORE BREACH - ESCAPE!';
+
+/** Salvage the escape pays at the end: `bonus − bonusPerHit × hits`, never below 0. */
+export function escapeBonus(def: EscapeDef, hits: number): number {
+  return Math.max(0, def.bonus - def.bonusPerHit * hits);
+}
 
 /** `guaranteeWeapon`: the capsule appears this far ahead of the ship, kept this far inside the edges. */
 export const SUPPLY_DROP = { ahead: 60, margin: 16 } as const;
@@ -80,6 +89,7 @@ export function startDirector(
     forced: new Map(),
     forcedGranted: new Set(),
     capsuleFixes: [],
+    escape: { active: false, t: 0, left: 0, hits: 0, magnetized: false },
     outroT: 0,
     outroStep: 0,
     bossX: w.width / 2,
@@ -110,8 +120,24 @@ export function startDirector(
       st.capsuleFixes.push({ x: p.x, y: p.y, weaponId });
     }),
     w.events.on('bossDefeated', (p) => onBossDefeated(w, st, p.x, p.y)),
+    w.events.on('playerHit', () => {
+      if (st.phase === 'escape') st.escape.hits++;
+    }),
   );
+  // Registered per start: tests that clear the hooks get it back with the next director.
+  registerShieldFloor(shieldFloorOf);
   return st;
+}
+
+/** The escape's last-shield guard: on from the escape's start to the end of the run. */
+function shieldFloorOf(w: World): number {
+  return states.get(w)?.escape.active === true ? 1 : -Infinity;
+}
+
+/** Seconds left on the escape countdown, or -1 when no escape is running. */
+export function escapeTimeLeft(w: World): number {
+  const st = states.get(w);
+  return st !== undefined && st.phase === 'escape' ? st.escape.left : -1;
 }
 
 export function getDirector(w: World): DirectorState | undefined {
@@ -140,7 +166,7 @@ function grantLoadout(w: World): void {
 }
 
 function onBossDefeated(w: World, st: DirectorState, x: number, y: number): void {
-  if (st.phase === 'outro' || st.phase === 'done') return;
+  if (st.phase === 'escape' || st.phase === 'outro' || st.phase === 'done') return;
   st.phase = 'outro';
   st.outroT = 0;
   st.outroStep = 0;
@@ -157,6 +183,52 @@ function onBossDefeated(w: World, st: DirectorState, x: number, y: number): void
   const salvage = st.level.bossSalvage * (schematic === null ? NO_SCHEMATIC_SALVAGE_MUL : 1);
   spraySalvage(w, x, y, Math.round(salvage));
   logLine(st, `${st.t.toFixed(1)} bossDefeated schematic=${schematic ?? 'none'}`);
+  if (st.level.escape !== undefined) startEscape(w, st, st.level.escape);
+}
+
+const escapeP = { dur: 0 };
+
+/** Boss defeat on a level with `escape`: the countdown runs before the outro. */
+function startEscape(w: World, st: DirectorState, def: EscapeDef): void {
+  st.phase = 'escape';
+  const e = st.escape;
+  e.active = true;
+  e.t = 0;
+  e.left = def.dur;
+  e.hits = 0;
+  e.magnetized = false;
+  escapeP.dur = def.dur;
+  w.events.emit('escapeStarted', escapeP);
+  emitToast(w, def.toast ?? ESCAPE_TOAST);
+  startScrollRamp(w, st, { to: def.scrollTo, over: def.over });
+  logLine(st, `${st.t.toFixed(1)} escape ${def.dur}s scroll ${def.scrollTo}`);
+  if (def.script !== undefined) {
+    const ran = runLevelScript(w, def.script, undefined);
+    logLine(st, `${st.t.toFixed(1)} script ${def.script}${ran ? '' : ' (unknown)'}`);
+  }
+}
+
+function updateEscape(w: World, st: DirectorState, dt: number): void {
+  const e = st.escape;
+  e.t += dt;
+  // The boss's rewards would otherwise fall behind at escape speed.
+  if (!e.magnetized && e.t >= OUTRO.magnetAt) {
+    e.magnetized = true;
+    magnetizeAll(w);
+  }
+  e.left = Math.max(0, e.left - dt);
+  if (e.left > 0) return;
+  const def = st.level.escape as EscapeDef;
+  const bonus = escapeBonus(def, e.hits);
+  if (w.player.alive) {
+    w.run.salvage += bonus;
+    emitToast(w, `ESCAPE BONUS +${bonus}`);
+  }
+  logLine(st, `${st.t.toFixed(1)} escapeDone hits=${e.hits} bonus=${bonus}`);
+  // On into the usual outro, past its magnet step.
+  st.phase = 'outro';
+  st.outroT = OUTRO.magnetAt;
+  st.outroStep = 1;
 }
 
 function updateField(w: World, st: DirectorState): void {
@@ -291,6 +363,10 @@ export function updateDirector(w: World, dt: number): void {
 
 function stepTimeline(w: World, st: DirectorState, dt: number): void {
   if (st.phase === 'done') return;
+  if (st.phase === 'escape') {
+    updateEscape(w, st, dt);
+    return;
+  }
   if (st.phase === 'outro') {
     updateOutro(w, st, dt);
     return;

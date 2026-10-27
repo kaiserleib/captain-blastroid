@@ -224,4 +224,6 @@ export interface EscapeDef {
   /** Salvage paid at the end, minus `bonusPerHit` per hit taken (min 0). */
   bonus: number;
   bonusPerHit: number;
+  /** Toast at the start (default `ESCAPE_TOAST` in game/director). */
+  toast?: string;
 }

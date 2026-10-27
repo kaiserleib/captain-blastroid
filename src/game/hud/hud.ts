@@ -17,6 +17,7 @@ import { HudState } from './state';
 import {
   drawBand,
   drawBossBar,
+  drawEscape,
   drawPauseButton,
   drawSalvage,
   drawScore,
@@ -24,8 +25,10 @@ import {
   drawTimers,
   drawWarning,
   drawWeapons,
+  drawWhiteOut,
   formatChain,
   formatCount,
+  formatEscape,
   formatScore,
   MAX_SLOTS,
   NumberText,
@@ -57,6 +60,7 @@ export class Hud {
   private readonly score = new NumberText(formatScore);
   private readonly salvage = new NumberText(formatCount);
   private readonly chain = new NumberText(formatChain);
+  private readonly escape = new NumberText(formatEscape);
 
   attach(w: World): void {
     this.world = w;
@@ -65,6 +69,7 @@ export class Hud {
     w.events.on('bossSpawned', (e) => this.state.onBossSpawned(e.defId));
     w.events.on('bossDefeated', () => this.state.onBossDefeated());
     w.events.on('bossWarning', () => this.state.onBossWarning());
+    w.events.on('escapeStarted', (e) => this.state.onEscapeStarted(w.time, e.dur));
   }
 
   /** The last layout drawn (null before the first frame). */
@@ -130,6 +135,7 @@ export class Hud {
 
     if (st.warningT > 0) drawWarning(r, l, st);
     if (st.bossActive && st.bossMaxHp > 0) drawBossBar(r, l, st);
+    else if (st.escapeEnd >= 0) drawEscape(r, l, st, this.escape.get(Math.ceil(st.escapeLeft)));
 
     const ty = l.topRowY;
     drawShield(r, st, l.left, ty + 1, p.shield, p.maxShield);
@@ -148,6 +154,7 @@ export class Hud {
     const by = l.bottomRowY;
     drawWeapons(r, l.left, by, p.weapons, Math.min(MAX_SLOTS, p.maxWeaponSlots));
     drawTimers(r, l.right, by, p.magnetT, st.magnetMax, p.repulsorT, st.repulsorMax);
+    if (st.whiteOut > 0) drawWhiteOut(r, l, st.whiteOut);
 
     r.offsetY = oy;
     r.shakeX = sx;

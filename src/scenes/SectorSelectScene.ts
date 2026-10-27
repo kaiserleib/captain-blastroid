@@ -1,5 +1,6 @@
 import { Background, isThemeId, PARALLAX, themeForLevel, type ThemeId } from '../backgrounds';
-import { getLevel, LEVEL_ORDER } from '../content';
+import type { ScenePointer } from '../engine/scene';
+import { actIndexOf, ACTS, getLevel, type ActDef } from '../content';
 import { drawText, measure } from '../gfx/font';
 import type { Renderer } from '../gfx/renderer';
 import { drawCursor, drawWindow } from '../gfx/ui';
@@ -22,6 +23,9 @@ import {
 import { flow } from './flow';
 
 const CARD_H = 56;
+const PAGER_H = 20;
+/** A horizontal drag this long (logical px), and mostly sideways, turns the page. */
+export const SWIPE_MIN = 32;
 /** On a tall (520 px) buffer the cards grow to show more of each banner. */
 const CARD_H_TALL = 70;
 const GAP = 4;
@@ -59,35 +63,108 @@ function bannerView(bg: Background, bh: number): { scroll: number; cx: number } 
   return { scroll, cx };
 }
 
-/** Five stacked sector cards; confirming an unlocked one makes it the hangar's LAUNCH target. */
+/** -1 / 1 for a left / right swipe of (dx, dy) logical px, else 0. */
+export function swipeDir(dx: number, dy: number): number {
+  if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < 2 * Math.abs(dy)) return 0;
+  return dx < 0 ? 1 : -1;
+}
+
+/**
+ * Five stacked sector cards per act, paged left/right (keys, swipe, arrows);
+ * confirming an unlocked one makes it the hangar's LAUNCH target.
+ */
 export class SectorSelectScene extends MenuScene {
   private top = 0;
   private infos: SectorInfo[] = [];
+  private page = 0;
+  /** The card to focus after a layout (null: the first card). */
+  private focusId: string | null = null;
+  private swipe = { id: -1, x: 0, y: 0 };
 
   override enter(): void {
     const save = getSave();
-    this.infos = LEVEL_ORDER.map((id) => sectorInfo(save, id));
+    this.infos = ACTS.flatMap((a) => a.levels).map((id) => sectorInfo(save, id));
+    this.page = actIndexOf(save.selectedLevel);
+    this.focusId = PREFIX + save.selectedLevel;
+  }
+
+  private get act(): ActDef {
+    return ACTS[this.page] as ActDef;
+  }
+
+  /** The whole act is locked until the sector before its first one is cleared. */
+  private get actLocked(): boolean {
+    const first = this.infos.find((s) => s.id === this.act.levels[0]);
+    return first !== undefined && !first.unlocked;
   }
 
   protected layout(w: number, h: number): void {
-    const n = LEVEL_ORDER.length;
-    const tall = 24 + n * (CARD_H_TALL + GAP) - GAP + 8 + 22 <= h - 16;
+    const n = this.act.levels.length;
+    const chrome = 24 + PAGER_H + 4 + 8 + 22;
+    const tall = chrome + n * (CARD_H_TALL + GAP) - GAP <= h - 16;
     const cardH = tall ? CARD_H_TALL : CARD_H;
-    const total = 24 + n * (cardH + GAP) - GAP + 8 + 22;
+    const total = chrome + n * (cardH + GAP) - GAP;
     this.top = Math.max(4, Math.floor((h - total) / 2));
-    let y = this.top + 24;
-    const items: MenuItem[] = [];
-    for (const id of LEVEL_ORDER) {
+    const items: MenuItem[] = [
+      this.button('prev', 6, this.top + 22, 26, PAGER_H),
+      this.button('next', w - 32, this.top + 22, 26, PAGER_H),
+    ];
+    let y = this.top + 22 + PAGER_H + 4;
+    for (const id of this.act.levels) {
       items.push(this.button(PREFIX + id, 6, y, w - 12, cardH));
       y += cardH + GAP;
     }
     items.push(this.button('back', 50, y - GAP + 8, w - 100, 22));
-    this.menu.setItems(items, PREFIX + getSave().selectedLevel);
+    const want = this.focusId;
+    const focus = items.some((it) => it.id === want) ? want : PREFIX + this.act.levels[0];
+    this.menu.setItems(items, focus ?? undefined);
+  }
+
+  /** Left/right always page; up/down move focus as usual. */
+  protected override nav(dx: number, dy: number): void {
+    if (dx !== 0 && dy === 0) this.turn(dx);
+    else super.nav(dx, dy);
+  }
+
+  override onPointer(e: ScenePointer): void {
+    const sw = this.swipe;
+    if (e.type === 'down' && sw.id < 0) {
+      sw.id = e.id;
+      sw.x = e.x;
+      sw.y = e.y;
+    } else if ((e.type === 'up' || e.type === 'cancel') && e.id === sw.id) {
+      sw.id = -1;
+      const d = e.type === 'up' ? swipeDir(e.x - sw.x, e.y - sw.y) : 0;
+      if (d !== 0) {
+        // The finger lifted off whatever card it started on: don't press it.
+        super.onPointer({ ...e, type: 'cancel' });
+        this.turn(d);
+        return;
+      }
+    }
+    super.onPointer(e);
+  }
+
+  private turn(d: number): void {
+    const n = ACTS.length;
+    if (n < 2) return;
+    this.page = (this.page + d + n) % n;
+    const sel = getSave().selectedLevel;
+    // Arrows keep focus on the arrow tapped (so it can be tapped again); keys and swipes land on a card.
+    const onArrow = this.menu.isFocused('prev') || this.menu.isFocused('next');
+    this.focusId = this.act.levels.includes(sel) ? PREFIX + sel : null;
+    if (onArrow) this.focusId = d < 0 ? 'prev' : 'next';
+    sfx('ui_move');
+    this.relayout();
   }
 
   protected activate(it: MenuItem): void {
     if (it.id === 'back') {
       this.back();
+      return;
+    }
+    if (it.id === 'prev' || it.id === 'next') {
+      this.turn(it.id === 'prev' ? -1 : 1);
       return;
     }
     const info = this.infos.find((s) => PREFIX + s.id === it.id);
@@ -108,8 +185,22 @@ export class SectorSelectScene extends MenuScene {
 
   protected draw(r: Renderer): void {
     const selected = getSave().selectedLevel;
-    drawHeader(r, 'SECTOR SELECT', this.top);
+    drawHeader(r, 'SECTOR SELECT', this.top, `${this.page + 1}/${ACTS.length}`);
+    const locked = this.actLocked;
+    r.text(this.act.name, r.width / 2, this.top + 22 + 6, {
+      align: 'center',
+      color: locked ? DIM : GOLD,
+    });
     for (const it of this.menu.items) {
+      if (it.id === 'prev' || it.id === 'next') {
+        drawButton(r, it, it.id === 'prev' ? '<' : '>', {
+          focused: this.focused(it.id),
+          pressed: this.pressed(it.id),
+          t: this.t,
+          disabled: ACTS.length < 2,
+        });
+        continue;
+      }
       if (it.id === 'back') {
         drawButton(r, it, 'BACK', {
           focused: this.focused(it.id),
@@ -119,11 +210,17 @@ export class SectorSelectScene extends MenuScene {
         continue;
       }
       const info = this.infos.find((s) => PREFIX + s.id === it.id);
-      if (info) this.drawCard(r, it, info, info.id === selected);
+      if (info) this.drawCard(r, it, info, info.id === selected, locked);
     }
   }
 
-  private drawCard(r: Renderer, it: MenuItem, s: SectorInfo, selected: boolean): void {
+  private drawCard(
+    r: Renderer,
+    it: MenuItem,
+    s: SectorInfo,
+    selected: boolean,
+    actLocked: boolean,
+  ): void {
     const focused = this.focused(it.id);
     const p = this.pressed(it.id) ? 1 : 0;
     const x = it.x;
@@ -173,7 +270,9 @@ export class SectorSelectScene extends MenuScene {
     if (focused) drawCursor(r, tx - 2, ty + 12, this.t);
 
     if (!s.unlocked) {
-      r.text(`CLEAR SECTOR ${s.number - 1}`, tx, ty + 22, { color: LOCK_RED });
+      // A locked act asks for the sector that opens it, on every card.
+      const need = actLocked ? this.firstOfAct() - 1 : s.number - 1;
+      r.text(`CLEAR SECTOR ${need}`, tx, ty + 22, { color: LOCK_RED });
       return;
     }
 
@@ -200,6 +299,11 @@ export class SectorSelectScene extends MenuScene {
     if (s.schematic) drawTag(r, 'SCHEMATIC', tagX, ty + 36, BLUEPRINT);
     if (selected)
       r.text('SELECTED', right, ty + 37, { align: 'right', color: GOLD, font: 'small' });
+  }
+
+  /** Campaign number of this page's first sector. */
+  private firstOfAct(): number {
+    return this.infos.find((s) => s.id === this.act.levels[0])?.number ?? 1;
   }
 }
 

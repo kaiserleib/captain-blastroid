@@ -1,5 +1,5 @@
 import { flags } from '../debug/flags';
-import { getBossDamageHooks, scaleBossDamage } from './hooks';
+import { getBossDamageHooks, scaleBossDamage, shieldFloor } from './hooks';
 import { getEnemyDef } from './spawn';
 import type { Asteroid, Enemy } from './types';
 import type { World } from './world';
@@ -180,7 +180,8 @@ export function damageAsteroid(w: World, a: Asteroid, amount: number, byPlayer: 
 export function damagePlayer(w: World, amount = 1): boolean {
   const p = w.player;
   if (p.invulnT > 0 || !p.alive || flags.god || amount <= 0) return false;
-  p.shield -= amount;
+  // The escape's silent assist (T32): a hit still flashes and counts, but can't take the last shield.
+  p.shield = Math.max(p.shield - amount, Math.min(p.shield, shieldFloor(w)));
   p.invulnT = PLAYER_INVULN;
   resetChain(w);
   const dead = p.shield < 0;

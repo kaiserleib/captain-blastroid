@@ -220,3 +220,43 @@ test('sector select → launch sector 2, 5 s of touch-drag', async ({ page }, te
   await testInfo.attach('sector-2', { body: await page.screenshot(), contentType: 'image/png' });
   expect(errors).toEqual([]);
 });
+
+async function itemIds(page: Page): Promise<string[]> {
+  return (await sceneState(page))?.items.map((i) => i.id) ?? [];
+}
+
+test('act1 save: sector select pages ACT II ↔ ACT I, launches sector 6', async ({
+  page,
+}, testInfo) => {
+  const sixth = LEVEL_ORDER[5];
+  test.skip(!sixth, 'needs Act II in LEVEL_ORDER (T32)');
+  const errors = collectErrors(page);
+  await page.goto('/?mute&save=act1');
+  const l = await layoutOf(page);
+
+  await passTitle(page, l);
+  await tapItem(page, l, 'HangarScene', 'sector');
+  // Opens on the page holding selectedLevel (corona, ACT II); only that act's cards are laid out.
+  await tapItem(page, l, 'SectorSelectScene', `sector:${sixth}`);
+  await tapItem(page, l, 'HangarScene', 'sector');
+  await tapItem(page, l, 'SectorSelectScene', 'prev');
+  await expect.poll(() => itemIds(page)).toContain(`sector:${LEVEL_ORDER[0]}`);
+  expect(await itemIds(page)).not.toContain(`sector:${sixth}`);
+  await tapItem(page, l, 'SectorSelectScene', 'next');
+  await expect.poll(() => itemIds(page)).toContain(`sector:${sixth}`);
+  await testInfo.attach('act-2-page', { body: await page.screenshot(), contentType: 'image/png' });
+  await tapItem(page, l, 'SectorSelectScene', `sector:${sixth}`);
+  await tapItem(page, l, 'HangarScene', 'launch');
+  await expect.poll(() => probe(page), { timeout: 10_000 }).not.toBeNull();
+  const start = (await probe(page))!;
+  expect(start.levelId).toBe(sixth);
+
+  const sweep = await dragStick(page, l, 4_000);
+  const end = (await probe(page))!;
+  expect(end.levelId).toBe(sixth);
+  expect(end.tick - start.tick).toBeGreaterThan(120);
+  expect(sweep).toBeGreaterThan(10);
+
+  await testInfo.attach('sector-6', { body: await page.screenshot(), contentType: 'image/png' });
+  expect(errors).toEqual([]);
+});

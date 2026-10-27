@@ -1,5 +1,12 @@
 // Crafted saves for `?save=fresh|mid|act1|all` (dev only), to see every locked/unlocked state.
-import { LEVEL_ORDER, PILOT_ORDER, SHIP_ORDER, UPGRADES, UPGRADE_ORDER } from '../content';
+import {
+  LEVEL_ORDER,
+  PILOT_ORDER,
+  SHIP_ORDER,
+  UPGRADES,
+  UPGRADE_ORDER,
+  type WeaponId,
+} from '../content';
 import { createDefaultSave, type HighScore, type LevelRecord, type SaveData } from '../meta';
 
 export type DebugSaveId = 'fresh' | 'mid' | 'act1' | 'all';
@@ -59,6 +66,7 @@ export function debugSave(id: DebugSaveId): SaveData {
 const ACT1_LEVELS = ['kessler', 'ionShoals', 'eventHorizon', 'pulsarNursery', 'armada'];
 const ACT1_SHIPS = ['kestrel', 'bulwark', 'dart', 'warden', 'corsair', 'halcyon', 'paragon'];
 const ACT1_PILOTS = ['blastroid', 'juno', 'grieg', 'zzkar', 'sable', 'pip', 'vale'];
+const ACT1_WEAPONS: WeaponId[] = ['blaster', 'spread', 'lance', 'seeker', 'orbitDrones'];
 
 /** Kestrel + Blastroid still selected so bot numbers compare with Act I's. */
 function act1Save(s: SaveData): SaveData {
@@ -80,7 +88,10 @@ function act1Save(s: SaveData): SaveData {
     shipsBuilt: [...ACT1_SHIPS],
     pilotsRescued: [...ACT1_PILOTS],
     levels,
-    selectedLevel: LEVEL_ORDER[ACT1_LEVELS.length] ?? s.selectedLevel,
+    weaponsUnlocked: [...ACT1_WEAPONS],
+    selectedShip: 'kestrel',
+    selectedPilot: 'blastroid',
+    selectedLevel: 'corona',
     stats: { runs: 24, kills: 4100, deaths: 18, bossKills: 5 },
   };
 }
