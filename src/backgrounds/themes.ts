@@ -321,7 +321,7 @@ export const THEMES: Readonly<Record<ThemeId, BackgroundTheme>> = {
       colors: [snes(16, 16, 24), snes(32, 24, 32), snes(48, 40, 32), snes(64, 48, 24)],
       coverage: 0.78,
       patch: 160,
-      start: 8,
+      start: 17,
       lights: { color: snes(152, 120, 56), count: 16 },
     },
     streaks: { head: snes(120, 104, 80), tail: snes(64, 56, 48), density: 1 },
