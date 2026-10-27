@@ -1,4 +1,4 @@
-import { ACCENT, HAIR, METAL, UNIFORM, type Ramp } from '../palette';
+import { ACCENT, HAIR, HELMET, METAL, UNIFORM, type Ramp } from '../palette';
 import type { Geo, Pixels } from '../pixels';
 import type { Insignia, PortraitTraits } from '../traits';
 
@@ -10,6 +10,7 @@ const GLYPHS: Record<Insignia, readonly string[]> = {
   star: ['..x..', 'xxxxx', '.xxx.', '.x.x.'],
   bolt: ['..xxx', '.xx..', '..xx.', 'xxx..'],
   ring: ['.xxx.', 'x...x', 'x...x', '.xxx.'],
+  torn: [],
 };
 
 function torso(p: Pixels, u: Ramp, top: number): void {
@@ -29,6 +30,18 @@ function torso(p: Pixels, u: Ramp, top: number): void {
 }
 
 function patch(p: Pixels, t: PortraitTraits, u: Ramp, x: number, y: number): void {
+  if (t.insignia === 'torn') {
+    // Ripped off: an unfaded square of cloth and loose stitching.
+    p.rect(u.base, x + 1, y + 1, 5, 4);
+    p.rect(u.light, x + 1, y + 1, 5, 1);
+    for (let i = 0; i < 7; i += 2) {
+      p.px(u.dark, x + i, y);
+      p.px(u.dark, x + 6 - i, y + 5);
+    }
+    p.px(u.dark, x, y + 2);
+    p.px(u.dark, x + 6, y + 3);
+    return;
+  }
   p.rect(u.dark, x, y, 7, 6);
   p.rect(ACCENT[t.patchColor], x + 1, y + 1, 5, 4);
   const g = GLYPHS[t.insignia];
@@ -101,6 +114,22 @@ export function drawUniform(p: Pixels, t: PortraitTraits, g: Geo): void {
     p.px(ACCENT[t.patchColor], 23, top + 6);
     p.px(ACCENT[t.patchColor], 24, top + 6);
     p.rect(u.dark, 19, top - 1, 10, 3);
+  } else if (t.suit === 'labCoat') {
+    // A white coat over the flight suit: the suit shows in a V down the front.
+    const c = HELMET.white;
+    torso(p, c, top);
+    for (let y = top; y < p.h; y++) {
+      const hw = Math.min(6, 2 + ((y - top) >> 1));
+      p.rect(u.base, 24 - hw, y, hw * 2, 1);
+      p.rect(u.shadow, 24, y, hw, 1);
+      p.px(c.shadow, 24 - hw - 1, y);
+      p.px(c.dark, 24 + hw, y);
+    }
+    p.rect(u.dark, 24, top + 2, 1, p.h - top - 2);
+    // Turned-up coat collar.
+    p.rect(c.base, 15, top - 2, 6, 3);
+    p.rect(c.light, 15, top - 2, 4, 1);
+    p.rect(c.shadow, 27, top - 2, 6, 3);
   } else {
     // Flight suit: standing collar flaps and a center zip.
     p.rect(u.dark, 24, top + 2, 1, p.h - top - 2);
@@ -112,7 +141,13 @@ export function drawUniform(p: Pixels, t: PortraitTraits, g: Geo): void {
   }
 
   // Name tape on the right breast (viewer's left).
-  if (t.suit !== 'armored') {
+  if (t.suit === 'labCoat') {
+    // Pocket and pen on the coat instead of a tape.
+    p.rect(HELMET.white.shadow, 11, top + 7, 7, 1);
+    p.rect(METAL.dark, 13, top + 5, 1, 3);
+    p.px(ACCENT.red, 13, top + 5);
+    patch(p, t, u, 30, top + 6);
+  } else if (t.suit !== 'armored') {
     p.rect(u.dark, 12, top + 6, 8, 3);
     p.rect(u.light, 13, top + 6, 6, 2);
     p.px(u.shadow, 14, top + 6);

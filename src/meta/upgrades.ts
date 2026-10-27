@@ -41,13 +41,13 @@ export function buyUpgrade(save: SaveData, id: string): SaveData {
   };
 }
 
-/** Applies stat modifiers in place: `extraShield` adds, every `*Mul` multiplies. */
+/** Applies stat modifiers in place: every `*Mul` multiplies, the rest (`extraShield`, …) add. */
 export function applyStatMods(stats: PlayerStats, mods: StatMods): void {
   for (const key of Object.keys(mods) as (keyof PlayerStats)[]) {
     const v = mods[key];
     if (v === undefined) continue;
-    if (key === 'extraShield') stats.extraShield += v;
-    else stats[key] *= v;
+    if (key.endsWith('Mul')) stats[key] *= v;
+    else stats[key] += v;
   }
 }
 

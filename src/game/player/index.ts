@@ -6,6 +6,7 @@ export { blinkVisible, playerLayer, warmPlayerSprites } from './playerDraw';
 export {
   getPlayerRuntime,
   initPlayer,
+  playerPastPos,
   isGodMode,
   playerSystem,
   setGodMode,
@@ -13,3 +14,4 @@ export {
   updatePlayer,
 } from './playerSystem';
 export { installPlayerSandbox } from './sandbox';
+export { HISTORY_SECONDS } from './history';
