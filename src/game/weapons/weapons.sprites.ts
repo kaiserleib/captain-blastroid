@@ -250,6 +250,43 @@ defineSprite('pbullet_seeker5', {
   rotations: 16,
 });
 
+// Ricochet (T35): a 4 px spinning disc, rim and hub swapping in 2 frames.
+defineSprite('pbullet_disc', {
+  palette: SHOT,
+  frames: [
+    `
+    .aw.
+    acdw
+    wdca
+    .wa.`,
+    `
+    .wa.
+    wdca
+    acdw
+    .aw.`,
+  ],
+});
+
+// Flak shell: a 3 px yellow slug; fragments are hot 2 px chips.
+defineSprite('pbullet_flak', {
+  palette: SHOT,
+  frames: [
+    `
+    lw.
+    wyk
+    .kk`,
+  ],
+});
+
+defineSprite('pbullet_frag', {
+  palette: SHOT,
+  frames: [
+    `
+    wl
+    ly`,
+  ],
+});
+
 // Orbit drone: cobalt orb with a cyan eye that pulses.
 const DRONE = {
   o: OUTLINE,
@@ -415,5 +452,56 @@ icon(
   ebcbbbbbbdbe
   ecwcbbbbdbbe
   ebcbbdddbbbe
+  eeeeeeeeeeee`,
+);
+
+icon(
+  'icon_arc',
+  `
+  eeeeeeeeeeee
+  eBBBBBBBBawe
+  eBBBBBBBawBe
+  eBBBBBBawBBe
+  eBBBBBwaBBBe
+  eBBBBawwwaBe
+  ebbbawwwabbe
+  ebbbbbawbbbe
+  ebbbbawbbbbe
+  ebbbawbbbbbe
+  ebbawbbbbbbe
+  eeeeeeeeeeee`,
+);
+
+icon(
+  'icon_ricochet',
+  `
+  eeeeeeeeeeee
+  eBBBBBBBBBae
+  eBBBBBBBBaBe
+  eBBBBBBBaBBe
+  eaBBBBBaBBBe
+  eBaBBBaBBBBe
+  ebbabawbbbbe
+  ebbbacdwbbbe
+  ebbbwdcabbbe
+  ebbbbwabbbbe
+  ebbbbbbbbbbe
+  eeeeeeeeeeee`,
+);
+
+icon(
+  'icon_flak',
+  `
+  eeeeeeeeeeee
+  eBBlBBBBlBBe
+  eBBBlBBlBBBe
+  eBlBBwwBBlBe
+  eBBlwwwwlBBe
+  eBBBwwwwBBBe
+  ebblbwwblbbe
+  ebbbbllbbbbe
+  ebbbbykbbbbe
+  ebbbbykbbbbe
+  ebbbbkkbbbbe
   eeeeeeeeeeee`,
 );

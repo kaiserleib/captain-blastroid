@@ -3,16 +3,18 @@ import type { World } from '../../sim/world';
 import { addWeapon, findWeapon, levelWeapon } from './resolvePickup';
 import { setWeaponsPreTick } from './weaponSystem';
 
-// `?sandbox`: F1–F5 grant or level one weapon, F6 maxes everything. Slot
-// limits are ignored so the full loadout can be tested on any ship.
+// `?sandbox`: F1–F5 grant or level one Act I weapon, F6 maxes everything,
+// F7–F9 grant or level Arc Coil, Ricochet and Flak. Slot limits are ignored
+// so the full loadout can be tested on any ship.
 
-const KEYS = ['F1', 'F2', 'F3', 'F4', 'F5', 'F6'];
+const KEYS = ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9'];
 const MAX_ALL = 5;
 const queue: number[] = [];
 
-/** Applies one sandbox action: 0–4 grant/level that weapon, 5 = max all. */
+/** Applies one sandbox action (a KEYS index): grant/level that key's weapon, 5 = max all. */
 export function sandboxAction(w: World, action: number): void {
-  const ids = action === MAX_ALL ? WEAPON_ORDER : [WEAPON_ORDER[action]];
+  const ids =
+    action === MAX_ALL ? WEAPON_ORDER : [WEAPON_ORDER[action < MAX_ALL ? action : action - 1]];
   for (const id of ids) {
     if (id === undefined) continue;
     let inst = findWeapon(w, id);
@@ -36,7 +38,7 @@ export function installWeaponSandbox(): void {
   window.addEventListener('keydown', (e) => {
     const i = KEYS.indexOf(e.key);
     if (i < 0) return;
-    // F1 opens help and F5 reloads otherwise.
+    // F1 opens help, F5 reloads and F7 toggles caret browsing otherwise.
     e.preventDefault();
     if (!e.repeat) queue.push(i);
   });

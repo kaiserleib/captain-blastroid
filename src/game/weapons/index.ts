@@ -31,6 +31,9 @@ export const WEAPON_SPRITE_IDS: readonly string[] = [
   'pbullet_seeker',
   'pbullet_seeker5',
   'pbullet_spark',
+  'pbullet_disc',
+  'pbullet_flak',
+  'pbullet_frag',
   'drone',
   'drone5',
   'icon_blaster',
@@ -38,6 +41,9 @@ export const WEAPON_SPRITE_IDS: readonly string[] = [
   'icon_lance',
   'icon_seeker',
   'icon_orbitDrones',
+  'icon_arc',
+  'icon_ricochet',
+  'icon_flak',
 ];
 
 registerShotBlocker(droneBlocker);

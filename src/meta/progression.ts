@@ -1,5 +1,6 @@
 // Meta-progression rules. Pure functions on SaveData: they return new saves and never do I/O.
 import {
+  LEVELS,
   LEVEL_ORDER,
   PILOTS,
   PILOT_ORDER,
@@ -8,6 +9,7 @@ import {
   getDef,
   WEAPONS,
   type ShipDef,
+  type LevelDef,
   type StartingWeapon,
   type WeaponId,
 } from '../content';
@@ -146,6 +148,7 @@ export function bankRun(save: SaveData, result: RunResult, now: Date = new Date(
       schematics,
       pilotsRescued,
       highScores,
+      weaponsUnlocked: unlockFieldTestWeapon(save, result),
       stats: {
         runs: save.stats.runs + 1,
         kills: save.stats.kills + result.kills,
@@ -154,6 +157,23 @@ export function bankRun(save: SaveData, result: RunResult, now: Date = new Date(
       },
     },
   };
+}
+
+/**
+ * A won run on a sector with a field-test weapon unlocks it for capsules. Sets
+ * `result.unlockedWeapon` when the weapon is new, so Results can announce it.
+ */
+export function unlockFieldTestWeapon(
+  save: SaveData,
+  result: RunResult,
+  levels: Readonly<Record<string, LevelDef>> = LEVELS,
+): WeaponId[] {
+  const id = levels[result.levelId]?.fieldTestWeapon;
+  if (id === undefined || !result.victory || save.weaponsUnlocked.includes(id)) {
+    return save.weaponsUnlocked;
+  }
+  result.unlockedWeapon = id;
+  return [...save.weaponsUnlocked, id];
 }
 
 /**

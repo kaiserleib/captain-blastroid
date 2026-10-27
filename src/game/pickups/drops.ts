@@ -1,5 +1,6 @@
 import {
   CARRIER_DROP_TABLE,
+  capsuleWeaponPool,
   DEFAULT_ENEMY_DROP_TABLE,
   DROP_TABLES,
   type DropEntry,
@@ -11,7 +12,8 @@ import {
   SALVAGE_SIZES,
   SCHEMATIC_SHIPS,
 } from '../../content/pickups';
-import { WEAPON_MAX_LEVEL } from '../../content/weapons';
+import { LEVELS } from '../../content/levels';
+import { DEFAULT_UNLOCKED_WEAPONS, WEAPON_MAX_LEVEL } from '../../content/weapons';
 import type { Rng } from '../../engine/rng';
 import { getSave } from '../../meta';
 import { getEnemyDef, spawnPickup } from '../../sim/spawn';
@@ -57,24 +59,70 @@ export function rollDrop(table: DropTable, rng: Rng, filter = ROLL_ANY): DropEnt
   return last;
 }
 
-function ownedNonMax(weapons: readonly WeaponInstance[], skip: number): string | null {
+/** A fresh save's pool on a sector without a field-test weapon (every Act I sector). */
+export const DEFAULT_CAPSULE_POOL: readonly string[] = capsuleWeaponPool(
+  CAPSULE_WEAPON_IDS,
+  DEFAULT_UNLOCKED_WEAPONS,
+);
+
+const pools = new WeakMap<World, readonly string[]>();
+
+/**
+ * What this run's capsules can carry: `save.weaponsUnlocked` plus the sector's
+ * `fieldTestWeapon`. Read once per world (the save doesn't change mid-run).
+ */
+export function capsulePool(w: World): readonly string[] {
+  let pool = pools.get(w);
+  if (pool === undefined) {
+    const fieldTest = LEVELS[w.run.levelId]?.fieldTestWeapon;
+    pool = capsuleWeaponPool(CAPSULE_WEAPON_IDS, getSave().weaponsUnlocked, fieldTest);
+    pools.set(w, pool);
+  }
+  return pool;
+}
+
+function ownedNonMax(
+  weapons: readonly WeaponInstance[],
+  pool: readonly string[],
+  skip: number,
+): string | null {
   let k = 0;
   for (let i = 0; i < weapons.length; i++) {
     const wi = weapons[i] as WeaponInstance;
-    if (wi.level >= WEAPON_MAX_LEVEL || !CAPSULE_WEAPON_IDS.includes(wi.id)) continue;
+    if (wi.level >= WEAPON_MAX_LEVEL || !pool.includes(wi.id)) continue;
     if (k++ === skip) return wi.id;
   }
   return null;
 }
 
-/** Weapon for a capsule: `ownedWeaponBias` of the time an owned, non-max weapon (if any), else uniform. */
-export function pickCapsuleWeapon(rng: Rng, weapons: readonly WeaponInstance[]): string {
-  if (rng.next() < PICKUP_TUNING.ownedWeaponBias) {
+/**
+ * `ownedWeaponBias`, raised for pools bigger than Act I's: the uniform share
+ * (1 − bias) shrinks by 5 / poolSize. Without it, eight unlocked weapons
+ * spread capsules across more slots and loadouts reach bosses about 0.3
+ * levels lower (T35 notes). Five or fewer: unchanged, so Act I rolls match.
+ */
+export function ownedBias(poolSize: number): number {
+  const base = PICKUP_TUNING.ownedWeaponBias;
+  const ref = DEFAULT_CAPSULE_POOL.length;
+  return poolSize <= ref ? base : 1 - ((1 - base) * ref) / poolSize;
+}
+
+/**
+ * Weapon for a capsule: `ownedWeaponBias` of the time an owned, non-max weapon
+ * (if any), else uniform. Both draw only from `pool`, so a locked weapon a ship
+ * started with is never offered.
+ */
+export function pickCapsuleWeapon(
+  rng: Rng,
+  weapons: readonly WeaponInstance[],
+  pool: readonly string[] = DEFAULT_CAPSULE_POOL,
+): string {
+  if (rng.next() < ownedBias(pool.length)) {
     let n = 0;
-    while (ownedNonMax(weapons, n) !== null) n++;
-    if (n > 0) return ownedNonMax(weapons, rng.int(0, n - 1)) as string;
+    while (ownedNonMax(weapons, pool, n) !== null) n++;
+    if (n > 0) return ownedNonMax(weapons, pool, rng.int(0, n - 1)) as string;
   }
-  return CAPSULE_WEAPON_IDS[rng.int(0, CAPSULE_WEAPON_IDS.length - 1)] as string;
+  return pool[rng.int(0, pool.length - 1)] as string;
 }
 
 /** Spawns one pickup, resetting the pity timer for anything but salvage. */
@@ -86,6 +134,14 @@ export function spawnDrop(
   payload = '',
   amount = 0,
 ): Pickup | null {
+  // Named capsules (forceCapsule, guaranteeWeapon) may only carry a locked
+  // weapon when it's the sector's field test; anything else is re-picked.
+  if (
+    kind === 'weapon' &&
+    CAPSULE_WEAPON_IDS.includes(payload) &&
+    !capsulePool(w).includes(payload)
+  )
+    payload = pickCapsuleWeapon(w.rng, w.player.weapons, capsulePool(w));
   const o = spawnScratch;
   o.kind = kind;
   o.x = x;
@@ -102,7 +158,7 @@ export function spawnDrop(
 }
 
 export function spawnWeaponCapsule(w: World, x: number, y: number): Pickup | null {
-  return spawnDrop(w, 'weapon', x, y, pickCapsuleWeapon(w.rng, w.player.weapons));
+  return spawnDrop(w, 'weapon', x, y, pickCapsuleWeapon(w.rng, w.player.weapons, capsulePool(w)));
 }
 
 const MAX_SALVAGE_BITS = 8;
