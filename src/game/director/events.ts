@@ -8,6 +8,7 @@ import type {
   TimelineEvent,
 } from '../../content/levels';
 import { getSave, nextRescuablePilot } from '../../meta';
+import { getTimelineAction } from '../../sim/hooks';
 import { pinAnomaly, setScrollSpeed } from '../../sim/scroll';
 import { spawnEnemy, type EnemyOverrides } from '../../sim/spawn';
 import type { Anomaly } from '../../sim/types';
@@ -17,7 +18,7 @@ import { spawnBlackHole, spawnPulsar, type AnomalyPlacement } from '../obstacles
 import { cachePayload, spawnDrop, spawnEscapePod, spraySalvage } from '../pickups';
 import { runLevelScript } from './registry';
 import { logLine, type DirectorState } from './state';
-import { DEFAULT_SPACING, formationHalfWidth, resolveX } from './timeline';
+import { DEFAULT_SPACING, eventKind, formationHalfWidth, resolveX } from './timeline';
 
 const toastP = { text: '' };
 const bossP = { defId: '' };
@@ -185,6 +186,8 @@ export function fireEvent(w: World, st: DirectorState, ev: TimelineEvent): void 
   } else if ('script' in ev) {
     const ran = runLevelScript(w, ev.script, ev.args);
     logLine(st, `${fmt(st.t)} script ${ev.script}${ran ? '' : ' (unknown)'}`);
+  } else if (!('boss' in ev)) {
+    fireRegistered(w, st, ev);
   } else {
     // The boss module (T16) answers with bossSpawned; the field yields to its thrown rocks.
     st.phase = 'boss';
@@ -193,6 +196,25 @@ export function fireEvent(w: World, st: DirectorState, ev: TimelineEvent): void 
     w.events.emit('bossRequested', bossP);
     logLine(st, `${fmt(st.t)} bossRequested ${ev.boss}`);
   }
+}
+
+const warnedKinds = new Set<string>();
+
+/** Act II hazard events: the owning module registered a handler for the kind. */
+function fireRegistered(w: World, st: DirectorState, ev: TimelineEvent): void {
+  const kind = eventKind(ev);
+  const fn = getTimelineAction(kind);
+  if (fn === undefined) {
+    // Sector stubs may run before the hazard module that owns the kind exists.
+    if (!warnedKinds.has(kind)) {
+      warnedKinds.add(kind);
+      console.warn(`No timeline action registered for '${kind}'`);
+    }
+    logLine(st, `${fmt(st.t)} ${kind} (unregistered)`);
+    return;
+  }
+  fn(w, (ev as unknown as Record<string, unknown>)[kind]);
+  logLine(st, `${fmt(st.t)} ${kind}`);
 }
 
 export function stopField(st: DirectorState): void {

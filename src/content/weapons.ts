@@ -1,7 +1,16 @@
 // Weapon roster, per docs/design.md → Weapons. Every tunable lives here; the
 // weapon system only reads these tables.
 
-export type WeaponId = 'blaster' | 'spread' | 'lance' | 'seeker' | 'orbitDrones';
+export type WeaponId =
+  | 'blaster'
+  | 'spread'
+  | 'lance'
+  | 'seeker'
+  | 'orbitDrones'
+  // Act II (T35 replaces the placeholder defs below).
+  | 'arc'
+  | 'ricochet'
+  | 'flak';
 
 /** One level's numbers. Fields a weapon doesn't use are 0. */
 export interface WeaponLevel {
@@ -87,6 +96,24 @@ function levels(first: Partial<WeaponLevel>, ...deltas: Partial<WeaponLevel>[]):
   for (const d of deltas) out.push(lv({ ...out[out.length - 1], ...d }));
   if (out.length !== WEAPON_MAX_LEVEL) throw new Error('weapon needs 5 levels');
   return out;
+}
+
+function placeholder(id: WeaponId, name: string, letter: string): WeaponDef {
+  return {
+    id,
+    name,
+    letter,
+    icon: 'icon_blaster',
+    color: '#f8f8f8',
+    sfx: '',
+    levels: levels(
+      { cooldown: 1, damage: 1, count: 1, speed: 240, ttl: 1.8, sprite: 'pbullet_blaster' },
+      {},
+      {},
+      {},
+      {},
+    ),
+  };
 }
 
 export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
@@ -219,6 +246,11 @@ export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
       { damage: 2, count: 5, radius: 5, sprite: 'drone5', sparkCooldown: 0.5 },
     ),
   },
+  // Placeholders so Record<WeaponId, …> maps compile before T35. They never drop:
+  // capsules only draw from the save's `weaponsUnlocked`, and no ship starts with one.
+  arc: placeholder('arc', 'ARC COIL', 'A'),
+  ricochet: placeholder('ricochet', 'RICOCHET', 'R'),
+  flak: placeholder('flak', 'FLAK', 'F'),
 };
 
 /**
@@ -245,6 +277,9 @@ export const WEAPON_ORDER: readonly WeaponId[] = [
   'seeker',
   'orbitDrones',
 ];
+
+/** What a fresh save may find in capsules; Act II weapons unlock on their home sector's first clear. */
+export const DEFAULT_UNLOCKED_WEAPONS: readonly WeaponId[] = WEAPON_ORDER;
 
 export function isWeaponId(id: string): id is WeaponId {
   return Object.prototype.hasOwnProperty.call(WEAPONS, id);

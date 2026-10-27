@@ -9,8 +9,8 @@ export interface DebugFlags {
   readonly t: number | null;
   /** Force the logical buffer height (400..520), for HUD screenshots. */
   readonly h: number | null;
-  /** Boot with a crafted in-memory save (T17): `?save=fresh|mid|all`. */
-  readonly save: 'fresh' | 'mid' | 'all' | null;
+  /** Boot with a crafted in-memory save (T17): `?save=fresh|mid|act1|all`. */
+  readonly save: 'fresh' | 'mid' | 'act1' | 'all' | null;
   /** Start with audio muted, for automated/browser checks. */
   readonly mute: boolean;
 }
@@ -34,7 +34,10 @@ export function parseFlags(search: string, dev: boolean): DebugFlags {
     level: dev ? num(q.get('level')) : null,
     t: dev ? num(q.get('t')) : null,
     h: dev ? num(q.get('h')) : null,
-    save: dev && (save === 'fresh' || save === 'mid' || save === 'all') ? save : null,
+    save:
+      dev && (save === 'fresh' || save === 'mid' || save === 'act1' || save === 'all')
+        ? save
+        : null,
     mute: dev && q.has('mute'),
   });
 }

@@ -12,7 +12,7 @@ import {
   resetSaveStore,
   updateSettings,
 } from './save';
-import { DEFAULT_SETTINGS, createDefaultSave } from './schema';
+import { DEFAULT_SETTINGS, SAVE_VERSION, createDefaultSave } from './schema';
 
 // Drains the write chain's microtasks (setTimeout is faked in these tests).
 async function flush(): Promise<void> {
@@ -102,7 +102,7 @@ describe('SaveStore', () => {
     expect(loaded.salvage).toBe(6);
     expect(loaded.levels).toEqual({ kessler: { clears: 1, best: 0 } });
     await store.saveNow();
-    expect(JSON.parse(mem.data.get(SAVE_KEY) ?? '').version).toBe(2);
+    expect(JSON.parse(mem.data.get(SAVE_KEY) ?? '').version).toBe(SAVE_VERSION);
   });
 
   it('imports a save after backing up the current one', async () => {

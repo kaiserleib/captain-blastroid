@@ -9,6 +9,7 @@ import {
   WEAPONS,
   type ShipDef,
   type StartingWeapon,
+  type WeaponId,
 } from '../content';
 import { createPlayerStats, type RunState } from '../sim/world';
 import type { PlayerStats } from '../sim/types';
@@ -30,6 +31,8 @@ export interface RunResult {
   victory: boolean;
   /** Quit from the pause menu: banks salvage and stats but never a score. */
   abandoned?: boolean;
+  /** Set by bankRun when this clear unlocked the level's field-test weapon (T35). */
+  unlockedWeapon?: WeaponId;
 }
 
 /** Scores below this never enter the high-score tables. */

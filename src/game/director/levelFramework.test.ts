@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   LEVEL1,
   LEVELS,
@@ -10,6 +10,7 @@ import {
 } from '../../content/levels';
 import { rockThemeForLevel } from '../../content/obstacles';
 import { computePlayerStats, createDefaultSave } from '../../meta';
+import { registerTimelineAction } from '../../sim/hooks';
 import { isPinned } from '../../sim/scroll';
 import { spawnAsteroid } from '../../sim/spawn';
 import type { Anomaly, Pickup } from '../../sim/types';
@@ -291,5 +292,25 @@ describe('level tuning', () => {
     expect(enemyHpMul(w)).toBe(1.35);
     const plain = setup(level('t21-plain', []));
     expect(enemyHpMul(plain)).toBe(1);
+  });
+});
+
+describe('registered timeline actions (Act II hazards)', () => {
+  it('routes a hazard event to its registered handler with the payload', () => {
+    const seen: unknown[] = [];
+    const off = registerTimelineAction('flare', (_w, ev) => seen.push(ev));
+    const w = setup(level('t32-flare', [{ t: 0.5, flare: { warn: 1.2, practice: true } }]));
+    run(w, 0.6);
+    off();
+    expect(seen).toEqual([{ warn: 1.2, practice: true }]);
+    expect(getDirector(w)!.log.some((l) => l.endsWith('flare'))).toBe(true);
+  });
+
+  it('skips and logs an unregistered kind instead of throwing', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const w = setup(level('t32-none', [{ t: 0.1, bubble: { kind: 'slow', x: 120, r: 52 } }]));
+    expect(() => run(w, 0.2)).not.toThrow();
+    expect(getDirector(w)!.log.some((l) => l.includes('bubble (unregistered)'))).toBe(true);
+    warn.mockRestore();
   });
 });

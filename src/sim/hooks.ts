@@ -26,7 +26,32 @@ export type AsteroidHeldCheck = (w: World, a: Asteroid) => boolean;
 /** Multiplier on damage to an `isBoss` enemy, applied before the boss damage hooks. */
 export type BossDamageScale = (w: World, part: Enemy) => number;
 
+/** Ray hit against solid geometry (terrain, slabs). `t` is 0..1 along the ray. */
+export interface RayHit {
+  x: number;
+  y: number;
+  nx: number;
+  ny: number;
+  t: number;
+}
+
+/** Solid geometry query (T34 terrain). Defaults: nothing is solid. */
+export interface SolidQuery {
+  isSolidAt(w: World, x: number, y: number): boolean;
+  /** True on a hit, written into `out`. */
+  raycastSolid(w: World, x0: number, y0: number, x1: number, y1: number, out: RayHit): boolean;
+}
+
+/** Rate multiplier for bodies at (x, y) (T33 time bubbles). 1 = normal. */
+export type TimeScaleFn = (w: World, x: number, y: number) => number;
+
+/** Runs one Act II timeline event; `ev` is the event's payload object. */
+export type TimelineAction = (w: World, ev: unknown) => void;
+
 let asteroidHeld: AsteroidHeldCheck | null = null;
+let solidQuery: SolidQuery | null = null;
+let timeScale: TimeScaleFn | null = null;
+const timelineActions: Record<string, TimelineAction> = {};
 let bossDamageScale: BossDamageScale | null = null;
 
 const shotBlockers: ShotBlocker[] = [];
@@ -104,10 +129,60 @@ export function scaleBossDamage(w: World, part: Enemy, amount: number): number {
   return bossDamageScale === null ? amount : amount * bossDamageScale(w, part);
 }
 
+/** One query; registering again replaces it. */
+export function registerSolidQuery(q: SolidQuery): () => void {
+  solidQuery = q;
+  return () => {
+    if (solidQuery === q) solidQuery = null;
+  };
+}
+
+export function isSolidAt(w: World, x: number, y: number): boolean {
+  return solidQuery !== null && solidQuery.isSolidAt(w, x, y);
+}
+
+export function raycastSolid(
+  w: World,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  out: RayHit,
+): boolean {
+  return solidQuery !== null && solidQuery.raycastSolid(w, x0, y0, x1, y1, out);
+}
+
+/** One scale; registering again replaces it. */
+export function registerTimeScale(fn: TimeScaleFn): () => void {
+  timeScale = fn;
+  return () => {
+    if (timeScale === fn) timeScale = null;
+  };
+}
+
+export function timeScaleAt(w: World, x: number, y: number): number {
+  return timeScale === null ? 1 : timeScale(w, x, y);
+}
+
+/** One handler per timeline kind; registering again replaces it. */
+export function registerTimelineAction(kind: string, fn: TimelineAction): () => void {
+  timelineActions[kind] = fn;
+  return () => {
+    if (timelineActions[kind] === fn) delete timelineActions[kind];
+  };
+}
+
+export function getTimelineAction(kind: string): TimelineAction | undefined {
+  return timelineActions[kind];
+}
+
 /** For tests. */
 export function clearHooks(): void {
   asteroidHeld = null;
   bossDamageScale = null;
+  solidQuery = null;
+  timeScale = null;
+  for (const k of Object.keys(timelineActions)) delete timelineActions[k];
   shotBlockers.length = 0;
   bossDamageHooks.length = 0;
   targetFilters.length = 0;

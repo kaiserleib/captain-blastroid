@@ -24,11 +24,17 @@ export type FireFn = (
   def: WeaponDef,
 ) => void;
 
+function noFire(): void {}
+
 const FIRE: Readonly<Record<Exclude<WeaponId, 'orbitDrones'>, FireFn>> = {
   blaster: fireBlaster,
   spread: fireSpread,
   lance: fireLance,
   seeker: fireSeeker,
+  // T35 implements these; until then an equipped placeholder just never fires.
+  arc: noFire,
+  ricochet: noFire,
+  flak: noFire,
 };
 
 const DEFS = WEAPONS as Readonly<Record<string, WeaponDef | undefined>>;

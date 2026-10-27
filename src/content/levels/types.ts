@@ -3,6 +3,7 @@
 import type { EnemyOverrides } from '../../sim/spawn';
 import type { AsteroidSize, RockTheme } from '../obstacles';
 import type { PickupKind } from '../../sim/types';
+import type { WeaponId } from '../weapons';
 
 /** A number in px, or `'rand'`: resolved through `world.rng` inside the safe x bounds. */
 export type XSpec = number | 'rand';
@@ -80,6 +81,60 @@ export interface ScrollEvent {
   over: number;
 }
 
+/** Act II hazard placements, run by whichever module registered the kind (`registerTimelineAction`). */
+export interface FlareEvent {
+  /** Seconds (default from content). */
+  warn?: number;
+  burn?: number;
+  /** Teaching flare: telegraphs and outlines shade, deals no damage. */
+  practice?: boolean;
+}
+export interface FlaresEvent {
+  every: number;
+  /** Level seconds after which no new flare starts. */
+  until: number;
+  warn?: number;
+  burn?: number;
+}
+export interface ShadeSlabEvent {
+  x: XSpec;
+  vx?: number;
+}
+export interface TerrainEvent {
+  /** Chunk id in content. */
+  chunk: string;
+  /** Tile set, e.g. `warrens`, `foundry`. */
+  theme: string;
+}
+export interface PortalEvent {
+  a: readonly [number, number];
+  b: readonly [number, number];
+  color: string;
+  /** Ends drift with the scroll (default true). */
+  drift?: boolean;
+}
+export interface BubbleEvent {
+  kind: 'slow' | 'fast' | 'flip';
+  x: XSpec;
+  /** Default: just above the top edge. */
+  y?: number;
+  r: number;
+  ttl?: number;
+  vx?: number;
+  vy?: number;
+}
+
+/** Event kinds dispatched through `registerTimelineAction` rather than by the director itself. */
+export const REGISTERED_ACTION_KINDS = [
+  'flare',
+  'flares',
+  'shadeSlab',
+  'terrain',
+  'portal',
+  'bubble',
+] as const;
+export type RegisteredActionKind = (typeof REGISTERED_ACTION_KINDS)[number];
+
 interface EventBase {
   /** Level seconds. */
   t: number;
@@ -105,6 +160,12 @@ export type TimelineEvent = EventBase &
       }
     | { anomaly: AnomalyEvent }
     | { scroll: ScrollEvent }
+    | { flare: FlareEvent }
+    | { flares: FlaresEvent }
+    | { shadeSlab: ShadeSlabEvent }
+    | { terrain: TerrainEvent }
+    | { portal: PortalEvent }
+    | { bubble: BubbleEvent }
     /** A named level script (registered by the level's game folder) for bespoke beats. */
     | { script: string; args?: Readonly<Record<string, number | string>> }
     | { drop: DropEvent }
@@ -146,4 +207,21 @@ export interface LevelDef {
   enemyShotSpeedMul?: number;
   /** If the player holds only one weapon at `by` level seconds, drop a `weapon` capsule ahead of them. */
   guaranteeWeapon?: { by: number; weapon: string };
+  /** Act II: this sector's supply run may drop this weapon while it's locked; the first clear unlocks it. */
+  fieldTestWeapon?: WeaponId;
+  /** Act II finale: boss defeat starts a timed escape, and the run is won when it ends. */
+  escape?: EscapeDef;
+}
+
+export interface EscapeDef {
+  /** Countdown, seconds. */
+  dur: number;
+  /** Scroll ramp at the start: px/s and seconds. */
+  scrollTo: number;
+  over: number;
+  /** Level script started with the escape. */
+  script?: string;
+  /** Salvage paid at the end, minus `bonusPerHit` per hit taken (min 0). */
+  bonus: number;
+  bonusPerHit: number;
 }

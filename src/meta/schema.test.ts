@@ -168,4 +168,18 @@ describe('save schema', () => {
     expect(s.selectedLevel).toBe('kessler');
     expect(s.levels).toEqual({ kessler: { clears: 1, best: 5 }, future: { clears: 3, best: 9 } });
   });
+
+  it('v2 saves gain the Act I weapons as unlocked; later unlocks are kept, unknown ids dropped', () => {
+    const v2 = migrate({ ...createDefaultSave(), version: 2, weaponsUnlocked: undefined });
+    expect(v2.weaponsUnlocked).toEqual(['blaster', 'spread', 'lance', 'seeker', 'orbitDrones']);
+    const v3 = migrate({ version: SAVE_VERSION, weaponsUnlocked: ['flak', 'laser', 'flak'] });
+    expect(v3.weaponsUnlocked).toEqual([
+      'blaster',
+      'spread',
+      'lance',
+      'seeker',
+      'orbitDrones',
+      'flak',
+    ]);
+  });
 });

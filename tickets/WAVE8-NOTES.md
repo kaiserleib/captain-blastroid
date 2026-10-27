@@ -17,10 +17,10 @@ The user is away. Make sensible calls, record them in your ticket's Notes, and d
   - `npm run build && npm run test && npm run lint` pass, plus `test:sim` if you touched sim, game or content, plus `e2e` for T32.
   - Boxes ticked, `Status:` set, and Notes, Contract changes and Follow-ups filled in.
   - Committed on your branch with a message ending in `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
-- **Act I must not move:** the Level 1 god-bot and dodger event-log hashes must stay identical with default saves. Every hook added this wave has a no-op default.
+- **Act I must not move:** the baseline hashes below must stay identical with default saves. Every hook added this wave has a no-op default.
 - **Final message:** keep it short. List what changed, contract changes, shared changes needed, follow-ups and your branch name.
 
-## Contracts-first commit (the main session lands this on main before spawning wave 8)
+## Contracts-first commit (landed on main)
 - **Save v3** (`src/meta/schema.ts`): `weaponsUnlocked: WeaponId[]`, defaulting to the five Act I weapons, with a migration from v2.
 - **`WeaponId`** gains `'arc' | 'ricochet' | 'flak'`. `WEAPONS` gets placeholder defs (T35 replaces them) so exhaustive maps compile.
 - **`RunResult.unlockedWeapon?: WeaponId`.**
@@ -32,7 +32,22 @@ The user is away. Make sensible calls, record them in your ticket's Notes, and d
   - `registerSolidQuery({ isSolidAt, raycastSolid })`: the defaults are false and no hit. T34 registers terrain, T35's Ricochet reads it, and T33's slabs can join through a composed query (T34 owns the composition. Expose `addSolidSource(fn)` if both need it).
   - `registerTimeScale(fn)`: the default is 1. T33 registers bubbles.
 - **`World`:** `enemyBulletTimeScale = 1` (T36 writes it for bullet time; T33's integrator multiplies it in).
-- **`?save=act1`** placeholder (T32 fills it in).
+- **`?save=act1`** is implemented in `src/ui/debugSaves.ts` with explicit Act I lists. Its `selectedLevel` falls back to kessler until T32 adds `corona` to `LEVEL_ORDER`.
+
+As landed:
+- `REGISTERED_ACTION_KINDS` and the payload types (`FlareEvent`, `FlaresEvent`, `ShadeSlabEvent`, `TerrainEvent`, `PortalEvent`, `BubbleEvent`, `EscapeDef`) are in `content/levels/types.ts`.
+- `registerTimelineAction` / `getTimelineAction`, `registerSolidQuery` / `isSolidAt` / `raycastSolid` (`RayHit`, `SolidQuery`) and `registerTimeScale` / `timeScaleAt` are in `sim/hooks.ts`.
+- **The registry already works.** `fireEvent` routes the six kinds to the handler with the event's payload object, or logs `<kind> (unregistered)` and warns once. So T32 doesn't need to build it. T32 only adds new kinds if it needs them.
+- Placeholder weapons: `WEAPONS.arc/ricochet/flak` fire nothing (`noFire` in `weaponSystem.ts`) and aren't in `WEAPON_ORDER`, so no Act I list, drop or sandbox key sees them. `DEFAULT_UNLOCKED_WEAPONS` = `WEAPON_ORDER`.
+
+## Act I baseline hashes
+At `main` after the contracts commit. Every wave-8 ticket must reproduce these with default saves. Paste this into a throwaway `tests/sim/*.test.ts` and run it with `SIM=1 npx vitest run <file> --silent=false`:
+```ts
+runSim('hash-god', godBot(), 300).hash                         // 17a78586
+runSim('hash-dodger', dodgerBot(), 200).hash                   // 66a3e907
+runSim('hash-' + id, dodgerBot(), 120, { levelId: id }).hash   // kessler 432d4c06, ionShoals 1c9e54f6,
+                                                               // eventHorizon f3426d8c, pulsarNursery 0b41ee42, armada 8b2a6879
+```
 
 ## Cross-ticket decisions
 - **Level ids and prefixes** (ids for enemies, boss parts, sprites and scripts):

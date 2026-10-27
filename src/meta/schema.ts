@@ -1,7 +1,15 @@
 // Persistent save format. Pure data + validation; no I/O.
-import { LEVEL_ORDER, PILOTS, SHIPS, UPGRADES } from '../content';
+import {
+  DEFAULT_UNLOCKED_WEAPONS,
+  LEVEL_ORDER,
+  PILOTS,
+  SHIPS,
+  UPGRADES,
+  WEAPONS,
+  type WeaponId,
+} from '../content';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 export const HIGH_SCORE_LIMIT = 10;
 export const DEFAULT_SHIP = 'kestrel';
 export const DEFAULT_PILOT = 'blastroid';
@@ -62,6 +70,8 @@ export interface SaveData {
   selectedLevel: string;
   /** Missing = never cleared. Unknown ids are kept so an older build can't erase newer progress. */
   levels: Record<string, LevelRecord>;
+  /** Weapons that can drop from capsules (v3). Always includes the Act I five. */
+  weaponsUnlocked: WeaponId[];
   /** Sorted by score, highest first; at most HIGH_SCORE_LIMIT per level. */
   highScores: HighScore[];
   stats: SaveStats;
@@ -92,6 +102,7 @@ export function createDefaultSave(): SaveData {
     selectedPilot: DEFAULT_PILOT,
     selectedLevel: DEFAULT_LEVEL,
     levels: {},
+    weaponsUnlocked: [...DEFAULT_UNLOCKED_WEAPONS],
     highScores: [],
     stats: { runs: 0, kills: 0, deaths: 0, bossKills: 0 },
     settings: { ...DEFAULT_SETTINGS },
@@ -219,6 +230,7 @@ export function normalize(raw: Obj): SaveData {
         ? raw.selectedLevel
         : DEFAULT_LEVEL,
     levels: normalizeLevels(raw.levels),
+    weaponsUnlocked: normalizeWeapons(raw.weaponsUnlocked),
     highScores: normalizeHighScores(raw.highScores),
     stats: {
       runs: count(stats.runs, 0),
@@ -228,6 +240,12 @@ export function normalize(raw: Obj): SaveData {
     },
     settings: normalizeSettings(raw.settings),
   };
+}
+
+function normalizeWeapons(v: unknown): WeaponId[] {
+  const out = [...DEFAULT_UNLOCKED_WEAPONS];
+  for (const id of idList(v, WEAPONS)) if (!out.includes(id as WeaponId)) out.push(id as WeaponId);
+  return out;
 }
 
 /**

@@ -33,6 +33,8 @@ export interface World {
   player: PlayerState;
   /** Written by input each tick before systems run. */
   input: MoveIntent;
+  /** Global rate on enemy bullets (pilot bullet time, T36). Integrators multiply it in (T33). */
+  enemyBulletTimeScale: number;
   playerShots: Pool<Bullet>;
   enemyShots: Pool<Bullet>;
   enemies: Pool<Enemy>;
@@ -298,6 +300,7 @@ export function createWorld(seed: string, opts: WorldOptions = {}): World {
     scrollY: 0,
     player: createPlayerState(),
     input: { x: 0, y: 0, targetX: null, targetY: null },
+    enemyBulletTimeScale: 1,
     playerShots: new Pool('playerShots', cap.playerShots, createBullet),
     enemyShots: new Pool('enemyShots', cap.enemyShots, createBullet),
     enemies: new Pool('enemies', cap.enemies, createEnemy),

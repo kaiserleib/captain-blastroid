@@ -1,15 +1,16 @@
-// Crafted saves for `?save=fresh|mid|all` (dev only), to see every locked/unlocked state.
+// Crafted saves for `?save=fresh|mid|act1|all` (dev only), to see every locked/unlocked state.
 import { LEVEL_ORDER, PILOT_ORDER, SHIP_ORDER, UPGRADES, UPGRADE_ORDER } from '../content';
 import { createDefaultSave, type HighScore, type LevelRecord, type SaveData } from '../meta';
 
-export type DebugSaveId = 'fresh' | 'mid' | 'all';
+export type DebugSaveId = 'fresh' | 'mid' | 'act1' | 'all';
 
 const DAY = '2026-10-20T12:00:00.000Z';
 
 /**
  * fresh: a new player. mid: sector 1 cleared (sector 2 unlocked and selected), Juno
  * rescued, Bulwark buildable, Dart schematic found but unaffordable, a few upgrades and
- * scores. all: every sector cleared, everything unlocked and mostly maxed.
+ * scores. act1: Act I finished the way a player reaching sector 6 would have it (the
+ * baseline for Act II balance). all: every sector cleared, everything unlocked and mostly maxed.
  */
 export function debugSave(id: DebugSaveId): SaveData {
   const s = createDefaultSave();
@@ -32,6 +33,7 @@ export function debugSave(id: DebugSaveId): SaveData {
       stats: { runs: 5, kills: 612, deaths: 4, bossKills: 1 },
     };
   }
+  if (id === 'act1') return act1Save(s);
   const upgrades: Record<string, number> = {};
   for (const u of UPGRADE_ORDER) {
     const def = UPGRADES[u];
@@ -51,6 +53,35 @@ export function debugSave(id: DebugSaveId): SaveData {
     highScores: allScores(),
     levels,
     stats: { runs: 31 + bossKills, kills: 5180, deaths: 24, bossKills },
+  };
+}
+
+const ACT1_LEVELS = ['kessler', 'ionShoals', 'eventHorizon', 'pulsarNursery', 'armada'];
+const ACT1_SHIPS = ['kestrel', 'bulwark', 'dart', 'warden', 'corsair', 'halcyon', 'paragon'];
+const ACT1_PILOTS = ['blastroid', 'juno', 'grieg', 'zzkar', 'sable', 'pip', 'vale'];
+
+/** Kestrel + Blastroid still selected so bot numbers compare with Act I's. */
+function act1Save(s: SaveData): SaveData {
+  const upgrades: Record<string, number> = {};
+  for (const u of UPGRADE_ORDER) {
+    const def = UPGRADES[u];
+    if (def) upgrades[u] = def.maxLevel;
+  }
+  const levels: Record<string, LevelRecord> = {};
+  ACT1_LEVELS.forEach((lid, i) => {
+    levels[lid] = { clears: 1, best: ALL_BEST + i * ALL_BEST_STEP };
+  });
+  return {
+    ...s,
+    salvage: 600,
+    totalSalvageEarned: 6200,
+    upgrades,
+    schematics: ACT1_SHIPS.filter((id) => id !== 'kestrel'),
+    shipsBuilt: [...ACT1_SHIPS],
+    pilotsRescued: [...ACT1_PILOTS],
+    levels,
+    selectedLevel: LEVEL_ORDER[ACT1_LEVELS.length] ?? s.selectedLevel,
+    stats: { runs: 24, kills: 4100, deaths: 18, bossKills: 5 },
   };
 }
 

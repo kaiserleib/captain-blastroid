@@ -7,6 +7,7 @@ import type {
   TimelineEvent,
   XSpec,
 } from '../../content/levels';
+import { REGISTERED_ACTION_KINDS } from '../../content/levels';
 import { SHIPS } from '../../content/ships';
 import type { Rng } from '../../engine/rng';
 
@@ -127,5 +128,7 @@ export function eventKind(ev: TimelineEvent): string {
   if ('anomaly' in ev) return 'anomaly';
   if ('scroll' in ev) return 'scroll';
   if ('script' in ev) return 'script';
+  if ('boss' in ev) return 'boss';
+  for (const k of REGISTERED_ACTION_KINDS) if (k in ev) return k;
   return 'boss';
 }
