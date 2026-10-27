@@ -76,11 +76,11 @@ Wave 10 T43 act II integration + bots + balance                              │
 | [T35](T35-weapons-act2.md) | Weapons: Arc Coil, Ricochet, Flak, unlock pool, field tests | T31 + contracts | done |
 | [T36](T36-roster-act2.md) | Act II roster: 5 ships, 5 pilots, passives, ship history | T31 + contracts | done |
 | [T37](T37-music-backgrounds-act2.md) | Act II music and backgrounds | T31 | done |
-| [T38](T38-corona.md) | Level 6: Corona Drift + Heliostat | wave 8 | todo |
-| [T39](T39-warrens.md) | Level 7: The Warrens + Wyrm | wave 8 | todo |
-| [T40](T40-junction.md) | Level 8: Wormhole Junction + Janus | wave 8 | todo |
-| [T41](T41-chrono.md) | Level 9: Chrono Rift + Echo | wave 8 | todo |
-| [T42](T42-foundry.md) | Level 10: The Foundry + The Architect + escape | wave 8 | todo |
+| [T38](T38-corona.md) | Level 6: Corona Drift + Heliostat | wave 8 | done |
+| [T39](T39-warrens.md) | Level 7: The Warrens + Wyrm | wave 8 | done |
+| [T40](T40-junction.md) | Level 8: Wormhole Junction + Janus | wave 8 | done |
+| [T41](T41-chrono.md) | Level 9: Chrono Rift + Echo | wave 8 | done |
+| [T42](T42-foundry.md) | Level 10: The Foundry + The Architect + escape | wave 8 | done |
 | [T43](T43-act2-balance.md) | Act II integration, bots, balance | T32–T42 | todo |
 
 Wave 2 tickets can start as soon as their listed dependencies merge, without waiting for the whole of Wave 1.
