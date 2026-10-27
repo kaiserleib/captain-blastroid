@@ -12,7 +12,21 @@ import { mem, RayPhase } from '../../src/game/levels/pulsarNursery/behaviors';
 import { getTerrainState, nearestOpenX } from '../../src/game/terrain';
 import { isSolidAt } from '../../src/sim/hooks';
 
-import { inPulsarGap } from '../../src/game/obstacles';
+import {
+  bubbleTimeScale,
+  bubbles,
+  flareProgress,
+  flareState,
+  inPulsarGap,
+  inShade,
+  nearestShadeSpot,
+  partnerOf,
+  portalPairs,
+  sinceShipPorted,
+  type PortalEnd,
+  type ShadeSpot,
+} from '../../src/game/obstacles';
+import { PORTAL } from '../../src/content/obstacles';
 import { ext, isFieldOnly } from '../../src/game/obstacles/anomalies/state';
 import { INVERSE_FALLOFF_MIN } from '../../src/sim/forces';
 import { isTargetable } from '../../src/sim/targeting';
@@ -186,6 +200,8 @@ class Dodger implements Bot {
   private readonly dive = new Float32Array((DIVE_SAMPLES + 1) * 2);
   private diveOn = false;
   private readonly pt = { x: 0, y: 0 };
+  /** Act II hazards (T33), refreshed by `scanHazardsII`. */
+  private readonly h2: HazardsIIView = newHazardsIIView();
 
   constructor(
     readonly skill: BotSkill,
@@ -225,7 +241,10 @@ class Dodger implements Bot {
     this.epoch = Math.floor(this.tick / 30);
     if (this.rng.chance(0.15)) this.aimOff = this.rng.range(-1, 1) * this.skill.aimNoise;
     if (this.hazards) this.scan(w);
-    const pref = this.preferred(w);
+    const h2 = this.h2;
+    if (this.hazards) scanHazardsII(w, h2, this.skill, (x, y) => this.shotDangerAt(w, x, y));
+    else h2.any = false;
+    const pref = h2.flare ? h2.spotPref : this.preferred(w);
     let best = Infinity;
     let bx = p.x;
     let by = p.y;
@@ -357,6 +376,7 @@ class Dodger implements Bot {
       cost += wt * this.overlapRocks(w, sx, sy, t);
       cost += wt * this.overlapEnemies(w, sx, sy, t);
       if (this.hazards) cost += wt * this.overlapHazards(w, sx, sy, t);
+      if (this.h2.any) cost += wt * hazardsIICost(w, this.h2, sx, sy, t);
     }
     if (getTerrainState(w) !== undefined) cost += terrainCost(w, cx, cy);
     if (this.pulsars > 0) {
@@ -375,19 +395,36 @@ class Dodger implements Bot {
     let c = 0;
     const m = this.skill.margin + 4;
     const bend = this.holes > 0 ? 0.5 * t * t : 0;
+    const scaled = this.h2.scaleShots;
     for (let i = 0; i < n; i++) {
       const b = items[i] as Bullet;
       if (!b.active || SHOT_TTL - b.ttl < this.skill.shotReact) continue;
-      let bx = b.x + b.vx * t;
-      let by = b.y + b.vy * t;
+      const ts = scaled ? shotTime(this.h2.w, b, t) : t;
+      let bx = b.x + b.vx * ts;
+      let by = b.y + b.vy * ts;
       if (bend > 0) {
         bx += (this.sAx[i] as number) * bend;
         by += (this.sAy[i] as number) * bend;
       }
-      const d = Math.hypot(bx - sx, by - sy) - b.r - m;
+      let d = Math.hypot(bx - sx, by - sy) - b.r - m;
+      if (ts !== t && t > 0) {
+        // Faster shots outrun the look-ahead samples: sweep back to the previous one.
+        const back = ts / t;
+        d = Math.min(
+          d,
+          sweptGap(bx, by, b.vx * back, b.vy * back, this.skill.lookahead / LOOK_STEPS, sx, sy) -
+            b.r -
+            m,
+        );
+      }
       if (d < 0) c += 100 - d * 10;
     }
     return c;
+  }
+
+  /** Enemy-shot danger at a point over the next instant (portal exits). */
+  private shotDangerAt(w: World, x: number, y: number): number {
+    return this.overlapShots(w.enemyShots.items, w.enemyShots.count, x, y, 0.15);
   }
 
   private overlapRocks(w: World, sx: number, sy: number, t: number): number {
@@ -571,6 +608,154 @@ function nearCore(w: World, x: number, y: number, kind: Anomaly['kind'], pad: nu
     if (Math.hypot(x - a.x, y - a.y) < a.r + pad) return true;
   }
   return false;
+}
+
+// ---------------------------------------------------------------------------
+// Act II hazards (T33): flares and shade, portals, time bubbles. Kept apart
+// from the Act I terms; with none of them on screen nothing here runs, so
+// Act I plans (and hashes) are unchanged.
+
+/** Cost per look-ahead step outside shade while a flare warns or burns. */
+const FLARE_COST = 150;
+/** Sit this far below a caster's bottom edge: right under it, the rock cost bites. */
+const SHADE_TOP_PAD = 12;
+const PORTAL_COST = 90;
+
+interface HazardsIIView {
+  w: World;
+  any: boolean;
+  /** A real (non-practice) flare is warning or burning. */
+  flare: boolean;
+  /** 0..1 urgency: ramps over the warn, 1 during the burn. */
+  flareUrgency: number;
+  spot: ShadeSpot;
+  spotPref: { x: number; y: number };
+  /** Ship-open portal ends worth avoiding this plan, with their exits' danger. */
+  ends: PortalEnd[];
+  endCost: number[];
+  endN: number;
+  scaleShots: boolean;
+}
+
+function newHazardsIIView(): HazardsIIView {
+  return {
+    w: null as unknown as World,
+    any: false,
+    flare: false,
+    flareUrgency: 0,
+    spot: { x: 0, y: 0, d: 0 },
+    spotPref: { x: 0, y: 0 },
+    ends: [],
+    endCost: [],
+    endN: 0,
+    scaleShots: false,
+  };
+}
+
+/** Once per plan: what a player reads off the screen (the flare tint, rings, bubbles). */
+function scanHazardsII(
+  w: World,
+  v: HazardsIIView,
+  skill: BotSkill,
+  shotDanger: (x: number, y: number) => number,
+): void {
+  v.w = w;
+  const p = w.player;
+  const f = flareState(w);
+  v.flare = false;
+  if (f !== undefined && !f.practice && (f.phase === 'warn' || f.phase === 'burn')) {
+    const r = p.r + 1 + skill.margin / 2;
+    if (nearestShadeSpot(w, p.x, p.y, r, v.spot, SHADE_TOP_PAD)) {
+      v.flare = true;
+      v.flareUrgency = f.phase === 'burn' ? 1 : 0.4 + 0.6 * flareProgress(f);
+      v.spotPref.x = v.spot.x;
+      v.spotPref.y = v.spot.y;
+    }
+  }
+  v.endN = 0;
+  if (sinceShipPorted(w) > PORTAL.shipCooldown - 0.2) {
+    const here = shotDanger(p.x, p.y);
+    for (const pair of portalPairs(w)) {
+      if (!pair.active) continue;
+      for (const e of [pair.a, pair.b]) {
+        if (!e.open) continue;
+        const o = partnerOf(e);
+        const exit = shotDanger(o.x, o.y);
+        // Only worth taking when the exit is clearly safer than staying put.
+        if (exit + 20 < here * 0.5) continue;
+        v.ends[v.endN] = e;
+        v.endCost[v.endN] = PORTAL_COST + exit;
+        v.endN++;
+      }
+    }
+  }
+  v.scaleShots = w.enemyBulletTimeScale !== 1 || bubbles(w).some((b) => b.active);
+  v.any = v.flare || v.endN > 0;
+}
+
+/** Effective flight time of a shot over `t` s: the bubble rate where it is and where it'll be. */
+function shotTime(w: World, b: Bullet, t: number): number {
+  const k = w.enemyBulletTimeScale;
+  const s0 = bubbleTimeScale(w, b.x, b.y);
+  const s1 = bubbleTimeScale(w, b.x + b.vx * t * s0 * k, b.y + b.vy * t * s0 * k);
+  return t * k * 0.5 * (s0 + s1);
+}
+
+/** Distance from (sx, sy) to the segment a shot at (bx, by) with velocity (vx, vy) covered over the last `dt`. */
+function sweptGap(
+  bx: number,
+  by: number,
+  vx: number,
+  vy: number,
+  dt: number,
+  sx: number,
+  sy: number,
+): number {
+  const ex = -vx * dt;
+  const ey = -vy * dt;
+  const l2 = ex * ex + ey * ey;
+  let u = l2 > 0 ? ((sx - bx) * ex + (sy - by) * ey) / l2 : 0;
+  u = u < 0 ? 0 : u > 1 ? 1 : u;
+  return Math.hypot(bx + ex * u - sx, by + ey * u - sy);
+}
+
+function hazardsIICost(w: World, v: HazardsIIView, sx: number, sy: number, t: number): number {
+  let c = 0;
+  if (v.flare && !inShade(w, sx, sy, w.player.r + 1)) c += FLARE_COST * v.flareUrgency;
+  const pr = w.player.r + 2;
+  for (let i = 0; i < v.endN; i++) {
+    const e = v.ends[i] as PortalEnd;
+    const d = Math.hypot(e.x + e.vx * t - sx, e.y + e.vy * t - sy);
+    if (d < PORTAL.r + pr) c += v.endCost[i] as number;
+  }
+  return c;
+}
+
+/**
+ * Hit causes for the Act II hazards, or null: `flare` (the burn's hit),
+ * `portal` (within the 1 s ship cooldown of going through one) and `bubble-shot`
+ * (the nearest enemy shot was in a bubble). The harness's `hitCause` should
+ * ask this first.
+ */
+export function hazardsIIHitCause(w: World): string | null {
+  const f = flareState(w);
+  if (f !== undefined && f.hitTick === w.tick) return 'flare';
+  if (sinceShipPorted(w) < PORTAL.shipCooldown) return 'portal';
+  const p = w.player;
+  let best = Infinity;
+  let nearest: Bullet | null = null;
+  for (let i = 0; i < w.enemyShots.count; i++) {
+    const b = w.enemyShots.items[i] as Bullet;
+    if (!b.active) continue;
+    const d = Math.hypot(b.x - p.x, b.y - p.y) - b.r;
+    if (d < best) {
+      best = d;
+      nearest = b;
+    }
+  }
+  if (nearest !== null && best < p.r + 2 && bubbleTimeScale(w, nearest.x, nearest.y) !== 1)
+    return 'bubble-shot';
+  return null;
 }
 
 function clamp(v: number, lo: number, hi: number): number {

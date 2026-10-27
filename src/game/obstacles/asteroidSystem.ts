@@ -12,9 +12,11 @@ import {
 import { TAU } from '../../engine/math';
 import type { Renderer } from '../../gfx/renderer';
 import { warm } from '../../gfx/spriteCache';
+import { timeScaleAt } from '../../sim/hooks';
 import { spawnAsteroid } from '../../sim/spawn';
 import type { Asteroid } from '../../sim/types';
 import type { DrawLayer, World } from '../../sim/world';
+import { drawSlabs } from './hazards2/draw';
 import { ROCK_IDS, rockFrame, rockIdsForTheme, sizeIndex } from './obstacles.sprites';
 
 // ---------------------------------------------------------------------------
@@ -260,11 +262,13 @@ export function updateAsteroids(w: World, dt: number): void {
   for (let i = 0; i < n; i++) {
     const a = items[i] as Asteroid;
     if (!a.active) continue;
+    // Time bubbles (T33); exactly dt outside them.
+    const rdt = dt * timeScaleAt(w, a.x, a.y);
     a.prevX = a.x;
     a.prevY = a.y;
-    a.x += a.vx * dt;
-    a.y += a.vy * dt;
-    let rot = a.rot + a.spin * dt;
+    a.x += a.vx * rdt;
+    a.y += a.vy * rdt;
+    let rot = a.rot + a.spin * rdt;
     if (rot >= TAU) rot -= TAU;
     else if (rot < 0) rot += TAU;
     a.rot = rot;
@@ -345,5 +349,6 @@ export const asteroidLayer: DrawLayer = {
       drawOpts.flash = a.flashT > 0;
       r.sprite(id, a.prevX + (a.x - a.prevX) * alpha, a.prevY + (a.y - a.prevY) * alpha, drawOpts);
     }
+    drawSlabs(w, r, alpha);
   },
 };

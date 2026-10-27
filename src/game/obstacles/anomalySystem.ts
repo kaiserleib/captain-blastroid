@@ -27,6 +27,7 @@ import {
   PULSAR_RAMP,
   blackHoleSprite,
 } from './obstacles.sprites';
+import { drawBubbles, drawFlareBackdrop, drawPortals } from './hazards2/draw';
 import { drawObstacleSandbox } from './sandbox';
 import { towedHeldCheck } from './tractor';
 
@@ -242,6 +243,10 @@ export const anomalyLayer: DrawLayer = {
   name: 'anomalies',
   z: 10,
   draw(w: World, r: Renderer, alpha: number) {
+    // Act II: flare light and shade under everything, then bubbles and portals.
+    drawFlareBackdrop(w, r);
+    drawBubbles(w, r, alpha);
+    drawPortals(w, r, alpha);
     const items = w.anomalies.items;
     const n = w.anomalies.count;
     for (let i = 0; i < n; i++) {

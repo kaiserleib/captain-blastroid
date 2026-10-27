@@ -1,5 +1,6 @@
 import { angleDiff } from '../engine/math';
 import type { Pool } from '../engine/pool';
+import { timeScaleAt } from './hooks';
 import { getSpatialHash } from './spatialHash';
 import { isTargetable, targetFilterFor } from './targeting';
 import { Layer, type Body, type Bullet, type Enemy } from './types';
@@ -70,16 +71,20 @@ export function updateBullets(w: World, pool: Pool<Bullet>, dt: number): void {
   for (let i = 0; i < n; i++) {
     const b = items[i] as Bullet;
     if (!b.active) continue;
-    b.ttl -= dt;
+    // Time bubbles (T33) and, for enemy shots, bullet time (T36). Exactly dt by default.
+    let s = timeScaleAt(w, b.x, b.y);
+    if (b.owner === 'enemy') s *= w.enemyBulletTimeScale;
+    const bdt = dt * s;
+    b.ttl -= bdt;
     if (b.ttl <= 0) {
       pool.release(b);
       continue;
     }
-    if (b.homing > 0) steerHoming(w, b, dt);
+    if (b.homing > 0) steerHoming(w, b, bdt);
     b.prevX = b.x;
     b.prevY = b.y;
-    b.x += b.vx * dt;
-    b.y += b.vy * dt;
+    b.x += b.vx * bdt;
+    b.y += b.vy * bdt;
     b.rot = Math.atan2(b.vx, -b.vy); // = velocityRot(); inline so the result isn't boxed
   }
 }

@@ -261,3 +261,71 @@ export const TRACTOR = {
   /** px/s. */
   dashSpeed: 36,
 } as const;
+
+// ---------------------------------------------------------------------------
+// Act II shared hazards (T33): solar flares and shade, portals, time bubbles.
+
+export const FLARE = {
+  /** Seconds of warning by default, and for the first `introCount` flares of a run. */
+  warn: 1.2,
+  introWarn: 2.0,
+  introCount: 2,
+  burn: 1.2,
+  /** Fade after the burn. */
+  cool: 0.4,
+  /** Damage to each non-boss enemy in the light, once per flare. */
+  enemyDamage: 3,
+  /** HP an escape pod in the light loses, once per flare. */
+  podDamage: 1,
+  /** Shield segments the ship loses, once per flare. */
+  playerDamage: 1,
+  /** Fairness: a strip must be this close horizontally (and reachable before the burn). */
+  fizzleReach: 100,
+} as const;
+
+export const SHADE = {
+  /** A strip runs this far below its caster's bottom edge. */
+  stripLength: 160,
+  /** A strip is the caster's width minus this. */
+  stripInset: 2,
+} as const;
+
+/** Indestructible drifting cover (L6, L10). */
+export const SHADE_SLAB = { w: 40, h: 10, max: 12 } as const;
+
+export type PortalColorId = 'cyan' | 'orange' | 'lime';
+
+export const PORTAL = {
+  r: 14,
+  /** Exits are placed this far outside the partner ring. */
+  exitPad: 2,
+  /** Per-body re-entry cooldown, s (shots, rocks, pickups, opted-in enemies). */
+  bodyCooldown: 0.35,
+  shipCooldown: 1.0,
+  swapTime: 0.8,
+  maxPairs: 4,
+  /** A partner this close to a pulsar's live ring (px) is closed to the ship. */
+  pulsarPad: 10,
+  /** A partner within a black-hole core plus this is closed to the ship. */
+  holePad: 6,
+} as const;
+
+/** Dark, base, light per pair color (15-bit). */
+export const PORTAL_COLORS: Readonly<Record<PortalColorId, readonly [string, string, string]>> = {
+  cyan: ['#086878', '#30c8e0', '#b8f8f8'],
+  orange: ['#803808', '#f88820', '#f8d8a0'],
+  lime: ['#306808', '#90e028', '#e0f8a8'],
+};
+
+export type BubbleKind = 'slow' | 'fast' | 'flip';
+
+export const BUBBLE = {
+  slow: 0.35,
+  fast: 1.8,
+  /** Flip bubbles switch every `flipEvery` s, flickering for `flipFlicker` s before each switch. */
+  flipEvery: 3,
+  flipFlicker: 0.6,
+  /** Design radii: small, medium, large. */
+  radii: [36, 52, 70] as readonly number[],
+  max: 8,
+} as const;
