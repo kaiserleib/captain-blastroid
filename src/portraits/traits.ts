@@ -31,6 +31,7 @@ export const HAIR_STYLES = [
   'swept',
   'bob',
   'long',
+  'wild',
 ] as const;
 export const HEADGEAR = [
   'none',
@@ -39,6 +40,7 @@ export const HEADGEAR = [
   'helmetDown',
   'bandana',
   'cyberCrest',
+  'minerHelmet',
 ] as const;
 export const ACCESSORIES = [
   'scar',
@@ -48,6 +50,19 @@ export const ACCESSORIES = [
   'plaster',
   'freckles',
 ] as const;
+/**
+ * Named-pilot-only variants (T36). Never rolled, so adding them leaves every random
+ * portrait's rolls unchanged; only overrides reach them.
+ */
+export const SPECIAL_ACCESSORIES = [
+  'glasses',
+  'hairStreak',
+  'dust',
+  'burnScar',
+  'earpiece',
+] as const;
+export const SPECIAL_SUITS = ['labCoat'] as const;
+export const SPECIAL_INSIGNIA = ['torn'] as const;
 export const BACKGROUNDS = ['bulkhead', 'porthole', 'hangar'] as const;
 export const SUITS = ['flightSuit', 'jacket', 'armored'] as const;
 export const INSIGNIA = ['chevron', 'star', 'bolt', 'ring'] as const;
@@ -61,10 +76,10 @@ export type MouthStyle = (typeof MOUTH_STYLES)[number];
 export type FacialHair = (typeof FACIAL_HAIR)[number];
 export type HairStyle = (typeof HAIR_STYLES)[number];
 export type Headgear = (typeof HEADGEAR)[number];
-export type Accessory = (typeof ACCESSORIES)[number];
+export type Accessory = (typeof ACCESSORIES)[number] | (typeof SPECIAL_ACCESSORIES)[number];
 export type Background = (typeof BACKGROUNDS)[number];
-export type Suit = (typeof SUITS)[number];
-export type Insignia = (typeof INSIGNIA)[number];
+export type Suit = (typeof SUITS)[number] | (typeof SPECIAL_SUITS)[number];
+export type Insignia = (typeof INSIGNIA)[number] | (typeof SPECIAL_INSIGNIA)[number];
 
 export interface PortraitTraits {
   age: Age;

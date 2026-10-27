@@ -7,6 +7,7 @@ export {
   Background,
   PARALLAX,
   SPEED_LINES,
+  type SpeedLineStyle,
   STRIP_H,
   layerSeed,
   speedLineAlpha,

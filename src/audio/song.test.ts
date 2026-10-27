@@ -117,12 +117,20 @@ describe('songs', () => {
       'armada',
       'armada_boss',
       'boss',
+      'boss2',
       'clear',
+      'corona',
+      'escape',
+      'foundry',
+      'foundry_boss',
       'horizon',
       'ion',
+      'junction',
       'level1',
       'pulsar',
+      'rift',
       'title',
+      'warrens',
     ]);
   });
 

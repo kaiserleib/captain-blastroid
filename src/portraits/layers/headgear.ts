@@ -116,6 +116,28 @@ function cyberCrest(p: Pixels, t: PortraitTraits, g: Geo): void {
   p.px(glow, fx, g.browY);
 }
 
+/** Hard hat with a brim and a headlamp. */
+function minerHelmet(p: Pixels, t: PortraitTraits, g: Geo): void {
+  const h = helmetRamp(t);
+  const { fx, fy, fw, cx } = g;
+  p.rrect(h.dark, fx - 2, fy - 9, fw + 4, 11);
+  p.rrect(h.base, fx - 1, fy - 9, fw + 2, 10);
+  p.rect(h.light, fx + 1, fy - 8, fw - 6, 1);
+  p.rect(h.light, fx, fy - 7, 2, 5);
+  p.rect(h.shadow, fx + fw - 3, fy - 7, 3, 8);
+  // A center ridge, then the brim all round.
+  p.rect(h.light, cx - 1, fy - 9, 1, 3);
+  p.rect(h.dark, fx - 4, fy + 1, fw + 8, 2);
+  p.rect(h.base, fx - 3, fy + 1, fw / 2 + 3, 1);
+  p.rect(h.shadow, cx, fy + 1, fw / 2 + 3, 1);
+  // Headlamp, lit.
+  p.rrect(METAL.dark, cx - 3, fy - 6, 6, 6);
+  p.rect(METAL.base, cx - 2, fy - 5, 4, 4);
+  p.rect(GLOW.white, cx - 2, fy - 5, 3, 3);
+  p.px(VISOR.gold.light, cx, fy - 3);
+  p.px(VISOR.gold.base, cx + 1, fy - 3);
+}
+
 export function drawHeadgear(p: Pixels, t: PortraitTraits, g: Geo): void {
   switch (t.headgear) {
     case 'none':
@@ -136,6 +158,9 @@ export function drawHeadgear(p: Pixels, t: PortraitTraits, g: Geo): void {
       break;
     case 'cyberCrest':
       cyberCrest(p, t, g);
+      break;
+    case 'minerHelmet':
+      minerHelmet(p, t, g);
       break;
   }
 }

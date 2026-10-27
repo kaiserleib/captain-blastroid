@@ -228,6 +228,10 @@ export function createPlayerStats(): PlayerStats {
     powerupDurationMul: 1,
     extraShield: 0,
     salvageMul: 1,
+    rockDmgMul: 1,
+    rareDropMul: 1,
+    extraSlots: 0,
+    rockSalvage: 0,
   };
 }
 

@@ -9,6 +9,11 @@ export interface StarSpec {
   density: number;
   /** Share of stars that twinkle, 0..1. */
   twinkle: number;
+  /**
+   * Afterimage spacing, px: steady mid and bright stars leave dim ghost copies
+   * this far above them (where they just were). Bright stars leave two.
+   */
+  ghosts?: number;
 }
 
 export interface StreakSpec {
@@ -38,10 +43,21 @@ export function generateStars(seed: number, w: number, h: number, spec: StarSpec
       plotWrapY(b, x, y, TWINKLE_BASE_INDEX + rng.int(0, TWINKLE_PHASES - 1));
     } else {
       // Mostly dim; a bright star is rare enough to feel special.
-      plotWrapY(b, x, y, roll < 0.62 ? 1 : roll < 0.92 ? 2 : 3);
+      const lvl = roll < 0.62 ? 1 : roll < 0.92 ? 2 : 3;
+      plotWrapY(b, x, y, lvl);
+      const g = spec.ghosts ?? 0;
+      if (g > 0 && lvl > 1) {
+        ghost(b, x, y - g);
+        if (lvl === 3) ghost(b, x, y - 2 * g);
+      }
     }
   }
   return b;
+}
+
+function ghost(b: IndexedBitmap, x: number, y: number): void {
+  const yy = ((y % b.h) + b.h) % b.h;
+  if (!b.data[yy * b.w + x]) b.data[yy * b.w + x] = 1;
 }
 
 /** Palette for one twinkle phase: the "palette cycle" swaps these, never per-star draws. */

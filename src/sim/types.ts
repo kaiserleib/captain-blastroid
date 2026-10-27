@@ -142,6 +142,14 @@ export interface PlayerStats {
   powerupDurationMul: number;
   extraShield: number;
   salvageMul: number;
+  /** Damage to asteroids and crumbly/gate tiles (Rook). */
+  rockDmgMul: number;
+  /** Weight on uncommon/rare drop-table entries: shield, upgrade, magnet, repulsor (Nyx). */
+  rareDropMul: number;
+  /** Added weapon slots (Wren); the loadout caps the total at MAX_WEAPON_SLOTS. */
+  extraSlots: number;
+  /** Extra salvage per asteroid the player destroys (Rook). */
+  rockSalvage: number;
 }
 
 /**
