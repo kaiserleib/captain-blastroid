@@ -48,6 +48,7 @@ export { rockIdsForTheme } from './obstacles.sprites';
 
 // Act II hazards (T33)
 export {
+  cancelFlare,
   flareProgress,
   flarePhase,
   flareState,

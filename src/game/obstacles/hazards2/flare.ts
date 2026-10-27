@@ -82,6 +82,15 @@ export function stopFlares(w: World): void {
   if (s !== undefined) s.flare.repeatUntil = -1;
 }
 
+/** Fades a flare that is warning or burning (its source is gone): it goes straight to cooldown. */
+export function cancelFlare(w: World): void {
+  const f = peekHz(w)?.flare;
+  if (f !== undefined && (f.phase === 'warn' || f.phase === 'burn')) {
+    f.phase = 'cool';
+    f.t = 0;
+  }
+}
+
 export function flarePhase(w: World): FlarePhase {
   return peekHz(w)?.flare.phase ?? 'idle';
 }

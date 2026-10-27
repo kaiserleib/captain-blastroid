@@ -13,7 +13,7 @@ import {
   SCHEMATIC_SHIPS,
 } from '../../content/pickups';
 import { LEVELS } from '../../content/levels';
-import { DEFAULT_UNLOCKED_WEAPONS, WEAPON_MAX_LEVEL } from '../../content/weapons';
+import { DEFAULT_UNLOCKED_WEAPONS, WEAPON_MAX_LEVEL, type WeaponId } from '../../content/weapons';
 import type { Rng } from '../../engine/rng';
 import { getSave } from '../../meta';
 import { getEnemyDef, spawnPickup } from '../../sim/spawn';
@@ -80,6 +80,9 @@ export const DEFAULT_CAPSULE_POOL: readonly string[] = capsuleWeaponPool(
 );
 
 const pools = new WeakMap<World, readonly string[]>();
+const weightTables = new WeakMap<World, readonly number[] | null>();
+/** Sectors 1–5: Act II weapons drop there at `act2WeaponWeightInAct1`. */
+const ACT1_LAST_SECTOR = 5;
 
 /**
  * What this run's capsules can carry: `save.weaponsUnlocked` plus the sector's
@@ -93,6 +96,30 @@ export function capsulePool(w: World): readonly string[] {
     pools.set(w, pool);
   }
   return pool;
+}
+
+/**
+ * Capsule weight per `capsulePool(w)` entry, or null when every weapon weighs
+ * 1 (Act II sectors, and Act I pools without an Act II weapon, so those rolls
+ * are unchanged).
+ */
+export function capsuleWeights(w: World): readonly number[] | null {
+  let wts = weightTables.get(w);
+  if (wts === undefined) {
+    wts = null;
+    const pool = capsulePool(w);
+    const level = LEVELS[w.run.levelId];
+    if (level !== undefined && level.number <= ACT1_LAST_SECTOR) {
+      const late = pool.map((id) =>
+        DEFAULT_UNLOCKED_WEAPONS.includes(id as WeaponId)
+          ? 1
+          : PICKUP_TUNING.act2WeaponWeightInAct1,
+      );
+      if (late.some((x) => x !== 1)) wts = late;
+    }
+    weightTables.set(w, wts);
+  }
+  return wts;
 }
 
 function ownedNonMax(
@@ -130,13 +157,25 @@ export function pickCapsuleWeapon(
   rng: Rng,
   weapons: readonly WeaponInstance[],
   pool: readonly string[] = DEFAULT_CAPSULE_POOL,
+  weights: readonly number[] | null = null,
 ): string {
-  if (rng.next() < ownedBias(pool.length)) {
+  let size = pool.length;
+  if (weights !== null) {
+    size = 0;
+    for (let i = 0; i < weights.length; i++) size += weights[i] as number;
+  }
+  if (rng.next() < ownedBias(size)) {
     let n = 0;
     while (ownedNonMax(weapons, pool, n) !== null) n++;
     if (n > 0) return ownedNonMax(weapons, pool, rng.int(0, n - 1)) as string;
   }
-  return pool[rng.int(0, pool.length - 1)] as string;
+  if (weights === null) return pool[rng.int(0, pool.length - 1)] as string;
+  let x = rng.next() * size;
+  for (let i = 0; i < pool.length; i++) {
+    x -= weights[i] as number;
+    if (x < 0) return pool[i] as string;
+  }
+  return pool[pool.length - 1] as string;
 }
 
 /** Spawns one pickup, resetting the pity timer for anything but salvage. */
@@ -155,7 +194,7 @@ export function spawnDrop(
     CAPSULE_WEAPON_IDS.includes(payload) &&
     !capsulePool(w).includes(payload)
   )
-    payload = pickCapsuleWeapon(w.rng, w.player.weapons, capsulePool(w));
+    payload = pickCapsuleWeapon(w.rng, w.player.weapons, capsulePool(w), capsuleWeights(w));
   const o = spawnScratch;
   o.kind = kind;
   o.x = x;
@@ -172,7 +211,8 @@ export function spawnDrop(
 }
 
 export function spawnWeaponCapsule(w: World, x: number, y: number): Pickup | null {
-  return spawnDrop(w, 'weapon', x, y, pickCapsuleWeapon(w.rng, w.player.weapons, capsulePool(w)));
+  const pick = pickCapsuleWeapon(w.rng, w.player.weapons, capsulePool(w), capsuleWeights(w));
+  return spawnDrop(w, 'weapon', x, y, pick);
 }
 
 const MAX_SALVAGE_BITS = 8;

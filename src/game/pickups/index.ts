@@ -14,9 +14,17 @@ export {
   powerupFxLayer,
   PICKUP_SPRITE_IDS,
 } from './pickupSystem';
-export { cachePayload, isCachePod, podHp, podOverlayLayer, spawnEscapePod } from './escapePod';
+export {
+  cachePayload,
+  isCachePod,
+  losePod,
+  podHp,
+  podOverlayLayer,
+  spawnEscapePod,
+} from './escapePod';
 export {
   capsulePool,
+  capsuleWeights,
   pickCapsuleWeapon,
   rollDrop,
   spawnDrop,
