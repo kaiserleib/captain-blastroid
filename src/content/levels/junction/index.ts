@@ -243,7 +243,7 @@ export const LEVEL: LevelDef = {
   duration: 250,
   rockTheme: 'ion',
   enemyHpMul: 1.5,
-  enemyShotSpeedMul: 1.28,
+  enemyShotSpeedMul: 1.38,
   guaranteeWeapon: { by: 25, weapon: 'flak' },
   fieldTestWeapon: 'flak',
   bossSalvage: 280,

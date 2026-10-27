@@ -270,8 +270,7 @@ class Dodger implements Bot {
     let best = Infinity;
     let bx = p.x;
     let by = p.y;
-    // Wide fans (pulsar rings, the Echo's mirrored Spread) need escape points further out.
-    const radii = this.pulsars > 0 || this.echo !== null ? RINGS_WIDE : RINGS;
+    const radii = this.pulsars > 0 ? RINGS_WIDE : RINGS;
     for (let ri = 0; ri < radii.length; ri++) {
       const rad = radii[ri] as number;
       const nd = rad === 0 ? 1 : DIRS;

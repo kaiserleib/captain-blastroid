@@ -98,7 +98,7 @@ export const WYRM = {
   id: 'wr_wyrm',
   name: 'WYRM',
   score: 6000,
-  head: { defId: 'wr_wyrm_head', hp: 180, r: 14 },
+  head: { defId: 'wr_wyrm_head', hp: 260, r: 14 },
   seg: { defId: 'wr_wyrm_seg', hp: 30, r: 7, count: 8, score: 300 },
   /** Path distance from the head to the first segment, and between segments, px. */
   firstGap: 17,
@@ -110,7 +110,7 @@ export const WYRM = {
   /** The dust trail shows where it'll come out this long ahead (design: 0.8 s). */
   telegraph: 0.8,
   /** Mouth open (head unarmored) for this long after it emerges. */
-  surface: 2.0,
+  surface: 1.7,
   /** Speed share as it surfaces, easing up to full over the surfacing window. */
   surfaceSlow: 0.4,
   /** Seconds fully underground between the dive and the next telegraph. */
@@ -126,9 +126,9 @@ export const WYRM = {
   /** Emergence points: wall faces and pillar centers, y on the fixed arena (screen px). */
   wallYs: [60, 110, 160, 210] as const,
   /** One sideways shot per segment as it passes the cavern's middle. */
-  segShot: { speed: 70, band: 10 },
+  segShot: { speed: 80, band: 10 },
   /** FRENZY: a 7-way fan from the mouth, `delay` s after surfacing. */
-  fan: { n: 7, arc: 72, speed: 78, delay: 0.5 },
+  fan: { n: 7, arc: 72, speed: 84, delay: 0.5 },
   /** FRENZY carves what the head passes through (the pillars). */
   carveR: 10,
   /** Defeat: the segments pop this far apart along the body, seconds. */

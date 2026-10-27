@@ -56,6 +56,9 @@ if (import.meta.env.DEV) {
 // Fires on load and on every change, so saved volumes reach the mixer before any sound.
 onSaveChange((save) => applyAudioSettings(save.settings));
 const overlay = flags.debug ? new DebugOverlay() : null;
+// Perf e2e and console: the `?debug` overlay's last one-second window.
+if (import.meta.env.DEV && overlay)
+  (window as unknown as { __perf: unknown }).__perf = () => overlay.stats();
 
 const loop = new Loop({
   update(dt) {

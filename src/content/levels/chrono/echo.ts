@@ -131,7 +131,7 @@ export const ECHO: EchoDef = {
   drones: { orbitR: 28, omega: 2.2, respawn: 8 },
   paradox: { flipR: 52, slowR: 36, slowEvery: 2.6, slowPast: 2.5, slowTtl: 6, maxSlow: 3 },
   death: { freeze: 0.4, rewind: 1, shatter: 0.7 },
-  shotSalvageMax: 20,
+  shotSalvageMax: 30,
 };
 
 function partDef(defId: string, score: number): SimEnemyDef {

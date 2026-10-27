@@ -8,8 +8,12 @@ import { runSim } from './harness';
 // A player who reaches a boss holding only a Blaster L2 must still be able to
 // win by surviving: BOSS_ASSIST ramps their damage once the fight runs long.
 // Without it the Rock Hauler and Perihelion never die and the rest take 4–6 min.
+// The limit counts from the boss's own stall breaker (T43): 150 s after
+// `assistAfter`, i.e. 4 min for the default 90 s and 5 min for the Architect.
 
 const FULL = env.SIM === '1';
+/** Seconds a Blaster L2 may take once the stall breaker starts ramping. */
+const LIMIT_AFTER_ASSIST = 150;
 
 function blasterOnly(w: World): void {
   const ws = w.player.weapons;
@@ -22,12 +26,15 @@ function blasterOnly(w: World): void {
 describe('Blaster L2 alone vs every boss', () => {
   for (const levelId of LEVEL_ORDER) {
     it.runIf(FULL || levelId === 'kessler')(
-      `${levelId}: an invulnerable Blaster L2 finishes the boss within 4 min`,
+      `${levelId}: an invulnerable Blaster L2 finishes the boss within 150 s of the stall breaker`,
       () => {
         const r = runSim(`weak-${levelId}`, godBot(), 600, { levelId, onTick: blasterOnly });
         expect(r.stats.weaponsAtBoss).toBe('blaster2');
+        console.log(
+          `WEAK ${levelId} ${r.stats.bossTime.toFixed(0)} s (limit ${r.stats.assistAfter + LIMIT_AFTER_ASSIST})`,
+        );
         expect(r.stats.bossDefeated, `boss time ${r.stats.bossTime.toFixed(0)} s`).toBe(true);
-        expect(r.stats.bossTime).toBeLessThan(240);
+        expect(r.stats.bossTime).toBeLessThan(r.stats.assistAfter + LIMIT_AFTER_ASSIST);
       },
       120_000,
     );
