@@ -17,7 +17,7 @@ const queue: string[] = [];
 let listening = false;
 
 function onKey(ev: KeyboardEvent): void {
-  if (ev.repeat) return;
+  if (ev.repeat || ev.altKey) return;
   if (ev.code === 'KeyU') queue.push(ev.shiftKey ? 'boss' : 'orbiters');
   else if (ev.code === 'KeyI' && !ev.shiftKey) queue.push('lancer');
   else if (ev.code === 'KeyO' && !ev.shiftKey) queue.push('buoy');

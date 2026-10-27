@@ -76,7 +76,8 @@ export function installIonSandbox(): void {
   if (installed || !flags.sandbox || typeof window === 'undefined') return;
   installed = true;
   window.addEventListener('keydown', (e) => {
-    if (e.repeat || (e.code !== 'KeyQ' && e.code !== 'KeyE' && e.code !== 'KeyY')) return;
+    if (e.repeat || e.altKey || (e.code !== 'KeyQ' && e.code !== 'KeyE' && e.code !== 'KeyY'))
+      return;
     const w = world();
     if (w !== null) run(w, e.code, e.shiftKey);
   });

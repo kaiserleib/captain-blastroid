@@ -20,7 +20,7 @@ function install(): void {
   if (installed || typeof window === 'undefined') return;
   installed = true;
   window.addEventListener('keydown', (e) => {
-    if (e.repeat) return;
+    if (e.repeat || e.altKey) return;
     if (e.code === 'KeyH' || e.code === 'KeyJ' || e.code === 'KeyL')
       queue.push(`${e.shiftKey ? 'S' : ''}${e.code}`);
   });

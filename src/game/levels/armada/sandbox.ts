@@ -84,7 +84,7 @@ export function installArmadaSandbox(): void {
   };
   if (!flags.sandbox) return;
   window.addEventListener('keydown', (e) => {
-    if (e.repeat) return;
+    if (e.repeat || e.altKey) return;
     if (e.code !== 'KeyZ' && e.code !== 'KeyC' && e.code !== 'KeyM') return;
     const w = world();
     if (w !== null) run(w, e.code, e.shiftKey);

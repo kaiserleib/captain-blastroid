@@ -18,7 +18,7 @@ export function installBossSandbox(): void {
   if (installed || !flags.sandbox || typeof window === 'undefined') return;
   installed = true;
   window.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyK' && !e.repeat) queue.push(e.shiftKey ? 'skip' : 'spawn');
+    if (e.code === 'KeyK' && !e.repeat && !e.altKey) queue.push(e.shiftKey ? 'skip' : 'spawn');
   });
 }
 

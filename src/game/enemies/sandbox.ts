@@ -11,7 +11,7 @@ const queue: string[] = [];
 let listening = false;
 
 function onKey(ev: KeyboardEvent): void {
-  if (ev.repeat) return;
+  if (ev.repeat || ev.altKey) return;
   if (/^Digit[1-6]$/.test(ev.code) || ev.code === 'KeyR') queue.push(ev.code);
 }
 
