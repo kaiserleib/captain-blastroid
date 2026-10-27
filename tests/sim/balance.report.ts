@@ -1,5 +1,6 @@
 // Balance report (T20 req. 4, used for T18-style tuning). `npm run balance`
 // prints it for 50 seeds of the typical dodger; see balance.test.ts for knobs.
+import type { SaveData } from '../../src/meta';
 import type { Bot } from './bots';
 import { runSim, type RunStats, type SimResult } from './harness';
 
@@ -16,12 +17,13 @@ export function playBalance(
   runs: number,
   seedPrefix = 'bal',
   levelId = 'kessler',
+  save?: SaveData,
 ): BalanceRun[] {
   const out: BalanceRun[] = [];
   for (let i = 0; i < runs; i++) {
     // Level 1 keeps its historical seeds so reports stay comparable.
     const seed = levelId === 'kessler' ? `${seedPrefix}${i}` : `${levelId}-${seedPrefix}${i}`;
-    const r = runSim(seed, makeBot(), BALANCE_MAX_T, { levelId });
+    const r = runSim(seed, makeBot(), BALANCE_MAX_T, { levelId, save });
     out.push({ result: r.result, stats: r.stats });
   }
   return out;
@@ -105,6 +107,7 @@ export function formatBalanceReport(
   botName: string,
   runs: readonly BalanceRun[],
   levelLabel = 'Level 1',
+  saveName = 'fresh',
 ): string {
   const n = runs.length;
   const st = runs.map((r) => r.stats);
@@ -126,7 +129,7 @@ export function formatBalanceReport(
     for (const [k, v] of Object.entries(r.hitCauses)) causes[k] = (causes[k] ?? 0) + v;
 
   const lines = [
-    `══ Balance report · ${botName} · ${n} seeds · ${levelLabel} (Kestrel, fresh save) ══`,
+    `══ Balance report · ${botName} · ${n} seeds · ${levelLabel} (Kestrel, ${saveName} save) ══`,
     '',
     'Outcomes',
     `  reach boss ${pct(boss.length, n)} · clear ${pct(wins.length, n)} · death ${pct(deaths.length, n)} · timeout ${pct(timeouts.length, n)}`,

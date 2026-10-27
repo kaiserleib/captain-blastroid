@@ -62,6 +62,8 @@ export interface GameEvents {
   bossRequested: { defId: string };
   bossSpawned: { defId: string };
   bossDefeated: { defId: string; x: number; y: number };
+  /** Boss defeat on a level with `escape` (T32): the countdown starts (HUD, music). */
+  escapeStarted: { dur: number };
   levelComplete: NoPayload;
   sfx: { id: string; x?: number };
   shake: { mag: number; dur: number };

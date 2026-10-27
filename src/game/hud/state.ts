@@ -9,6 +9,8 @@ export const BOSS_FLASH_T = 0.08;
 /** Minimum seconds between boss-bar glints, so steady fire doesn't hold the bar white. */
 export const BOSS_FLASH_GAP = 0.3;
 export const WARNING_T = 2;
+/** The escape's end: white fades in over `in` s, holds, then fades out (s after the countdown hits 0). */
+export const WHITE_OUT = { in: 0.4, hold: 0.3, out: 1.2 } as const;
 /** If `bossSpawned` fires before the parts exist, wait this long before hiding the bar. */
 const BOSS_GRACE_T = 1;
 
@@ -33,6 +35,13 @@ export class HudState {
 
   warningT = 0;
 
+  /** World time the escape countdown ends, or -1 with no escape. */
+  escapeEnd = -1;
+  /** Seconds left (0 once it ends); meaningful while `escapeEnd >= 0`. */
+  escapeLeft = 0;
+  /** White-out opacity 0..1 after the countdown. */
+  whiteOut = 0;
+
   /** Peak magnet/repulsor timers, so bars shrink from full whatever the duration. */
   magnetMax = 0;
   repulsorMax = 0;
@@ -53,6 +62,8 @@ export class HudState {
     this.bossSeen = false;
     this.bossT = 0;
     this.warningT = 0;
+    this.escapeEnd = -1;
+    this.escapeLeft = this.whiteOut = 0;
     this.magnetMax = this.repulsorMax = this.lastMagnet = this.lastRepulsor = 0;
     this.t = 0;
     this.lastTime = -1;
@@ -74,6 +85,28 @@ export class HudState {
     this.warningT = WARNING_T;
   }
 
+  /** `escapeStarted` at world time `now`. */
+  onEscapeStarted(now: number, dur: number): void {
+    this.escapeEnd = now + dur;
+    this.escapeLeft = dur;
+    this.whiteOut = 0;
+  }
+
+  updateEscape(time: number): void {
+    if (this.escapeEnd < 0) return;
+    this.escapeLeft = Math.max(0, this.escapeEnd - time);
+    const k = time - this.escapeEnd;
+    const W = WHITE_OUT;
+    if (k < 0) this.whiteOut = 0;
+    else if (k < W.in) this.whiteOut = k / W.in;
+    else if (k < W.in + W.hold) this.whiteOut = 1;
+    else if (k < W.in + W.hold + W.out) this.whiteOut = 1 - (k - W.in - W.hold) / W.out;
+    else {
+      this.whiteOut = 0;
+      this.escapeEnd = -1;
+    }
+  }
+
   /** Advances by the sim time elapsed since the last call. */
   update(w: World): void {
     let dt = this.lastTime < 0 ? 0 : w.time - this.lastTime;
@@ -84,6 +117,7 @@ export class HudState {
     this.updateShield(w.player.shield, w.player.maxShield, dt);
     this.updateBoss(w, dt);
     if (this.warningT > 0) this.warningT = Math.max(0, this.warningT - dt);
+    this.updateEscape(w.time);
 
     const m = w.player.magnetT;
     if (m > this.lastMagnet + 1e-3 || m > this.magnetMax) this.magnetMax = m;

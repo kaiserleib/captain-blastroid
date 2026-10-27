@@ -118,7 +118,7 @@ describe('timeline helpers', () => {
 
   it('exposes level metadata and ?level=N lookup', () => {
     expect(levelIdForNumber(1)).toBe('kessler');
-    expect(levelIdForNumber(9)).toBeNull();
+    expect(levelIdForNumber(11)).toBeNull();
     expect(levelIdForNumber(null)).toBeNull();
     expect(getLevel('nope')).toBe(LEVEL1);
     expect(levelSummary('kessler')).toEqual({

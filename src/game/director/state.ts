@@ -3,7 +3,7 @@ import type { System } from '../../sim/world';
 import type { AsteroidStream } from '../obstacles';
 import type { ScheduledFire } from './timeline';
 
-export type DirectorPhase = 'level' | 'boss' | 'outro' | 'done';
+export type DirectorPhase = 'level' | 'boss' | 'escape' | 'outro' | 'done';
 
 export interface CapsuleFix {
   x: number;
@@ -29,7 +29,9 @@ export interface DirectorState {
   /** Weapons a forced capsule has already been granted for. */
   forcedGranted: Set<string>;
   capsuleFixes: CapsuleFix[];
-  /** Seconds since `bossDefeated`. */
+  /** `LevelDef.escape` after the boss: seconds in, seconds left, hits taken. */
+  escape: EscapeState;
+  /** Seconds since `bossDefeated` (or since the escape ended). */
   outroT: number;
   outroStep: number;
   bossX: number;
@@ -45,6 +47,15 @@ export interface DirectorState {
   /** Fired schedule entries, for tests and debugging. */
   log: string[];
   offs: (() => void)[];
+}
+
+export interface EscapeState {
+  /** Started; stays true through the outro, so the last-shield guard holds to the end. */
+  active: boolean;
+  t: number;
+  left: number;
+  hits: number;
+  magnetized: boolean;
 }
 
 export const LOG_LIMIT = 4000;

@@ -82,6 +82,7 @@ const EVENT_TYPES = Object.keys({
   bossRequested: 1,
   bossSpawned: 1,
   bossDefeated: 1,
+  escapeStarted: 1,
   levelComplete: 1,
   sfx: 1,
   shake: 1,

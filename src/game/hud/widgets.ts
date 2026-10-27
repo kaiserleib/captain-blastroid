@@ -7,7 +7,8 @@ import { drawEmptySlot, drawWeaponIcon, SLOT } from './icons';
 import type { HudLayout, Rect } from './layout';
 import { PIP_GAIN_T, type HudState } from './state';
 
-export const MAX_SLOTS = 5;
+/** Act II caps slots at 6 (the Nova; Wren's +1). 6 × 18 px fits beside the timers at 240 px. */
+export const MAX_SLOTS = 6;
 export const MAX_LEVEL = 5;
 const PIP_W = 8;
 const SLOT_STEP = 18;
@@ -39,6 +40,10 @@ const BOSS_BAR = { fill: HUD_COLORS.boss, highlight: HUD_COLORS.bossHigh } as co
 const BOSS_BAR_FLASH = { fill: HUD_COLORS.bossHigh, highlight: WHITE } as const;
 const TIMER_BAR = { fill: UI.barFill, highlight: UI.barHigh } as const;
 const WARN_TEXT = { color: HUD_COLORS.warnStripe, align: 'center', scale: 2 } as const;
+const ESCAPE_TEXT = { color: UI.text, align: 'center' } as const;
+const ESCAPE_TEXT_HOT = { color: HUD_COLORS.boss, align: 'center' } as const;
+/** The countdown blinks red for its last seconds. */
+const ESCAPE_HOT_T = 10;
 
 /** Formats numbers into strings only when they change, so steady frames don't allocate. */
 export class NumberText {
@@ -59,6 +64,11 @@ export const formatScore = (n: number): string =>
   String(Math.max(0, Math.floor(n))).padStart(SCORE_DIGITS, '0');
 export const formatCount = (n: number): string => String(Math.max(0, Math.floor(n)));
 export const formatChain = (n: number): string => `×${Math.floor(n)}`;
+/** Whole seconds left, rounded up: `ESCAPE 0:40`. */
+export const formatEscape = (n: number): string => {
+  const s = Math.max(0, Math.ceil(n));
+  return `ESCAPE ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+};
 
 /** Solid band with a window-style double edge (white on the playfield side, then gray). */
 export function drawBand(r: Renderer, rect: Rect, whiteY: number, grayY: number): void {
@@ -214,4 +224,18 @@ export function drawWarning(r: Renderer, l: HudLayout, st: HudState): void {
   if (Math.floor(st.t * 5) % 2 === 0) {
     drawText(r.ctx, 'WARNING', Math.round(w / 2), y + 9, WARN_TEXT);
   }
+}
+
+/** The escape countdown, top centre where the boss bar was. */
+export function drawEscape(r: Renderer, l: HudLayout, st: HudState, text: string): void {
+  const hot = st.escapeLeft <= ESCAPE_HOT_T && Math.floor(st.t * 4) % 2 === 0;
+  r.text(text, l.width / 2, l.bossY, hot ? ESCAPE_TEXT_HOT : ESCAPE_TEXT);
+}
+
+/** The escape's white-out over everything. */
+export function drawWhiteOut(r: Renderer, l: HudLayout, a: number): void {
+  const ctx = r.ctx;
+  ctx.globalAlpha = Math.max(0, Math.min(1, a));
+  r.rect(0, 0, l.width, l.height, WHITE);
+  ctx.globalAlpha = 1;
 }

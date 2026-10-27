@@ -12,8 +12,8 @@ import {
   safeInsetsLogical,
   viewportFromLayout,
 } from './layout';
-import { bossDisplayName, HudState, PIP_GAIN_T, PIP_LOST_T, WARNING_T } from './state';
-import { formatScore } from './widgets';
+import { bossDisplayName, HudState, PIP_GAIN_T, PIP_LOST_T, WARNING_T, WHITE_OUT } from './state';
+import { formatEscape, formatScore, MAX_SLOTS } from './widgets';
 
 describe('computeHudLayout', () => {
   it('overlays the playfield edges at 240×400', () => {
@@ -190,6 +190,46 @@ describe('HudState', () => {
     }
     expect(st.warningT).toBe(0);
     expect(st.magnetMax).toBe(8);
+  });
+});
+
+describe('escape countdown', () => {
+  it('counts down from escapeStarted, whites out at 0, then clears', () => {
+    const w = createWorld('HUDTEST');
+    const st = new HudState();
+    w.time = 10;
+    st.update(w);
+    expect(st.escapeEnd).toBe(-1);
+    st.onEscapeStarted(w.time, 40);
+    w.time = 25;
+    st.update(w);
+    expect(st.escapeLeft).toBeCloseTo(25);
+    expect(st.whiteOut).toBe(0);
+    w.time = 50 + WHITE_OUT.in / 2;
+    st.update(w);
+    expect(st.escapeLeft).toBe(0);
+    expect(st.whiteOut).toBeCloseTo(0.5);
+    w.time = 50 + WHITE_OUT.in + WHITE_OUT.hold / 2;
+    st.update(w);
+    expect(st.whiteOut).toBe(1);
+    w.time = 50 + WHITE_OUT.in + WHITE_OUT.hold + WHITE_OUT.out + 0.1;
+    st.update(w);
+    expect(st.whiteOut).toBe(0);
+    expect(st.escapeEnd).toBe(-1);
+  });
+
+  it('formats whole seconds rounded up', () => {
+    expect(formatEscape(40)).toBe('ESCAPE 0:40');
+    expect(formatEscape(9.2)).toBe('ESCAPE 0:10');
+    expect(formatEscape(0)).toBe('ESCAPE 0:00');
+    expect(formatEscape(75)).toBe('ESCAPE 1:15');
+  });
+
+  it('fits six weapon slots left of the timers at 240 px', () => {
+    expect(MAX_SLOTS).toBe(6);
+    const l = computeHudLayout(defaultViewport(240, 400, 0));
+    // 18 px per slot (12 px icon + level column); two timers take 24 px on the right.
+    expect(l.left + MAX_SLOTS * 18).toBeLessThan(l.right - 24 - 8);
   });
 });
 

@@ -19,11 +19,13 @@ import {
   LOCK_RED,
   MenuScene,
   OK_GREEN,
+  resultBanners,
   sectorLabel,
   sfx,
   WHITE_TEXT,
   type DiscoveryLine,
   type MenuItem,
+  type ResultBanner,
 } from '../ui';
 import { flow, type ResultsData } from './flow';
 
@@ -54,7 +56,8 @@ export class ResultsScene extends MenuScene {
   private shipId = '';
   private pilotId = '';
   private nextLevel: string | null = null;
-  private campaignComplete = false;
+  /** CAMPAIGN / ACT I COMPLETE and NEW WEAPON lines under the title. */
+  private banners: ResultBanner[] = [];
 
   override enter(data?: unknown): void {
     const d = data as ResultsData;
@@ -71,7 +74,7 @@ export class ResultsScene extends MenuScene {
     void saveNow();
     this.earned = banked.salvageEarned;
     this.lines = discoveryLines(banked.discoveries);
-    this.campaignComplete = d.victory && banked.campaignComplete;
+    this.banners = resultBanners(banked, d.victory);
     this.nextLevel =
       d.victory && banked.nextLevel && isLevelUnlocked(banked.save, banked.nextLevel)
         ? banked.nextLevel
@@ -85,7 +88,7 @@ export class ResultsScene extends MenuScene {
   }
 
   private get titleH(): number {
-    return 30 + 12 + (this.campaignComplete ? 12 : 0);
+    return 30 + 12 + this.banners.length * 12;
   }
 
   protected layout(w: number, h: number): void {
@@ -159,10 +162,12 @@ export class ResultsScene extends MenuScene {
     const color = this.victory ? GOLD : this.abandoned ? '#a0a8c0' : LOCK_RED;
     drawText(r.ctx, title, w / 2, y, { align: 'center', color, scale: 2, shadowColor: '#100818' });
     r.text(sectorLabel(this.levelId), w / 2, y + 22, { align: 'center', color: WHITE_TEXT });
-    if (this.campaignComplete) {
-      // Blinks gold/white so the end of the campaign reads as an event.
-      const c = Math.floor(this.t * 3) % 2 === 0 ? GOLD : WHITE_TEXT;
-      r.text('CAMPAIGN COMPLETE', w / 2, y + 34, { align: 'center', color: c });
+    for (let i = 0; i < this.banners.length; i++) {
+      const b = this.banners[i] as ResultBanner;
+      // The end of an act blinks gold/white so it reads as an event.
+      const blink = Math.floor(this.t * 3) % 2 === 0 ? GOLD : WHITE_TEXT;
+      const c = b.kind === 'weapon' ? OK_GREEN : blink;
+      r.text(b.text, w / 2, y + 34 + i * 12, { align: 'center', color: c });
     }
     y += this.titleH;
 

@@ -45,12 +45,19 @@ export interface SolidQuery {
 /** Rate multiplier for bodies at (x, y) (T33 time bubbles). 1 = normal. */
 export type TimeScaleFn = (w: World, x: number, y: number) => number;
 
+/**
+ * Lowest shield a hit may leave (T32's escape returns 1: the last shield can't be
+ * lost). A hit never raises the shield: the floor is capped at the current value.
+ */
+export type ShieldFloorFn = (w: World) => number;
+
 /** Runs one Act II timeline event; `ev` is the event's payload object. */
 export type TimelineAction = (w: World, ev: unknown) => void;
 
 let asteroidHeld: AsteroidHeldCheck | null = null;
 let solidQuery: SolidQuery | null = null;
 let timeScale: TimeScaleFn | null = null;
+let shieldFloorFn: ShieldFloorFn | null = null;
 const timelineActions: Record<string, TimelineAction> = {};
 let bossDamageScale: BossDamageScale | null = null;
 
@@ -164,6 +171,18 @@ export function timeScaleAt(w: World, x: number, y: number): number {
   return timeScale === null ? 1 : timeScale(w, x, y);
 }
 
+/** One floor; registering again replaces it. */
+export function registerShieldFloor(fn: ShieldFloorFn): () => void {
+  shieldFloorFn = fn;
+  return () => {
+    if (shieldFloorFn === fn) shieldFloorFn = null;
+  };
+}
+
+export function shieldFloor(w: World): number {
+  return shieldFloorFn === null ? -Infinity : shieldFloorFn(w);
+}
+
 /** One handler per timeline kind; registering again replaces it. */
 export function registerTimelineAction(kind: string, fn: TimelineAction): () => void {
   timelineActions[kind] = fn;
@@ -182,6 +201,7 @@ export function clearHooks(): void {
   bossDamageScale = null;
   solidQuery = null;
   timeScale = null;
+  shieldFloorFn = null;
   for (const k of Object.keys(timelineActions)) delete timelineActions[k];
   shotBlockers.length = 0;
   bossDamageHooks.length = 0;

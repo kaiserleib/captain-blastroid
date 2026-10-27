@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  ACTS,
   LEVEL1,
   LEVELS,
   LEVEL_ORDER,
+  REGISTERED_ACTION_KINDS,
+  actEndedBy,
+  actIndexOf,
   getLevel,
   levelIdForNumber,
   type LevelDef,
@@ -74,15 +78,20 @@ function live<T extends { active: boolean }>(pool: { items: T[]; count: number }
 afterEach(() => setGodMode(false));
 
 describe('sectors', () => {
-  it('lists five sectors in campaign order, each with its tuning', () => {
+  it('lists ten sectors in campaign order, each with its tuning', () => {
     expect(LEVEL_ORDER).toEqual([
       'kessler',
       'ionShoals',
       'eventHorizon',
       'pulsarNursery',
       'armada',
+      'corona',
+      'warrens',
+      'junction',
+      'chrono',
+      'foundry',
     ]);
-    for (let n = 1; n <= 5; n++) {
+    for (let n = 1; n <= 10; n++) {
       const id = levelIdForNumber(n)!;
       expect(id).toBe(LEVEL_ORDER[n - 1]);
       const l = getLevel(id);
@@ -96,7 +105,7 @@ describe('sectors', () => {
       expect(l.guaranteeWeapon).toBeDefined();
       expect(rockThemeForLevel(id)).toBe(l.rockTheme);
     }
-    expect(levelIdForNumber(6)).toBeNull();
+    expect(levelIdForNumber(11)).toBeNull();
     expect(getLevel('nowhere')).toBe(LEVEL1);
     expect(LEVELS.armada!.bossMusic).toBe('armada_boss');
     expect(rockThemeForLevel('nowhere')).toBe('basalt');
@@ -312,5 +321,72 @@ describe('registered timeline actions (Act II hazards)', () => {
     expect(() => run(w, 0.2)).not.toThrow();
     expect(getDirector(w)!.log.some((l) => l.includes('bubble (unregistered)'))).toBe(true);
     warn.mockRestore();
+  });
+
+  it('routes every Act II kind, and warns once per unknown kind', () => {
+    const events: TimelineEvent[] = [
+      { t: 0.1, flare: { burn: 1 } },
+      { t: 0.1, flares: { every: 8, until: 60 } },
+      { t: 0.1, shadeSlab: { x: 60 } },
+      { t: 0.1, terrain: { chunk: 'c1', theme: 'warrens' } },
+      { t: 0.1, portal: { a: [40, 80], b: [200, 80], color: 'cyan' } },
+      { t: 0.1, bubble: { kind: 'fast', x: 120, r: 40 } },
+    ];
+    const seen: string[] = [];
+    const offs = REGISTERED_ACTION_KINDS.map((k) => registerTimelineAction(k, () => seen.push(k)));
+    run(setup(level('t32-all', events)), 0.2);
+    offs.forEach((off) => off());
+    expect(seen).toEqual([...REGISTERED_ACTION_KINDS]);
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const twice: TimelineEvent[] = [
+      { t: 0.1, portal: { a: [40, 80], b: [200, 80], color: 'cyan' } },
+      { t: 0.2, portal: { a: [40, 80], b: [200, 80], color: 'lime' } },
+    ];
+    run(setup(level('t32-twice', twice)), 0.3);
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("'portal'"))).toHaveLength(1);
+    warn.mockRestore();
+  });
+});
+
+describe('Act II sector stubs (T32)', () => {
+  const ACT2: Record<string, [music: string, boss: string, schematic: string, field?: string]> = {
+    corona: ['corona', 'boss2', 'shrike', 'arc'],
+    warrens: ['warrens', 'boss2', 'ferret', 'ricochet'],
+    junction: ['junction', 'boss2', 'wraith', 'flak'],
+    chrono: ['rift', 'boss2', 'revenant'],
+    foundry: ['foundry', 'foundry_boss', 'nova'],
+  };
+
+  it('carry the design tuning, one pod and a guaranteed field-test weapon', () => {
+    for (const [id, [music, boss, schematic, field]] of Object.entries(ACT2)) {
+      const l = getLevel(id);
+      expect(l.id, id).toBe(id);
+      expect(l.music).toBe(music);
+      expect(l.bossMusic).toBe(boss);
+      expect(l.schematicOnClear).toEqual([schematic]);
+      expect(l.fieldTestWeapon).toBe(field);
+      if (field !== undefined) expect(l.guaranteeWeapon).toEqual({ by: 25, weapon: field });
+      expect(l.timeline.filter((e) => 'escapePod' in e)).toHaveLength(1);
+      expect(l.enemyHpMul).toBeGreaterThanOrEqual(1.4);
+      expect(l.escape !== undefined).toBe(id === 'foundry');
+    }
+    expect(LEVEL_ORDER.slice(5).map((id) => getLevel(id).bossSalvage)).toEqual([
+      240, 260, 280, 300, 400,
+    ]);
+    expect(LEVEL_ORDER.slice(5).map((id) => getLevel(id).podFallbackSalvage)).toEqual([
+      90, 100, 110, 120, 150,
+    ]);
+  });
+
+  it('pages into two acts of five', () => {
+    expect(ACTS.map((a) => a.name)).toEqual(['ACT I', 'ACT II']);
+    expect(ACTS.flatMap((a) => a.levels)).toEqual([...LEVEL_ORDER]);
+    expect(actIndexOf('armada')).toBe(0);
+    expect(actIndexOf('corona')).toBe(1);
+    expect(actIndexOf('nowhere')).toBe(0);
+    expect(actEndedBy('armada')?.name).toBe('ACT I');
+    expect(actEndedBy('foundry')).toBeNull();
+    expect(actEndedBy('corona')).toBeNull();
   });
 });
