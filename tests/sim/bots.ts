@@ -9,6 +9,8 @@ import { Lance } from '../../src/game/levels/eventHorizon/behaviors';
 import { Dive, divePoint, Perihelion } from '../../src/game/levels/eventHorizon/perihelion';
 import { Leviathan } from '../../src/game/levels/armada';
 import { mem, RayPhase } from '../../src/game/levels/pulsarNursery/behaviors';
+import { getTerrainState, nearestOpenX } from '../../src/game/terrain';
+import { isSolidAt } from '../../src/sim/hooks';
 
 import { inPulsarGap } from '../../src/game/obstacles';
 import { ext, isFieldOnly } from '../../src/game/obstacles/anomalies/state';
@@ -356,6 +358,7 @@ class Dodger implements Bot {
       cost += wt * this.overlapEnemies(w, sx, sy, t);
       if (this.hazards) cost += wt * this.overlapHazards(w, sx, sy, t);
     }
+    if (getTerrainState(w) !== undefined) cost += terrainCost(w, cx, cy);
     if (this.pulsars > 0) {
       const ringLook = sk.lookahead + RING_READ;
       for (let s = 1; s <= RING_STEPS; s++) {
@@ -572,4 +575,45 @@ function nearCore(w: World, x: number, y: number, kind: Anomaly['kind'], pad: nu
 
 function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;
+}
+
+// Terrain (T34). Walls are on screen for seconds, so the bot reads them the
+// way a player does: stay in the column that is still open ~1.5 s of scroll
+// ahead, don't path through rock, and don't sit low under a wall.
+const TERRAIN_LOOK = 1.5;
+const TERRAIN_STEPS = 6;
+const TERRAIN_HW = 7;
+const TERRAIN_COST = 90;
+
+/** Solid anywhere in the ship's terrain box (a px wider than the real one). */
+function boxSolid(w: World, x: number, y: number): boolean {
+  return (
+    isSolidAt(w, x, y) ||
+    isSolidAt(w, x - TERRAIN_HW, y - TERRAIN_HW) ||
+    isSolidAt(w, x + TERRAIN_HW, y - TERRAIN_HW) ||
+    isSolidAt(w, x - TERRAIN_HW, y + TERRAIN_HW) ||
+    isSolidAt(w, x + TERRAIN_HW, y + TERRAIN_HW)
+  );
+}
+
+function terrainCost(w: World, cx: number, cy: number): number {
+  const p = w.player;
+  let c = 0;
+  // The way there, through today's walls.
+  for (let i = 1; i <= 4; i++) {
+    const k = i / 4;
+    if (boxSolid(w, p.x + (cx - p.x) * k, p.y + (cy - p.y) * k)) c += TERRAIN_COST;
+  }
+  // The spot as the terrain scrolls over it: the rows now above it arrive later.
+  for (let s = 0; s <= TERRAIN_STEPS; s++) {
+    const t = (s / TERRAIN_STEPS) * TERRAIN_LOOK;
+    const y = cy - w.scrollSpeed * t;
+    if (!boxSolid(w, cx, y)) continue;
+    const open = nearestOpenX(w, cx, y, TERRAIN_HW);
+    const far = open !== open ? 120 : Math.abs(open - cx);
+    c += (TERRAIN_COST + far) / (1 + t);
+  }
+  // Crush: low on screen with rock right above is a trap.
+  if (cy > 340 && boxSolid(w, cx, cy - 24)) c += TERRAIN_COST;
+  return c;
 }
