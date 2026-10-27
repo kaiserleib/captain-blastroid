@@ -20,11 +20,17 @@ export function sectorName(levelId: string): string {
   return LEVELS[levelId]?.name ?? '???';
 }
 
-/** The first sector whose boss drops `shipId`'s schematic, or ??? if none does yet. */
+/** `SECTOR 7` for a level in the campaign order, `SECTOR ?` before it's added. */
+export function sectorLabel(levelId: string): string {
+  const i = LEVEL_ORDER.indexOf(levelId);
+  return `SECTOR ${i >= 0 ? i + 1 : '?'}`;
+}
+
+/** The first sector whose boss drops `shipId`'s schematic (`SECTOR 6 BOSS`), or ??? if none does yet. */
 export function schematicSector(shipId: string): string {
   for (const id of LEVEL_ORDER) {
     const l = LEVELS[id];
-    if (l?.schematicOnClear.includes(shipId)) return l.name;
+    if (l?.schematicOnClear.includes(shipId)) return `${sectorLabel(id)} BOSS`;
   }
   return '???';
 }

@@ -98,7 +98,71 @@ export const SHIPS: Readonly<Record<string, ShipDef>> = {
     ],
     unlock: { kind: 'schematic', schematicId: 'paragon', cost: 1200 },
   },
+  // Act II ships, per docs/design.md → Act II "New ships". Schematics drop from sector 6–10 bosses.
+  shrike: {
+    id: 'shrike',
+    name: 'Shrike',
+    shield: 3,
+    speed: 140,
+    weaponSlots: 4,
+    startingWeapons: [
+      { weaponId: 'blaster', level: 1 },
+      { weaponId: 'arc', level: 1 },
+    ],
+    unlock: { kind: 'schematic', schematicId: 'shrike', cost: 900 },
+  },
+  ferret: {
+    id: 'ferret',
+    name: 'Ferret',
+    shield: 3,
+    speed: 125,
+    weaponSlots: 4,
+    startingWeapons: [
+      { weaponId: 'blaster', level: 1 },
+      { weaponId: 'ricochet', level: 1 },
+    ],
+    unlock: { kind: 'schematic', schematicId: 'ferret', cost: 1000 },
+  },
+  wraith: {
+    id: 'wraith',
+    name: 'Wraith',
+    shield: 2,
+    speed: 145,
+    weaponSlots: 5,
+    startingWeapons: [
+      { weaponId: 'blaster', level: 2 },
+      { weaponId: 'flak', level: 1 },
+    ],
+    unlock: { kind: 'schematic', schematicId: 'wraith', cost: 1100 },
+  },
+  revenant: {
+    id: 'revenant',
+    name: 'Revenant',
+    shield: 4,
+    speed: 115,
+    weaponSlots: 5,
+    startingWeapons: [
+      { weaponId: 'blaster', level: 1 },
+      { weaponId: 'seeker', level: 1 },
+      { weaponId: 'orbitDrones', level: 1 },
+    ],
+    unlock: { kind: 'schematic', schematicId: 'revenant', cost: 1300 },
+  },
+  nova: {
+    id: 'nova',
+    name: 'Nova',
+    shield: 4,
+    speed: 130,
+    weaponSlots: 6,
+    startingWeapons: [{ weaponId: 'blaster', level: 2 }],
+    unlock: { kind: 'schematic', schematicId: 'nova', cost: 2000 },
+  },
 };
+
+/** Hard cap on weapon slots after pilot bonuses (the HUD strip holds six). */
+export const MAX_WEAPON_SLOTS = 6;
+/** A pilot's shield penalty never takes a ship below this. */
+export const MIN_MAX_SHIELD = 1;
 
 /** Display / hangar order. */
 export const SHIP_ORDER: readonly string[] = [
@@ -109,4 +173,9 @@ export const SHIP_ORDER: readonly string[] = [
   'corsair',
   'halcyon',
   'paragon',
+  'shrike',
+  'ferret',
+  'wraith',
+  'revenant',
+  'nova',
 ];

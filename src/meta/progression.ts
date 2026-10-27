@@ -1,6 +1,8 @@
 // Meta-progression rules. Pure functions on SaveData: they return new saves and never do I/O.
 import {
   LEVEL_ORDER,
+  MAX_WEAPON_SLOTS,
+  MIN_MAX_SHIELD,
   PILOTS,
   PILOT_ORDER,
   SHIPS,
@@ -269,9 +271,10 @@ export interface PlayerLoadout {
   /** Base ship numbers (design.md table). */
   baseShield: number;
   baseSpeed: number;
+  /** Ship slots + stats.extraSlots, capped at MAX_WEAPON_SLOTS. */
   weaponSlots: number;
   startingWeapons: readonly StartingWeapon[];
-  /** baseShield + stats.extraShield */
+  /** baseShield + stats.extraShield, never below MIN_MAX_SHIELD. */
   maxShield: number;
   /** baseSpeed × stats.speedMul, px/s */
   speed: number;
@@ -288,9 +291,9 @@ export function computePlayerStats(save: SaveData, shipId: string, pilotId: stri
     pilotId,
     baseShield: ship.shield,
     baseSpeed: ship.speed,
-    weaponSlots: ship.weaponSlots,
+    weaponSlots: Math.min(MAX_WEAPON_SLOTS, ship.weaponSlots + stats.extraSlots),
     startingWeapons: boostFirstWeapon(ship.startingWeapons, startWeaponBonus(save)),
-    maxShield: ship.shield + stats.extraShield,
+    maxShield: Math.max(MIN_MAX_SHIELD, ship.shield + stats.extraShield),
     speed: ship.speed * stats.speedMul,
     stats,
   };

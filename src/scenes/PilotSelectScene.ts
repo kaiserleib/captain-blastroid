@@ -25,6 +25,7 @@ import {
   pageCount,
   pageOf,
   PER_PAGE,
+  sectorLabel,
   sectorName,
 } from './rosterStrip';
 
@@ -200,10 +201,12 @@ export class PilotSelectScene extends MenuScene {
     if (locked) {
       r.text('???', tx, y + 8, { color: DIM });
       r.text('RESCUE:', tx, y + 24, { color: LOCK_RED });
-      const where = pilot.unlock.kind === 'rescue' ? sectorName(pilot.unlock.levelId) : '???';
-      const lines = wrapText(where, tw);
-      for (let i = 0; i < lines.length && i < 3; i++)
-        r.text(lines[i] as string, tx, y + 36 + i * 10, { color: LOCK_RED });
+      const rescue = pilot.unlock.kind === 'rescue' ? pilot.unlock.levelId : null;
+      r.text(rescue ? `${sectorLabel(rescue)} POD` : '???', tx, y + 36, { color: LOCK_RED });
+      const name = rescue ? sectorName(rescue) : '???';
+      const lines = name === '???' ? [] : wrapText(name, tw);
+      for (let i = 0; i < lines.length && i < 2; i++)
+        r.text(lines[i] as string, tx, y + 48 + i * 10, { color: DIM });
       const hint = wrapText('Escort the escape pod to safety.', tw);
       for (let i = 0; i < hint.length && i < 4; i++)
         r.text(hint[i] as string, tx, y + 72 + i * 10, { color: DIM });
