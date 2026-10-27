@@ -24,11 +24,11 @@ describe('roster content', () => {
       if (!s || s.unlock.kind !== 'schematic') throw new Error(id);
       return [s.shield, s.speed, s.weaponSlots, s.unlock.cost];
     };
-    expect(row('shrike')).toEqual([3, 140, 4, 900]);
-    expect(row('ferret')).toEqual([3, 125, 4, 1000]);
-    expect(row('wraith')).toEqual([2, 145, 5, 1100]);
-    expect(row('revenant')).toEqual([4, 115, 5, 1300]);
-    expect(row('nova')).toEqual([4, 130, 6, 2000]);
+    expect(row('shrike')).toEqual([3, 140, 4, 1400]);
+    expect(row('ferret')).toEqual([3, 125, 4, 1600]);
+    expect(row('wraith')).toEqual([2, 145, 5, 1800]);
+    expect(row('revenant')).toEqual([4, 115, 5, 2100]);
+    expect(row('nova')).toEqual([4, 130, 6, 3000]);
     expect(SHIPS.shrike?.startingWeapons.map((w) => w.weaponId)).toEqual(['blaster', 'arc']);
     expect(SHIPS.ferret?.startingWeapons.map((w) => w.weaponId)).toEqual(['blaster', 'ricochet']);
     expect(SHIPS.wraith?.startingWeapons).toEqual([

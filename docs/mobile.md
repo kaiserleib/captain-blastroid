@@ -157,6 +157,25 @@ Measured in desktop Chrome on the dev Mac (Apple Silicon) at 120 Hz, using the `
 
 **Conclusion:** Canvas2D is not the bottleneck, so the PixiJS renderer was **not** prototyped.
 
+### Act II under a CPU throttle (T43)
+
+`e2e/perf.spec.ts` (opt-in: `PERF=1 PERF_CPU=4 E2E_PORT=… npx playwright test -c e2e/playwright.config.ts perf --project=pixel`) launches each Act II sector's heaviest beat with `?save=act1&god&debug&mute`, applies Chromium's CPU throttle (DevTools' "mid-tier mobile" preset is 4×, "low-end" 6×) and reads the overlay through the dev-only `window.__perf`. Headless Chromium, Pixel 7 emulation, 60 Hz. "Frame" is update × ticks per frame + render. It also fails on any console error.
+
+| Beat | 4×: UPD avg / max | 4×: RND avg / max | 4×: frame avg | 6×: frame avg | 6×: RND max | FPS min (6×) |
+|---|---|---|---|---|---|---|
+| L6 CME storm (flares, gnat swarms) | 0.22 / 4.8 | 2.78 / 6.2 | 3.0 | 4.5 | 7.6 | 60 |
+| L6 Heliostat, beams → furnace spiral | 0.18 / 4.4 | 3.13 / 5.1 | 3.3 | 4.9 | 11.7 | 57 |
+| L7 the fork (turrets, bats, gates) | 0.25 / 2.2 | 2.61 / 4.3 | 2.9 | 4.3 | 6.4 | 60 |
+| L7 Wyrm → FRENZY (carving) | 0.20 / 4.4 | 2.67 / 4.6 | 2.9 | 4.3 | 7.1 | 60 |
+| L8 junction rush + feedback loop | 0.25 / 3.8 | 3.16 / 5.8 | 3.4 | 5.1 | 7.5 | 60 |
+| L8 Janus phase 1 → 2 | 0.19 / 2.9 | 3.47 / 5.7 | 3.7 | 5.4 | 8.7 | 59 |
+| L9 dammed gunboat + time storm (57–71 shots) | 0.22 / 2.7 | 4.07 / 5.9 | 4.3 | 6.4 | 9.6 | 60 |
+| L9 Echo → PARADOX | 0.19 / 4.5 | 3.27 / 5.5 | 3.5 | 5.2 | 8.0 | 60 |
+| L10 furnace (flares, portals, the line) | 0.21 / 2.3 | 3.45 / 5.4 | 3.7 | 5.4 | 8.4 | 60 |
+| L10 Architect's forms → escape | 0.19 / 6.4 | 3.09 / 26.6 | 3.3 | 4.9 | 37.2 | 58 |
+
+Every beat holds 60 fps and 60 TPS at 4× with a frame cost of 3–4.3 ms against the 16.7 ms budget; at 6× the averages stay under 6.5 ms. The one outlier is a single-frame render spike when an Architect form ends (26 ms at 4×). It lines up with the `__foundry.skip()` calls; the cause is not profiled yet. One guess is first-draw work for the hole and pulsar, which a run started at `?t=199` hasn't drawn before (a full run shows both at 40 s and 80 s). Worth a check on a real device.
+
 **On device:** load `?debug&t=150&god` over the LAN and watch the overlay. For a real profile, use `chrome://inspect` → Performance on the device. If frame time exceeds 16 ms, apply these in order:
 1. Cap the explosion/particle budget with a "reduced effects" setting. Explosions are the largest render spikes.
 2. Batch the HUD band redraw: it is static between changes and could be cached to an offscreen canvas.

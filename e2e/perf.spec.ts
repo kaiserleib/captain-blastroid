@@ -1,4 +1,5 @@
-import { test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+import { computeLayout } from '../src/engine/display';
 
 // T43 device-class perf check (T19/T31 method, scripted): each Act II sector's
 // heaviest beat and the Foundry escape, under `?debug&god&mute&save=act1`, with
@@ -8,6 +9,53 @@ import { test, type Page } from '@playwright/test';
 // Opt-in: PERF=1 [PERF_CPU=4] E2E_PORT=… npx playwright test -c e2e/playwright.config.ts perf --project=pixel
 
 const RUN = process.env.PERF === '1';
+
+interface SceneItem {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** Title tap, then Hangar LAUNCH (`?level=` picks the sector), as the smoke spec does. */
+async function launch(page: Page): Promise<void> {
+  const v = await page.evaluate(() => ({
+    w: window.innerWidth,
+    h: window.innerHeight,
+    dpr: window.devicePixelRatio || 1,
+  }));
+  const l = computeLayout(v.w, v.h, v.dpr);
+  const css = (lx: number, ly: number) => ({
+    x: (l.destX + (lx * l.destW) / l.logicalW) / l.dpr,
+    y: (l.destY + (ly * l.destH) / l.logicalH) / l.dpr,
+  });
+  const scene = () =>
+    page.evaluate(() => {
+      const s = (window as unknown as { __scene?: { name(): string; items(): SceneItem[] } })
+        .__scene;
+      return s ? { name: s.name(), items: s.items() } : null;
+    });
+  await expect.poll(async () => (await scene())?.name, { timeout: 15_000 }).toBe('TitleScene');
+  await page.waitForTimeout(700);
+  const mid = css(120, l.logicalH / 2);
+  await page.touchscreen.tap(mid.x, mid.y);
+  let item: SceneItem | undefined;
+  await expect
+    .poll(
+      async () => {
+        const s = await scene();
+        item = s?.name === 'HangarScene' ? s.items.find((i) => i.id === 'launch') : undefined;
+        return item !== undefined;
+      },
+      { timeout: 10_000 },
+    )
+    .toBe(true);
+  await page.waitForTimeout(150);
+  const it = item as SceneItem;
+  const c = css(it.x + it.w / 2, it.y + it.h / 2);
+  await page.touchscreen.tap(c.x, c.y);
+}
 const CPU = Number(process.env.PERF_CPU ?? 4);
 
 interface Beat {
@@ -27,9 +75,10 @@ const BEATS: Beat[] = [
   {
     name: 'L7 Wyrm frenzy (carving)',
     level: 7,
-    t: 164,
-    secs: 40,
-    calls: [[22, "__warrens.skip('frenzy')"]],
+    // The den's chunks are queued at ~160 s: a later `?t=` skips the den and the boss.
+    t: 160,
+    secs: 45,
+    calls: [[30, "__warrens.skip('frenzy')"]],
   },
   { name: 'L8 junction rush + feedback loop', level: 8, t: 128, secs: 40 },
   { name: 'L8 Janus phase 1 → 2', level: 8, t: 178, secs: 40 },
@@ -85,14 +134,22 @@ test.describe('perf', () => {
   test.setTimeout(0);
 
   test(`Act II beats at ${CPU}× CPU`, async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    page.on('console', (m) => {
+      if (m.type() === 'error') errors.push(m.text());
+    });
     const cdp = await page.context().newCDPSession(page);
     const rows: string[] = [
       `| Beat | FPS min | TPS | UPD avg / max ms | RND avg / max ms | frame avg ms | peak shots |`,
       '|---|---|---|---|---|---|---|',
     ];
+    const only = process.env.PERF_ONLY;
     for (const b of BEATS) {
+      if (only !== undefined && !b.name.includes(only)) continue;
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
       await page.goto(`/?level=${b.level}&t=${b.t}&save=act1&god&debug&mute&seed=perf`);
+      await launch(page);
       await page.waitForFunction(
         () => {
           const g = window as unknown as { __director?: unknown; __perf?: unknown };
@@ -113,6 +170,8 @@ test.describe('perf', () => {
         await page.waitForTimeout(1000);
         const w = await sample(page);
         if (w && w.fps > 0) ws.push(w);
+        if (w && process.env.PERF_LOG === '1')
+          console.log(`${b.name} +${s}s upd ${w.updMax.toFixed(1)} rnd ${w.rndMax.toFixed(1)}`);
       }
       const avg = (f: (w: Window1) => number) =>
         ws.reduce((a, w) => a + f(w), 0) / Math.max(1, ws.length);
@@ -124,6 +183,7 @@ test.describe('perf', () => {
       );
     }
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    expect(errors).toEqual([]);
     console.log(
       `\nAct II perf, ${CPU}× CPU throttle (Chromium, ${test.info().project.name})\n${rows.join('\n')}\n`,
     );
