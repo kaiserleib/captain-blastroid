@@ -74,6 +74,7 @@ export function attachAudio(
     }),
     events.on('bossSpawned', () => music.playSong(bossSong)),
     events.on('bossDefeated', () => music.stop(0.4)),
+    events.on('escapeStarted', () => music.playSong(songOr('escape', 'boss'))),
     events.on('levelComplete', () => music.playSong('clear')),
   ];
   return () => {
