@@ -1,3 +1,4 @@
+import { timeScaleAt } from '../../sim/hooks';
 import { PICKUP_TUNING, POWERUP_TUNING } from '../../content/pickups';
 import { PILOTS } from '../../content/pilots';
 import { SHIPS } from '../../content/ships';
@@ -122,8 +123,9 @@ export function updatePickups(w: World, dt: number): void {
       k.vx += (tvx - k.vx) * settle;
       k.vy += (tvy - k.vy) * settle;
     }
-    k.x += k.vx * dt;
-    k.y += k.vy * dt;
+    const kdt = dt * timeScaleAt(w, k.x, k.y);
+    k.x += k.vx * kdt;
+    k.y += k.vy * kdt;
 
     if (p.alive) {
       const dx = p.x - k.x;

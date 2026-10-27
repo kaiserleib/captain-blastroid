@@ -10,6 +10,7 @@ import {
   type SolidQuery,
 } from '../../sim/hooks';
 import type { World } from '../../sim/world';
+import { slabSolidQuery } from '../obstacles';
 import { installTerrainSandbox } from './sandbox';
 import { clearTerrain, queueChunk, terrainPass } from './terrain';
 import { terrainRaycast, terrainSolidAt } from './tiles';
@@ -106,4 +107,6 @@ export function registerTerrainHooks(): void {
 }
 
 registerTerrainHooks();
+// Shade slabs (T33) are solid too; terrain's composite replaces their own registration.
+addSolidSource(slabSolidQuery);
 installTerrainSandbox();

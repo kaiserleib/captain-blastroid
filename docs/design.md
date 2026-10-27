@@ -491,13 +491,14 @@ Balance is measured with an **`act1` save** (new debug preset `?save=act1`): Kes
 | Weapon | Capsule | L1 | Leveling | Role |
 |---|---|---|---|---|
 | **Arc Coil** | A | Every 1.2 s, an arc hits the nearest enemy within 90 px for 2 dmg and chains to 1 more enemy within 50 px of the last one | L2 +1 chain, L3 every 0.9 s, L4 range 120 and +1 chain, L5 3 dmg | Auto-targeting crowd control. It ignores geometry: no line of sight is needed, and gravity, portals and walls don't affect it. |
-| **Ricochet** | R | A disc every 1.1 s, 1 dmg, 200 px/s, alternating ±20° off vertical. It bounces off the side edges, terrain and indestructible objects, up to 2 bounces, and pierces 1. | L2 +1 bounce, L3 twin discs, L4 +1 dmg, L5 three discs and 4 bounces | Angles, walls, hitting things from the side |
-| **Flak** | F | A shell every 1.4 s at 140 px/s. It bursts after 0.6 s or on contact into 6 fragments (1 dmg, 0.25 s ttl, 160 px/s). The burst **erases enemy bullets** within 12 px. | L2 8 fragments, L3 every 1.1 s, L4 2-dmg fragments and an 18 px erase radius, L5 two shells | Area denial, a little bullet erasing |
+| **Ricochet** | R | A disc every 1.1 s, 2 dmg, 200 px/s, alternating ±20° off vertical. It bounces off the side edges, terrain and indestructible objects, up to 2 bounces, and pierces 1. | L2 +1 bounce, L3 twin discs, L4 3 dmg, L5 three discs and 4 bounces | Angles, walls, hitting things from the side |
+| **Flak** | F | A shell every 1.4 s at 140 px/s. It bursts after 0.6 s or on contact into 6 fragments (1 dmg, 0.25 s ttl, 160 px/s). The burst **erases enemy bullets** within 12 px. A contact burst deals the shell's damage (2; 3 from L4) to the body it hit, and the fragments skip that body. | L2 8 fragments, L3 every 1.1 s, L4 2-dmg fragments and an 18 px erase radius, L5 two shells | Area denial, a little bullet erasing |
 
 - Arcs are drawn as a jagged 1 px white-and-cyan polyline that re-jitters every 2 frames.
 - Discs are 4 px, spinning, in 2 frames.
 - Flak shells are 3 px with a 1-frame white burst ring.
 - All three draw from per-weapon scratch buffers, with no allocation per shot.
+- T35 raised Ricochet's damage to 2 and gave Flak its contact damage: at the original numbers, Ricochet L1 did 0.45 single-target DPS against the Blaster's 2.5, and a point-blank Flak burst hit with every fragment.
 - Weapon-capsule weighting and the Weapon Upgrade core don't change. The pool is simply limited to `weaponsUnlocked` plus the current sector's field-test weapon.
 
 ### New ships

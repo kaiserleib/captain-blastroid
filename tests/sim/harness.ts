@@ -34,7 +34,7 @@ import { collisionSystem } from '../../src/sim/collision';
 import { bulletsSystem } from '../../src/sim/motion';
 import type { Anomaly, Asteroid, Bullet, Enemy, Pickup } from '../../src/sim/types';
 import { createWorld, type PoolCapacities, type System, type World } from '../../src/sim/world';
-import type { Bot } from './bots';
+import { hazardsIIHitCause, type Bot } from './bots';
 
 export const DT = 1 / 60;
 
@@ -431,6 +431,8 @@ function levelSum(w: World): number {
 export function hitCause(w: World): string {
   const p = w.player;
   if (lastCrushTick(w) === w.tick) return 'crush';
+  const h2 = hazardsIIHitCause(w);
+  if (h2 !== null) return h2;
   // A pulse ring has no body: it's the cause when its solid part covers the ship
   // (the same test `updatePulsar` hits with).
   for (let i = 0; i < w.anomalies.count; i++) {

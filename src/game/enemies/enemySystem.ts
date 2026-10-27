@@ -1,3 +1,4 @@
+import { timeScaleAt } from '../../sim/hooks';
 import { AVOIDANCE, ENEMY_FAIRNESS, type EnemyDef } from '../../content/enemies';
 import type { Enemy } from '../../sim/types';
 import type { System, World } from '../../sim/world';
@@ -64,7 +65,8 @@ export function updateEnemies(w: World, dt: number): void {
     if (!e.active) continue;
     const def = rosterDef(e.defId);
     if (def === undefined) continue;
-    updateEnemy(w, e, def, dt);
+    // Time bubbles (T33) run an enemy's movement and fire clocks at their rate.
+    updateEnemy(w, e, def, dt * timeScaleAt(w, e.x, e.y));
   }
 }
 
