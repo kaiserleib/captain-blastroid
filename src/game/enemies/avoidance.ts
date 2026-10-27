@@ -1,4 +1,5 @@
 import { AVOIDANCE } from '../../content/enemies';
+import { isSolidAt } from '../../sim/hooks';
 import { getSpatialHash } from '../../sim/spatialHash';
 import { Layer, type Asteroid, type Body, type Enemy } from '../../sim/types';
 import { WORLD_W, type World } from '../../sim/world';
@@ -53,6 +54,9 @@ function onRock(b: Body): void {
   if (urgency > maxUrgency) maxUrgency = urgency;
 }
 
+/** Half a terrain tile: a solid point counts as an obstacle this big. */
+const TILE_R = 4;
+
 function probe(w: World, len: number, dx: number, dy: number, r: number, side: number): void {
   const h = getSpatialHash(w);
   probeSide = side;
@@ -60,6 +64,21 @@ function probe(w: World, len: number, dx: number, dy: number, r: number, side: n
   h.qy = cy + dy * len;
   h.qr = r;
   h.queryAt(Layer.Asteroid, onRock);
+  // Tile-ahead term (T34): a wall at the probe tip steers like a rock there.
+  if (isSolidAt(w, h.qx, h.qy)) onTile(h.qx, h.qy);
+}
+
+function onTile(x: number, y: number): void {
+  const rx = x - cx;
+  const ry = y - cy;
+  const along = rx * hx + ry * hy;
+  const side = rx * -hy + ry * hx;
+  let away = side > TIE ? -1 : side < -TIE ? 1 : 0;
+  if (away === 0) away = probeSide !== 0 ? -probeSide : curLat >= 0 ? 1 : -1;
+  const gap = along - TILE_R - selfR;
+  const urgency = gap <= 0 ? 1 : gap >= AVOIDANCE.lookAhead ? 0 : 1 - gap / AVOIDANCE.lookAhead;
+  lateral += away * urgency * AVOIDANCE.maxSteer;
+  if (urgency > maxUrgency) maxUrgency = urgency;
 }
 
 /**

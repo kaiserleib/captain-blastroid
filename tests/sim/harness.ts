@@ -24,6 +24,7 @@ import {
   pulsarRingRot,
 } from '../../src/game/obstacles/anomalies/pulsar';
 import { pickupsSystem } from '../../src/game/pickups';
+import { lastCrushTick } from '../../src/game/terrain';
 import { initPlayer, playerSystem, setGodMode } from '../../src/game/player';
 import '../../src/game/levels';
 import { weaponSystem } from '../../src/game/weapons';
@@ -428,6 +429,7 @@ function levelSum(w: World): number {
 
 export function hitCause(w: World): string {
   const p = w.player;
+  if (lastCrushTick(w) === w.tick) return 'crush';
   // A pulse ring has no body: it's the cause when its solid part covers the ship
   // (the same test `updatePulsar` hits with).
   for (let i = 0; i < w.anomalies.count; i++) {

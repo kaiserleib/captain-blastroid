@@ -48,6 +48,13 @@ export type TimeScaleFn = (w: World, x: number, y: number) => number;
 /** Runs one Act II timeline event; `ev` is the event's payload object. */
 export type TimelineAction = (w: World, ev: unknown) => void;
 
+/**
+ * A pass the collision system runs before its broad phase, after every body
+ * has moved (T34 terrain: scroll, push-out, tile hits). Must be a no-op for
+ * worlds it has no state for.
+ */
+export type CollisionPass = (w: World, dt: number) => void;
+
 let asteroidHeld: AsteroidHeldCheck | null = null;
 let solidQuery: SolidQuery | null = null;
 let timeScale: TimeScaleFn | null = null;
@@ -58,6 +65,7 @@ const shotBlockers: ShotBlocker[] = [];
 const targetFilters: TargetFilter[] = [];
 const anomalyContacts: Partial<Record<Anomaly['kind'], AnomalyContact>> = {};
 const bossDamageHooks: BossDamageHook[] = [];
+const collisionPasses: CollisionPass[] = [];
 
 function remover<T>(list: T[], fn: T): () => void {
   return () => {
@@ -176,6 +184,15 @@ export function getTimelineAction(kind: string): TimelineAction | undefined {
   return timelineActions[kind];
 }
 
+export function registerCollisionPass(fn: CollisionPass): () => void {
+  if (!collisionPasses.includes(fn)) collisionPasses.push(fn);
+  return remover(collisionPasses, fn);
+}
+
+export function getCollisionPasses(): readonly CollisionPass[] {
+  return collisionPasses;
+}
+
 /** For tests. */
 export function clearHooks(): void {
   asteroidHeld = null;
@@ -185,6 +202,7 @@ export function clearHooks(): void {
   for (const k of Object.keys(timelineActions)) delete timelineActions[k];
   shotBlockers.length = 0;
   bossDamageHooks.length = 0;
+  collisionPasses.length = 0;
   targetFilters.length = 0;
   delete anomalyContacts.blackhole;
   delete anomalyContacts.pulsar;

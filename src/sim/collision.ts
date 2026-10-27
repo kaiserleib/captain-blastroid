@@ -10,7 +10,7 @@ import {
   playerVsEnemy,
 } from './collisionRules';
 import { tickChain } from './damage';
-import { getShotBlockers } from './hooks';
+import { getCollisionPasses, getShotBlockers } from './hooks';
 import { rebuildSpatialHash, type SpatialHash } from './spatialHash';
 import { Layer, type Anomaly, type Asteroid, type Body, type Bullet, type Enemy } from './types';
 import type { System, World } from './world';
@@ -112,6 +112,8 @@ function enemiesVsAsteroids(w: World, h: SpatialHash): void {
 export function collide(w: World, dt: number): void {
   cw = w;
   tickChain(w, dt);
+  const passes = getCollisionPasses();
+  for (let i = 0; i < passes.length; i++) (passes[i] as (typeof passes)[number])(w, dt);
   const h = rebuildSpatialHash(w);
   playerShots(w, h);
   enemyShots(w, h);

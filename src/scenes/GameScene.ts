@@ -22,6 +22,8 @@ import { ENEMY_SPRITE_IDS, enemyLayers, enemySystem } from '../game/enemies';
 import { bossIds, bossLayer, bossRegistration, bossSystem } from '../game/boss';
 // Sector registrations (rosters, behaviors, bosses, scripts, level systems and layers).
 import '../game/levels';
+// Terrain (T34) runs inside the collision system; only its layer is listed here.
+import { terrainLayer } from '../game/terrain';
 import { input } from '../input';
 import {
   PICKUP_SPRITE_IDS,
@@ -101,7 +103,7 @@ export class GameScene implements Scene {
 
   /**
    * Sorted by z on construction, so append in any order. z: background 0,
-   * anomalies 10, pickups 20, asteroids 30, enemies 40, enemy shots 50,
+   * terrain 5, anomalies 10, pickups 20, asteroids 30, enemies 40, enemy shots 50,
    * player shots 55, player 60, fx 70, stick 95, HUD 100.
    */
   readonly layers: DrawLayer[] = [
@@ -119,6 +121,7 @@ export class GameScene implements Scene {
     dronesLayer,
     ...enemyLayers,
     bossLayer,
+    terrainLayer,
   ];
 
   private readonly hasPlayerLayer: boolean;
