@@ -1,3 +1,4 @@
+import { MAX_WEAPON_SLOTS } from '../../content/ships';
 import { drawText, measure } from '../../gfx/font';
 import { mix, OUTLINE, PICKUP, UI, WHITE } from '../../gfx/palette';
 import type { Renderer } from '../../gfx/renderer';
@@ -8,7 +9,7 @@ import type { HudLayout, Rect } from './layout';
 import { PIP_GAIN_T, type HudState } from './state';
 
 /** Act II caps slots at 6 (the Nova; Wren's +1). 6 × 18 px fits beside the timers at 240 px. */
-export const MAX_SLOTS = 6;
+export const MAX_SLOTS = MAX_WEAPON_SLOTS;
 export const MAX_LEVEL = 5;
 const PIP_W = 8;
 const SLOT_STEP = 18;
