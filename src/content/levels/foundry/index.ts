@@ -79,8 +79,8 @@ export const ROSTER: Readonly<Record<string, EnemyDef>> = {
 
 /**
  * Design → Level 10: 40 s, the scroll 30 → 90 px/s over 6 s, 100 salvage minus 20 a hit.
- * The corridors and debris run from the sector's level system, which starts them on
- * the escape phase (`foundry.escape` is registered too, for when `script` is set here).
+ * `foundry.escape` queues the corridors and debris; the sector's level system also arms
+ * it on the escape phase as a backstop (it is safe to run twice).
  */
 export const ESCAPE: EscapeDef = {
   dur: 40,
@@ -88,6 +88,7 @@ export const ESCAPE: EscapeDef = {
   over: 6,
   bonus: 100,
   bonusPerHit: 20,
+  script: 'foundry.escape',
 };
 
 /** Assembly: the corridors start here; bubbles and Cranes are timed off the chunk rows. */

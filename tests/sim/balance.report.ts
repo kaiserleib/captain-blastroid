@@ -10,7 +10,8 @@ export interface BalanceRun {
 }
 
 /** Hard stop per run, level seconds. The level is ~180 s plus the boss. */
-export const BALANCE_MAX_T = 320;
+// The Foundry's three-form Architect runs past 320 s on slower clears.
+export const BALANCE_MAX_T = 420;
 
 export function playBalance(
   makeBot: () => Bot,

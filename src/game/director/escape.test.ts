@@ -157,6 +157,7 @@ describe('escape phase', () => {
       over: 6,
       bonus: 100,
       bonusPerHit: 20,
+      script: 'foundry.escape',
     });
   });
 });
