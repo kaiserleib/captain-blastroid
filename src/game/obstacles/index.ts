@@ -33,10 +33,13 @@ export {
 export {
   inPulsarGap,
   pulsarEchoRadius,
+  pulsarEchoRot,
   pulsarGapAngles,
+  pulsarGapCount,
   pulsarGapWidth,
   pulsarGlow,
   pulsarRingRadius,
+  pulsarRingRot,
   pulseIndex,
   setPulsarPattern,
   spawnPulsar,

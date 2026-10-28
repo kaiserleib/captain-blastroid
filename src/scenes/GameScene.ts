@@ -24,6 +24,7 @@ import { bossIds, bossLayer, bossRegistration, bossSystem } from '../game/boss';
 import '../game/levels';
 // Terrain (T34) runs inside the collision system; only its layer is listed here.
 import { terrainLayer } from '../game/terrain';
+import { startRunRecord } from '../game/runlog';
 import { input } from '../input';
 import {
   PICKUP_SPRITE_IDS,
@@ -169,6 +170,7 @@ export class GameScene implements Scene {
     attachAudio(this.world.events, { bossSong: level.bossMusic ?? 'boss' });
     this.fx.attach(this.world);
     this.hud.attach(w);
+    startRunRecord(w);
     playSong(songOr(level.music, 'level1'));
     this.pauseWanted = false;
     this.runOver = null;

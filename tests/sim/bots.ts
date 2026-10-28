@@ -853,32 +853,7 @@ function hazardsIICost(w: World, v: HazardsIIView, sx: number, sy: number, t: nu
   return c;
 }
 
-/**
- * Hit causes for the Act II hazards, or null: `flare` (the burn's hit),
- * `portal` (within the 1 s ship cooldown of going through one) and `bubble-shot`
- * (the nearest enemy shot was in a bubble). The harness's `hitCause` should
- * ask this first.
- */
-export function hazardsIIHitCause(w: World): string | null {
-  const f = flareState(w);
-  if (f !== undefined && f.hitTick === w.tick) return 'flare';
-  if (sinceShipPorted(w) < PORTAL.shipCooldown) return 'portal';
-  const p = w.player;
-  let best = Infinity;
-  let nearest: Bullet | null = null;
-  for (let i = 0; i < w.enemyShots.count; i++) {
-    const b = w.enemyShots.items[i] as Bullet;
-    if (!b.active) continue;
-    const d = Math.hypot(b.x - p.x, b.y - p.y) - b.r;
-    if (d < best) {
-      best = d;
-      nearest = b;
-    }
-  }
-  if (nearest !== null && best < p.r + 2 && bubbleTimeScale(w, nearest.x, nearest.y) !== 1)
-    return 'bubble-shot';
-  return null;
-}
+export { hazardsIIHitCause } from '../../src/game/runlog';
 
 function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;

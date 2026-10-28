@@ -1,7 +1,11 @@
 // Save export / import panel. The canvas can't take pasted text or drive the clipboard, so
 // this one screen is DOM, styled like the SNES windows and the 8px-monospace UI font.
+import { LEVEL_ORDER } from '../content';
 import { UI } from '../gfx/palette';
 import {
+  clearRunLog,
+  formatRunLog,
+  runLogEntries,
   SaveFormatError,
   decodeSaveCode,
   encodeSaveCode,
@@ -197,5 +201,71 @@ export function openSaveImport(onClose: (imported: boolean) => void = () => {}):
       sfx('ui_confirm');
     };
     setTimeout(() => area.focus(), 0);
+  }, onClose);
+}
+
+function runLogText(): string {
+  return formatRunLog(runLogEntries(), {
+    build: typeof __BUILD__ === 'string' ? __BUILD__ : 'dev',
+    device: `${navigator.userAgent} · ${screen.width}x${screen.height}@${devicePixelRatio}`,
+    levelOrder: LEVEL_ORDER,
+  });
+}
+
+/** Playtest run log: every run's hits and outcome as text to paste back to the developer. */
+export function openRunLog(onClose: () => void = () => {}): void {
+  panel((win, close) => {
+    el('h2', 'RUN LOG', win);
+    const n = runLogEntries().length;
+    el(
+      'p',
+      n === 0
+        ? 'No runs recorded yet. Play a sector, then come back.'
+        : `${n} run${n === 1 ? '' : 's'} recorded. Copy and send it to help tune the game.`,
+      win,
+    );
+    const area = el('textarea', '', win);
+    area.readOnly = true;
+    area.value = runLogText();
+    area.style.wordBreak = 'normal';
+    area.style.whiteSpace = 'pre';
+    area.style.height = '14em';
+    const msg = el('p', '', win);
+    msg.className = 'msg';
+    const row = el('div', '', win);
+    row.className = 'row';
+    const copy = el('button', 'COPY', row);
+    const clear = el('button', 'CLEAR', row);
+    el('button', 'DONE', row).onclick = () => close();
+    copy.onclick = () => {
+      void copyText(area.value, area).then((ok) => {
+        msg.style.color = ok ? OK_GREEN : LOCK_RED;
+        msg.textContent = ok
+          ? 'Copied to clipboard.'
+          : 'Copy blocked: select the text and copy it.';
+        sfx(ok ? 'ui_confirm' : 'ui_back');
+      });
+    };
+    let armed = false;
+    clear.disabled = n === 0;
+    clear.onclick = () => {
+      if (!armed) {
+        armed = true;
+        clear.textContent = 'SURE?';
+        msg.style.color = UI.textGold;
+        msg.textContent = 'Clear every recorded run? Your save is not touched.';
+        sfx('ui_confirm');
+        return;
+      }
+      void clearRunLog().then(() => {
+        area.value = runLogText();
+        clear.textContent = 'CLEAR';
+        clear.disabled = true;
+        msg.style.color = OK_GREEN;
+        msg.textContent = 'Run log cleared.';
+        sfx('ui_confirm');
+      });
+    };
+    setTimeout(() => copy.focus(), 0);
   }, onClose);
 }

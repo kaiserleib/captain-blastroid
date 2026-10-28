@@ -28,4 +28,4 @@ export {
 } from './results';
 export { hasSchematicLeft, sectorInfo, sectorLabel, type SectorInfo } from './sectors';
 export { cycleShake, SLIDERS, snapSetting, type SliderDef, type SliderKey } from './settings';
-export { isSaveTransferOpen, openSaveExport, openSaveImport } from './saveTransfer';
+export { isSaveTransferOpen, openRunLog, openSaveExport, openSaveImport } from './saveTransfer';

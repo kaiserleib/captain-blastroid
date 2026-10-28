@@ -1,6 +1,6 @@
 import type { Renderer } from '../gfx/renderer';
 import { drawWindow } from '../gfx/ui';
-import { getSettings, updateSettings, type Settings } from '../meta';
+import { getSettings, runLogEntries, updateSettings, type Settings } from '../meta';
 import { platform } from '../platform';
 import {
   cycleShake,
@@ -13,6 +13,7 @@ import {
   GOLD,
   OK_GREEN,
   MenuScene,
+  openRunLog,
   openSaveExport,
   openSaveImport,
   sfx,
@@ -45,7 +46,7 @@ export class SettingsOverlay extends MenuScene {
   }
 
   protected layout(w: number, h: number): void {
-    const rows = SLIDERS.length + 2 + (this.transfer ? 1 : 0);
+    const rows = SLIDERS.length + 2 + (this.transfer ? 2 : 0);
     const boxH = 24 + rows * 26 + 32;
     this.boxY = Math.max(2, Math.floor((h - boxH) / 2));
     let y = this.boxY + 22;
@@ -67,6 +68,8 @@ export class SettingsOverlay extends MenuScene {
       const bw = Math.floor((w - 28 - 6) / 2);
       items.push(this.button('export', 14, y, bw, 22));
       items.push(this.button('import', w - 14 - bw, y, bw, 22));
+      y += 26;
+      items.push(this.button('runlog', 14, y, w - 28, 22));
       y += 26;
     }
     items.push(this.button('done', 50, y + 6, w - 100, 22));
@@ -129,6 +132,13 @@ export class SettingsOverlay extends MenuScene {
       this.back();
       return;
     }
+    if (it.id === 'runlog') {
+      sfx('ui_confirm');
+      this.panelOpen = true;
+      this.note = '';
+      openRunLog(() => (this.panelOpen = false));
+      return;
+    }
     if (it.id === 'export' || it.id === 'import') {
       sfx('ui_confirm');
       this.panelOpen = true;
@@ -183,6 +193,8 @@ export class SettingsOverlay extends MenuScene {
         drawButton(r, it, 'EXPORT SAVE', o);
       } else if (it.id === 'import') {
         drawButton(r, it, 'IMPORT SAVE', o);
+      } else if (it.id === 'runlog') {
+        drawButton(r, it, 'PLAYTEST RUN LOG', { ...o, value: String(runLogEntries().length) });
       } else {
         drawButton(r, it, 'DONE', o);
       }

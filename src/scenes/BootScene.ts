@@ -1,6 +1,6 @@
 import { flags } from '../debug/flags';
 import type { Scene } from '../engine/scene';
-import { initSave, setSave } from '../meta';
+import { initRunLog, initSave, setSave } from '../meta';
 import { MemoryStorage, platform } from '../platform';
 import { debugSave } from '../ui';
 import { flow } from './flow';
@@ -23,10 +23,13 @@ export class BootScene implements Scene {
     try {
       if (flags.save) {
         // Crafted saves live in memory so they never overwrite the real one.
-        await initSave(new MemoryStorage(), platform.lifecycle);
+        const mem = new MemoryStorage();
+        await initSave(mem, platform.lifecycle);
+        await initRunLog(mem);
         setSave(debugSave(flags.save));
       } else {
         await initSave(platform.storage, platform.lifecycle);
+        await initRunLog(platform.storage);
       }
     } catch (e) {
       console.error('Save failed to load; continuing with defaults', e);

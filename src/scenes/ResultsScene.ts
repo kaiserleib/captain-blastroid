@@ -5,7 +5,8 @@ import type { Renderer } from '../gfx/renderer';
 import { drawWindow } from '../gfx/ui';
 import '../game/hud';
 import '../game/player';
-import { getSave, isLevelUnlocked, saveNow, selectLevel, setSave } from '../meta';
+import { finishRunRecord } from '../game/runlog';
+import { appendRunLog, getSave, isLevelUnlocked, saveNow, selectLevel, setSave } from '../meta';
 import {
   bankFinishedRun,
   DIM,
@@ -73,6 +74,11 @@ export class ResultsScene extends MenuScene {
     setSave(banked.save);
     void saveNow();
     this.earned = banked.salvageEarned;
+    const entry = finishRunRecord({
+      outcome: d.victory ? 'clear' : d.abandoned ? 'quit' : 'death',
+      salvage: banked.salvageEarned,
+    });
+    if (entry) void appendRunLog(entry);
     this.lines = discoveryLines(banked.discoveries);
     this.banners = resultBanners(banked, d.victory);
     this.nextLevel =

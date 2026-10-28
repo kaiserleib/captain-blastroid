@@ -3,3 +3,4 @@ export * from './save';
 export * from './upgrades';
 export * from './progression';
 export * from './transfer';
+export * from './runLog';

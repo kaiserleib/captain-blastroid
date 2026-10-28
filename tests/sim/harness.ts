@@ -5,27 +5,15 @@
 //
 // Nothing here touches the DOM: sim/game/content import cleanly under Node.
 import { getLevel } from '../../src/content/levels';
-import { PULSAR } from '../../src/content/obstacles';
 import type { GameEvents } from '../../src/engine/events';
 import type { Pool } from '../../src/engine/pool';
 import { activeBoss, bossRegistration, bossSystem } from '../../src/game/boss';
 import { BOSS_ASSIST } from '../../src/content/bosses';
 import { directorSystem, startDirector } from '../../src/game/director';
 import { enemySystem } from '../../src/game/enemies';
-import {
-  inPulsarGap,
-  obstaclesSystem,
-  pulsarEchoRadius,
-  pulsarGapWidth,
-  pulsarRingRadius,
-} from '../../src/game/obstacles';
-import {
-  pulsarEchoRot,
-  pulsarGapCount,
-  pulsarRingRot,
-} from '../../src/game/obstacles/anomalies/pulsar';
+import { obstaclesSystem } from '../../src/game/obstacles';
 import { pickupsSystem } from '../../src/game/pickups';
-import { lastCrushTick } from '../../src/game/terrain';
+import { hitCause } from '../../src/game/runlog';
 import { initPlayer, playerSystem, setGodMode } from '../../src/game/player';
 import '../../src/game/levels';
 import { weaponSystem } from '../../src/game/weapons';
@@ -40,9 +28,9 @@ import { MemoryStorage } from '../../src/platform/web/storage';
 import { cleanupSystem } from '../../src/sim/cleanup';
 import { collisionSystem } from '../../src/sim/collision';
 import { bulletsSystem } from '../../src/sim/motion';
-import type { Anomaly, Asteroid, Bullet, Enemy, Pickup } from '../../src/sim/types';
+import type { Pickup } from '../../src/sim/types';
 import { createWorld, type PoolCapacities, type System, type World } from '../../src/sim/world';
-import { hazardsIIHitCause, type Bot } from './bots';
+import type { Bot } from './bots';
 
 export const DT = 1 / 60;
 
@@ -453,51 +441,7 @@ function levelSum(w: World): number {
   return w.player.weapons.reduce((n, x) => n + x.level, 0);
 }
 
-export function hitCause(w: World): string {
-  const p = w.player;
-  if (lastCrushTick(w) === w.tick) return 'crush';
-  const h2 = hazardsIIHitCause(w);
-  if (h2 !== null) return h2;
-  // A pulse ring has no body: it's the cause when its solid part covers the ship
-  // (the same test `updatePulsar` hits with).
-  for (let i = 0; i < w.anomalies.count; i++) {
-    const a = w.anomalies.items[i] as Anomaly;
-    if (!a.active || a.kind !== 'pulsar') continue;
-    const dx = p.x - a.x;
-    const dy = p.y - a.y;
-    const d = Math.hypot(dx, dy);
-    const band = PULSAR.ringThickness / 2 + p.r;
-    const n = pulsarGapCount(a);
-    const gw = pulsarGapWidth(a);
-    const R = pulsarRingRadius(a);
-    if (R >= 0 && Math.abs(d - R) <= band && !inPulsarGap(dx, dy, p.r, n, gw, pulsarRingRot(a)))
-      return 'ring';
-    const R2 = pulsarEchoRadius(a);
-    if (R2 >= 0 && Math.abs(d - R2) <= band && !inPulsarGap(dx, dy, p.r, n, gw, pulsarEchoRot(a)))
-      return 'ring';
-  }
-  let best = Infinity;
-  let cause = '?';
-  const check = (b: { active: boolean; x: number; y: number; r: number }, kind: string) => {
-    if (!b.active) return;
-    const d = Math.hypot(b.x - p.x, b.y - p.y) - b.r;
-    if (d < best) {
-      best = d;
-      cause = kind;
-    }
-  };
-  for (let i = 0; i < w.enemyShots.count; i++) check(w.enemyShots.items[i] as Bullet, 'shot');
-  for (let i = 0; i < w.asteroids.count; i++) check(w.asteroids.items[i] as Asteroid, 'rock');
-  for (let i = 0; i < w.anomalies.count; i++) {
-    const a = w.anomalies.items[i] as Anomaly;
-    if (a.r > 0) check(a, a.kind === 'blackhole' ? 'hole' : 'pulsar');
-  }
-  for (let i = 0; i < w.enemies.count; i++) {
-    const e = w.enemies.items[i] as Enemy;
-    check(e, e.isBoss ? 'hull' : `ram-${e.defId}`);
-  }
-  return cause;
-}
+export { hitCause };
 
 function countActive(items: readonly { active: boolean }[], n: number): number {
   let c = 0;
