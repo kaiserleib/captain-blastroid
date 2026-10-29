@@ -16,7 +16,7 @@ import {
   spraySalvage,
 } from '../pickups';
 import { emitToast, fireEvent, startScrollRamp, stopField, tickScrollRamp } from './events';
-import { levelSystems, runLevelScript } from './registry';
+import { runLevelScript, stageSystems } from './registry';
 import { logLine, type DirectorState } from './state';
 import {
   buildSchedule,
@@ -76,9 +76,11 @@ export function startDirector(
   const startT = Math.max(0, opts.startT ?? 0);
   const schedule = buildSchedule(level.timeline);
   let cursor = firstFireAt(schedule, startT);
-  // A `?t=` start past the boss still has to summon it, or the level never ends.
+  // A `?t=` start past the boss still has to summon it, or the level never ends
+  // (a gauntlet round's boss can be skipped: later rounds still end the level).
   for (let i = 0; i < cursor; i++) {
-    if ('boss' in level.timeline[schedule[i]!.index]!) {
+    const ev = level.timeline[schedule[i]!.index]!;
+    if ('boss' in ev && ev.continue !== true) {
       cursor = i;
       break;
     }
@@ -101,9 +103,12 @@ export function startDirector(
     outroStep: 0,
     bossX: w.width / 2,
     bossY: 80,
+    bossContinues: false,
+    bossSalvage: level.bossSalvage,
+    magnetIn: -1,
     scroll: { active: false, from: 0, to: 0, over: 0, t: 0 },
     guaranteeDone: level.guaranteeWeapon !== undefined && startT > level.guaranteeWeapon.by,
-    systems: levelSystems(level.id),
+    systems: stageSystems(level),
     fires: level.timeline.map(() => 0),
     log: [],
     offs: [],
@@ -179,11 +184,15 @@ function onBossDefeated(w: World, st: DirectorState, x: number, y: number): void
   st.outroStep = 0;
   st.bossX = x;
   st.bossY = y;
-  stopField(st);
-  w.run.bossDefeated = true;
-  // Nothing can kill the player after the win.
+  // Nothing can kill the player after the win (or between gauntlet rounds).
   const shots = w.enemyShots;
   for (let i = 0; i < shots.count; i++) shots.release(shots.items[i]!);
+  if (st.bossContinues) {
+    continueAfterBoss(w, st, x, y);
+    return;
+  }
+  stopField(st);
+  w.run.bossDefeated = true;
   const save = getSave();
   const schematic = pickSchematic(st.level.schematicOnClear, save, w.run.schematics);
   if (schematic !== null) spawnDrop(w, 'schematic', x, y, schematic);
@@ -191,6 +200,18 @@ function onBossDefeated(w: World, st: DirectorState, x: number, y: number): void
   spraySalvage(w, x, y, Math.round(salvage));
   logLine(st, `${st.t.toFixed(1)} bossDefeated schematic=${schematic ?? 'none'}`);
   if (st.level.escape !== undefined) startEscape(w, st, st.level.escape);
+}
+
+/** A `continue` boss is down: pay out and pick the timeline back up where the boss froze it. */
+function continueAfterBoss(w: World, st: DirectorState, x: number, y: number): void {
+  st.phase = 'level';
+  st.bossContinues = false;
+  // Boss controllers mark the run won; only the stage's last boss may.
+  w.run.bossDefeated = false;
+  st.fieldStopped = false;
+  st.magnetIn = OUTRO.magnetAt;
+  spraySalvage(w, x, y, Math.round(st.bossSalvage));
+  logLine(st, `${st.t.toFixed(1)} bossDefeated continue`);
 }
 
 const escapeP = { dur: 0 };
@@ -382,6 +403,10 @@ function stepTimeline(w: World, st: DirectorState, dt: number): void {
     return;
   }
   applyCapsuleFixes(w, st);
+  if (st.magnetIn >= 0) {
+    st.magnetIn -= dt;
+    if (st.magnetIn < 0) magnetizeAll(w);
+  }
   if (st.phase === 'boss') return;
   st.t += dt;
   updateField(w, st);

@@ -36,6 +36,12 @@ export interface DirectorState {
   outroStep: number;
   bossX: number;
   bossY: number;
+  /** The live boss was summoned with `continue`: its defeat resumes the timeline. */
+  bossContinues: boolean;
+  /** What the live boss pays on defeat. */
+  bossSalvage: number;
+  /** Seconds until a continued boss's rewards are magnetized (−1: none pending). */
+  magnetIn: number;
   /** Firings per timeline index. */
   fires: number[];
   /** Active `scroll` ramp: from → to over `over` s, `t` s in (inactive once t ≥ over). */

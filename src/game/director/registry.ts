@@ -1,3 +1,4 @@
+import type { LevelDef } from '../../content/levels';
 import type { DrawLayer, System, World } from '../../sim/world';
 
 // Sector plug-in points owned by the director (T21). Sector folders
@@ -79,4 +80,27 @@ export function registerLevelLayer(levelId: string, layer: DrawLayer): void {
 
 export function levelLayers(levelId: string): readonly DrawLayer[] {
   return listFor(layers, levelId);
+}
+
+/** A level's own entries, then each `hostLevels` sector's (the live list when there are no hosts). */
+function withHosts<T>(
+  m: Map<string, T[]>,
+  level: Pick<LevelDef, 'id' | 'hostLevels'>,
+): readonly T[] {
+  const own = listFor(m, level.id);
+  const hosts = level.hostLevels ?? [];
+  if (hosts.length === 0) return own;
+  const out = [...own];
+  for (const id of hosts) for (const x of listFor(m, id)) if (!out.includes(x)) out.push(x);
+  return out;
+}
+
+/** Systems the director runs for `level`, its hosts' included. */
+export function stageSystems(level: Pick<LevelDef, 'id' | 'hostLevels'>): readonly System[] {
+  return withHosts(systems, level);
+}
+
+/** Draw layers GameScene adds for `level`, its hosts' included. */
+export function stageLayers(level: Pick<LevelDef, 'id' | 'hostLevels'>): readonly DrawLayer[] {
+  return withHosts(layers, level);
 }

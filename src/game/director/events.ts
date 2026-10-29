@@ -191,6 +191,8 @@ export function fireEvent(w: World, st: DirectorState, ev: TimelineEvent): void 
   } else {
     // The boss module (T16) answers with bossSpawned; the field yields to its thrown rocks.
     st.phase = 'boss';
+    st.bossContinues = ev.continue === true;
+    st.bossSalvage = ev.salvage ?? st.level.bossSalvage;
     stopField(st);
     bossP.defId = ev.boss;
     w.events.emit('bossRequested', bossP);

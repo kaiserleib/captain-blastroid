@@ -82,6 +82,7 @@ Wave 10 T43 act II integration + bots + balance                              │
 | [T41](T41-chrono.md) | Level 9: Chrono Rift + Echo | wave 8 | done |
 | [T42](T42-foundry.md) | Level 10: The Foundry + The Architect + escape | wave 8 | done |
 | [T43](T43-act2-balance.md) | Act II integration, bots, balance | T32–T42 | done |
+| [T44](T44-gauntlet.md) | The Gauntlet: eight-boss endgame stage | T43 | done |
 
 Wave 2 tickets can start as soon as their listed dependencies merge, without waiting for the whole of Wave 1.
 

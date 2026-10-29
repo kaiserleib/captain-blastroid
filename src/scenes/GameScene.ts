@@ -6,8 +6,8 @@ import type { Scene, ScenePointer } from '../engine/scene';
 import { flags } from '../debug/flags';
 import { Fx, FX_SPRITE_IDS } from '../gfx/fx';
 import { warm } from '../gfx/spriteCache';
-import { getLevel, levelIdForNumber } from '../content/levels';
-import { directorSystem, levelLayers, startDirector } from '../game/director';
+import { bossHomeLevel, getLevel, levelIdForNumber, type LevelDef } from '../content/levels';
+import { directorSystem, stageLayers, startDirector } from '../game/director';
 import { createHudDemoSystem, Hud, hudDemoEnabled } from '../game/hud';
 import {
   initPlayer,
@@ -69,6 +69,17 @@ function warmGameplaySprites(): void {
     ...FX_SPRITE_IDS,
   ]);
 }
+/** Each boss plays its home sector's boss song (the Gauntlet summons several). */
+function bossSongs(level: LevelDef): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const ev of level.timeline) {
+    if (!('boss' in ev)) continue;
+    const home = bossHomeLevel(ev.boss) ?? level;
+    out[ev.boss] = home.bossMusic ?? 'boss';
+  }
+  return out;
+}
+
 const PLAYFIELD_COLOR = '#000000';
 const PLACEHOLDER_SHIP_COLOR = '#3868f8';
 
@@ -164,10 +175,13 @@ export class GameScene implements Scene {
     this.background.setTheme(theme, w.run.seed);
     this.background.prebuild();
     w.scrollSpeed = level.scrollSpeed;
-    this.useLevelLayers(levelLayers(level.id));
+    this.useLevelLayers(stageLayers(level));
     startDirector(w, level, { startT: flags.t ?? 0, debugLoadout: true });
     // Detached by exit()'s events.clear().
-    attachAudio(this.world.events, { bossSong: level.bossMusic ?? 'boss' });
+    attachAudio(this.world.events, {
+      bossSong: level.bossMusic ?? 'boss',
+      bossSongs: bossSongs(level),
+    });
     this.fx.attach(this.world);
     this.hud.attach(w);
     startRunRecord(w);

@@ -6,6 +6,8 @@ import {
   LEVEL_ORDER,
   REGISTERED_ACTION_KINDS,
   actEndedBy,
+  actFinishedBy,
+  campaignFinale,
   actIndexOf,
   getLevel,
   levelIdForNumber,
@@ -78,7 +80,7 @@ function live<T extends { active: boolean }>(pool: { items: T[]; count: number }
 afterEach(() => setGodMode(false));
 
 describe('sectors', () => {
-  it('lists ten sectors in campaign order, each with its tuning', () => {
+  it('lists ten campaign sectors in order, then the Gauntlet, each with its tuning', () => {
     expect(LEVEL_ORDER).toEqual([
       'kessler',
       'ionShoals',
@@ -90,6 +92,7 @@ describe('sectors', () => {
       'junction',
       'chrono',
       'foundry',
+      'gauntlet',
     ]);
     for (let n = 1; n <= 10; n++) {
       const id = levelIdForNumber(n)!;
@@ -105,7 +108,7 @@ describe('sectors', () => {
       expect(l.guaranteeWeapon).toBeDefined();
       expect(rockThemeForLevel(id)).toBe(l.rockTheme);
     }
-    expect(levelIdForNumber(11)).toBeNull();
+    expect(levelIdForNumber(12)).toBeNull();
     expect(getLevel('nowhere')).toBe(LEVEL1);
     expect(LEVELS.armada!.bossMusic).toBe('armada_boss');
     expect(rockThemeForLevel('nowhere')).toBe('basalt');
@@ -374,22 +377,26 @@ describe('Act II sector stubs (T32)', () => {
       expect(l.enemyHpMul).toBeGreaterThanOrEqual(1.4);
       expect(l.escape !== undefined).toBe(id === 'foundry');
     }
-    expect(LEVEL_ORDER.slice(5).map((id) => getLevel(id).bossSalvage)).toEqual([
+    expect(LEVEL_ORDER.slice(5, 10).map((id) => getLevel(id).bossSalvage)).toEqual([
       240, 260, 280, 300, 400,
     ]);
-    expect(LEVEL_ORDER.slice(5).map((id) => getLevel(id).podFallbackSalvage)).toEqual([
+    expect(LEVEL_ORDER.slice(5, 10).map((id) => getLevel(id).podFallbackSalvage)).toEqual([
       90, 100, 110, 120, 150,
     ]);
   });
 
-  it('pages into two acts of five', () => {
-    expect(ACTS.map((a) => a.name)).toEqual(['ACT I', 'ACT II']);
+  it('pages into two acts of five, then the Gauntlet', () => {
+    expect(ACTS.map((a) => a.name)).toEqual(['ACT I', 'ACT II', 'GAUNTLET']);
+    expect(ACTS.map((a) => a.extra === true)).toEqual([false, false, true]);
+    expect(campaignFinale()).toBe('foundry');
+    expect(actFinishedBy('gauntlet')?.name).toBe('GAUNTLET');
     expect(ACTS.flatMap((a) => a.levels)).toEqual([...LEVEL_ORDER]);
     expect(actIndexOf('armada')).toBe(0);
     expect(actIndexOf('corona')).toBe(1);
     expect(actIndexOf('nowhere')).toBe(0);
     expect(actEndedBy('armada')?.name).toBe('ACT I');
-    expect(actEndedBy('foundry')).toBeNull();
+    expect(actEndedBy('foundry')?.name).toBe('ACT II');
+    expect(actEndedBy('gauntlet')).toBeNull();
     expect(actEndedBy('corona')).toBeNull();
   });
 });

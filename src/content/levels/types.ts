@@ -175,7 +175,16 @@ export type TimelineEvent = EventBase &
         ifNoPod?: string;
       }
     | { bossWarning: true }
-    | { boss: string }
+    | {
+        boss: string;
+        /**
+         * The stage goes on after this boss (gauntlet rounds): its defeat pays
+         * `salvage` (default `bossSalvage`), resumes the timeline and the field,
+         * and doesn't count as a clear. The last boss of a level never continues.
+         */
+        continue?: boolean;
+        salvage?: number;
+      }
   );
 
 export interface LevelDef {
@@ -211,6 +220,8 @@ export interface LevelDef {
   fieldTestWeapon?: WeaponId;
   /** Act II finale: boss defeat starts a timed escape, and the run is won when it ends. */
   escape?: EscapeDef;
+  /** Other sectors whose level systems and layers also run here (the gauntlet hosts their bosses). */
+  hostLevels?: readonly string[];
 }
 
 export interface EscapeDef {

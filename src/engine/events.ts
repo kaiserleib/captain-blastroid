@@ -65,6 +65,8 @@ export interface GameEvents {
   /** Boss defeat on a level with `escape` (T32): the countdown starts (HUD, music). */
   escapeStarted: { dur: number };
   levelComplete: NoPayload;
+  /** A level script asks for a song (gauntlet rounds play each boss's home music). */
+  songRequested: { id: string };
   sfx: { id: string; x?: number };
   shake: { mag: number; dur: number };
   hitstop: { dur: number };

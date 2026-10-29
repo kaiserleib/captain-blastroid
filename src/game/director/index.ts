@@ -22,6 +22,8 @@ export {
   registerLevelScript,
   registerLevelSystem,
   runLevelScript,
+  stageLayers,
+  stageSystems,
   type LevelScript,
   type LevelScriptArgs,
 } from './registry';

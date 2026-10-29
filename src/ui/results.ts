@@ -1,4 +1,4 @@
-import { actEndedBy, PILOTS, SHIPS, WEAPONS, type WeaponId } from '../content';
+import { actFinishedBy, campaignFinale, PILOTS, SHIPS, WEAPONS, type WeaponId } from '../content';
 import {
   bankRun,
   nextLevelId,
@@ -12,11 +12,11 @@ import type { RunState } from '../sim/world';
 export interface FinishedRun extends BankResult {
   /** The boss went down on a sector that had never been cleared. */
   firstClear: boolean;
-  /** First clear of the campaign's last sector. */
+  /** First clear of the campaign's last sector (the Foundry; the Gauntlet comes after it). */
   campaignComplete: boolean;
   /** The sector after this one, or null at the end of the campaign. */
   nextLevel: string | null;
-  /** First clear of an act's last sector (not the campaign's): the banner, e.g. `ACT I COMPLETE`. */
+  /** First clear of an act's last sector (not the campaign's): the banner, e.g. `ACT I COMPLETE`, `GAUNTLET COMPLETE`. */
   actComplete: string | null;
   /** A weapon this run unlocked (T35), and its display name. */
   unlockedWeapon: WeaponId | null;
@@ -37,12 +37,14 @@ export function bankFinishedRun(
   const firstClear = run.bossDefeated && (save.levels[run.levelId]?.clears ?? 0) === 0;
   const nextLevel = nextLevelId(run.levelId, order);
   const banked = bankRun(save, result, now);
-  const act = firstClear && nextLevel !== null ? actEndedBy(run.levelId) : null;
+  const finale = order !== undefined ? order[order.length - 1] : campaignFinale();
+  const campaignComplete = firstClear && run.levelId === finale;
+  const act = firstClear && !campaignComplete ? actFinishedBy(run.levelId) : null;
   const weapon = unlockedWeaponOf(result.unlockedWeapon, save, banked.save);
   return {
     ...banked,
     firstClear,
-    campaignComplete: firstClear && nextLevel === null,
+    campaignComplete,
     nextLevel,
     actComplete: act !== null ? `${act.name} COMPLETE` : null,
     unlockedWeapon: weapon,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WEAPON_ORDER, WEAPONS, type WeaponId } from '../../src/content';
-import { LEVEL_ORDER, getLevel } from '../../src/content/levels';
+import { LEVEL_ORDER, campaignFinale, getLevel } from '../../src/content/levels';
 import { capsulePool } from '../../src/game/pickups';
 import { isLevelUnlocked, type SaveData } from '../../src/meta';
 import type { Pickup } from '../../src/sim/types';
@@ -108,11 +108,11 @@ function fly(start: SaveData, until: string): { save: SaveData; steps: Step[] } 
     expect(save.levels[levelId]?.best, `${levelId} best`).toBe(world!.run.score);
     expect(save.highScores.some((h) => h.level === levelId)).toBe(true);
 
-    const last = levelId === LEVEL_ORDER[LEVEL_ORDER.length - 1];
+    const last = levelId === campaignFinale();
     expect(banked.campaignComplete, `${levelId} campaignComplete`).toBe(last);
     expect(banked.actComplete, levelId).toBe(levelId === 'armada' ? 'ACT I COMPLETE' : null);
-    // The first clear points LAUNCH at the next sector; NEXT SECTOR flies it.
-    expect(save.selectedLevel).toBe(last ? levelId : banked.nextLevel);
+    // The first clear points LAUNCH at the next sector (the Foundry's: the Gauntlet).
+    expect(save.selectedLevel).toBe(banked.nextLevel);
     if (banked.nextLevel !== null) {
       expect(isLevelUnlocked(save, banked.nextLevel)).toBe(true);
       expect(getLevel(banked.nextLevel).number).toBe(getLevel(levelId).number + 1);
@@ -139,7 +139,7 @@ describe('campaign flow', () => {
     const start = debugSave('act1');
     expect(start.selectedLevel).toBe('corona');
     const { save, steps } = fly(start, 'foundry');
-    expect(steps.map((s) => s.levelId)).toEqual(LEVEL_ORDER.slice(5));
+    expect(steps.map((s) => s.levelId)).toEqual(LEVEL_ORDER.slice(5, 10));
     const unlocked: string[] = [];
     for (const s of steps) {
       const want = UNLOCKS[s.levelId]!;

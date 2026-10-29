@@ -233,6 +233,7 @@ export interface GameEvents {
   bossSpawned:     { defId: string };
   bossDefeated:    { defId: string; x: number; y: number };
   levelComplete:   {};
+  songRequested:   { id: string };   // T44: a level script asks for a song (gauntlet rounds)
   sfx:             { id: string; x?: number };
   shake:           { mag: number; dur: number };
   hitstop:         { dur: number };

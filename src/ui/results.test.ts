@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LEVEL_ORDER } from '../content';
+import { campaignFinale } from '../content';
 import { createRunState } from '../sim/world';
 import { debugSave } from './debugSaves';
 import { bankFinishedRun, resultBanners, unlockedWeaponOf } from './results';
@@ -26,11 +26,23 @@ describe('results view model (T32)', () => {
 
   it('shows CAMPAIGN COMPLETE on the first Foundry clear', () => {
     const f = bankFinishedRun(debugSave('act1'), clear('foundry'), true);
-    expect(LEVEL_ORDER[LEVEL_ORDER.length - 1]).toBe('foundry');
+    expect(campaignFinale()).toBe('foundry');
     expect(f.campaignComplete).toBe(true);
     expect(f.actComplete).toBeNull();
-    expect(f.nextLevel).toBeNull();
+    // NEXT SECTOR opens the Gauntlet.
+    expect(f.nextLevel).toBe('gauntlet');
     expect(resultBanners(f, true)).toEqual([{ text: 'CAMPAIGN COMPLETE', kind: 'campaign' }]);
+  });
+
+  it('shows GAUNTLET COMPLETE, not CAMPAIGN COMPLETE, on the first Gauntlet clear', () => {
+    const all = debugSave('all');
+    const levels = { ...all.levels };
+    delete levels.gauntlet;
+    const f = bankFinishedRun({ ...all, levels }, clear('gauntlet'), true);
+    expect(f.firstClear).toBe(true);
+    expect(f.campaignComplete).toBe(false);
+    expect(f.nextLevel).toBeNull();
+    expect(resultBanners(f, true)).toEqual([{ text: 'GAUNTLET COMPLETE', kind: 'act' }]);
   });
 
   it('shows no banner for mid-act clears or defeats', () => {

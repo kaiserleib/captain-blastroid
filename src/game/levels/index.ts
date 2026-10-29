@@ -11,3 +11,4 @@ import './warrens';
 import './junction';
 import './chrono';
 import './foundry';
+import './gauntlet';

@@ -42,6 +42,7 @@ export {
   bossTargetFilter,
   drawActiveBoss,
   registerBoss,
+  setBossToughness,
   spawnBoss,
   updateBoss,
   type BossController,

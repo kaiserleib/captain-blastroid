@@ -66,11 +66,19 @@ describe('level 1 god playthrough', () => {
   }, 30_000);
 });
 
+/** Sim seconds for a whole sector: `base`, or twice its nominal length (the Gauntlet's seven rounds). */
+function limit(levelId: string, base: number): number {
+  return Math.max(base, getLevel(levelId).duration * 2);
+}
+
 describe('every sector: god playthrough', () => {
   for (const levelId of LEVEL_ORDER) {
     for (let i = 0; i < LEVEL_SEEDS; i++) {
       it(`${levelId} seed god${i}: boss spawned → defeated → levelComplete → one runOver{victory}`, () => {
-        const r = runSim(`${levelId}-god${i}`, godBot(), 400, { levelId, loadout: BOOSTED });
+        const r = runSim(`${levelId}-god${i}`, godBot(), limit(levelId, 400), {
+          levelId,
+          loadout: BOOSTED,
+        });
         expect(r.result.outcome).toBe('victory');
         const spawned = indexOf(r, 'bossSpawned');
         const defeated = indexOf(r, 'bossDefeated');
@@ -157,7 +165,10 @@ describe('pool safety', () => {
 
   for (const levelId of LEVEL_ORDER) {
     it(`${levelId}: every weapon at L5 through the whole sector never fills a pool`, () => {
-      const r = runSim(`pool-max-${levelId}`, godBot(), 420, { levelId, loadout: ALL_MAX });
+      const r = runSim(`pool-max-${levelId}`, godBot(), limit(levelId, 420), {
+        levelId,
+        loadout: ALL_MAX,
+      });
       expect(r.result.outcome).toBe('victory');
       expectNoDroppedSpawns(r);
     }, 30_000);

@@ -48,6 +48,8 @@ export function songOr(id: string, fallback: string): string {
 export interface AttachAudioOptions {
   /** Song for `bossSpawned` (the level's `bossMusic`). Default `boss`. */
   bossSong?: string;
+  /** Per-boss songs by boss id, ahead of `bossSong` (the Gauntlet's rounds). */
+  bossSongs?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -72,7 +74,11 @@ export function attachAudio(
     events.on('enemyHit', (e) => {
       playAt('enemy_hit', e.enemy.x);
     }),
-    events.on('bossSpawned', () => music.playSong(bossSong)),
+    events.on('bossSpawned', (e) => {
+      const own = opts.bossSongs?.[e.defId];
+      music.playSong(own !== undefined ? songOr(own, bossSong) : bossSong);
+    }),
+    events.on('songRequested', (e) => music.playSong(songOr(e.id, 'level1'))),
     events.on('bossDefeated', () => music.stop(0.4)),
     events.on('escapeStarted', () => music.playSong(songOr('escape', 'boss'))),
     events.on('levelComplete', () => music.playSong('clear')),

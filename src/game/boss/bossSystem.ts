@@ -104,6 +104,8 @@ interface BossWorld {
   off: (() => void) | null;
   /** World time the active boss spawned. */
   since: number;
+  /** Divides player damage on boss parts (gauntlet rounds); 1 elsewhere. */
+  toughness: number;
 }
 
 const state = new WeakMap<World, BossWorld>();
@@ -112,7 +114,7 @@ const SPAWNED_P = { defId: '' };
 function stateOf(w: World): BossWorld {
   let s = state.get(w);
   if (s === undefined) {
-    s = { boss: null, reg: null, requests: [], off: null, since: 0 };
+    s = { boss: null, reg: null, requests: [], off: null, since: 0, toughness: 1 };
     state.set(w, s);
   }
   return s;
@@ -153,7 +155,8 @@ export function spawnBoss(w: World, defId: string): BossController | null {
 export function updateBoss(w: World, dt: number): void {
   attachBoss(w);
   const s = stateOf(w);
-  while (s.requests.length > 0) spawnBoss(w, s.requests.shift() as string);
+  // A request waits out the last boss's death throes (gauntlet rounds come back to back).
+  while (s.boss === null && s.requests.length > 0) spawnBoss(w, s.requests.shift() as string);
   const b = s.boss;
   if (b === null) return;
   b.update(w, dt);
@@ -190,7 +193,15 @@ export function bossAssistMul(fightT: number, after: number = BOSS_ASSIST.after)
 export function bossDamageScale(w: World, part: Enemy): number {
   const s = state.get(w);
   if (s === undefined || s.boss === null || s.boss.rig.slotOf(part) < 0) return 1;
-  return bossAssistMul(w.time - s.since, s.reg?.assistAfter);
+  return bossAssistMul(w.time - s.since, s.reg?.assistAfter) / s.toughness;
+}
+
+/**
+ * Boss parts take 1/`mul` of the player's damage: HP scaling without touching
+ * part defs. The stall breaker still ramps on top of it.
+ */
+export function setBossToughness(w: World, mul: number): void {
+  stateOf(w).toughness = Math.max(0.01, mul);
 }
 
 /** `registerTargetFilter` hook: seekers skip parts the active boss says can't be hurt now. */

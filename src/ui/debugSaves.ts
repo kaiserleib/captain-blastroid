@@ -5,6 +5,7 @@ import {
   SHIP_ORDER,
   UPGRADES,
   UPGRADE_ORDER,
+  WEAPON_ORDER,
   type WeaponId,
 } from '../content';
 import { createDefaultSave, type HighScore, type LevelRecord, type SaveData } from '../meta';
@@ -57,6 +58,7 @@ export function debugSave(id: DebugSaveId): SaveData {
     schematics: SHIP_ORDER.filter((id) => id !== 'kestrel'),
     shipsBuilt: [...SHIP_ORDER],
     pilotsRescued: [...PILOT_ORDER],
+    weaponsUnlocked: [...WEAPON_ORDER],
     highScores: allScores(),
     levels,
     stats: { runs: 31 + bossKills, kills: 5180, deaths: 24, bossKills },
