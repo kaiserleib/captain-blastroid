@@ -95,13 +95,23 @@ describe('gauntlet.round', () => {
     const toasts: string[] = [];
     w.events.on('songRequested', (e) => songs.push(e.id));
     w.events.on('toast', (e) => toasts.push(e.text));
-    roundScript(w, { round: 3, of: 8, hp: 1.6, shot: 1.15, tough: 2, home: 'pulsarNursery' });
+    roundScript(w, {
+      round: 3,
+      of: 8,
+      hp: 1.6,
+      shot: 1.15,
+      tough: 2,
+      home: 'pulsarNursery',
+      boss: 'pn_magnetar',
+    });
     expect(enemyHpMul(w)).toBe(1.6);
     expect(enemyShotSpeedMul(w)).toBe(1.15);
     expect(songs).toEqual(['pulsar']);
-    expect(toasts).toEqual(['ROUND 3 OF 8']);
-    roundScript(w, { round: 8, of: 8, home: 'foundry' });
-    expect(toasts.at(-1)).toBe('FINAL ROUND');
+    expect(toasts).toEqual(['ROUND 3 OF 8: MAGNETAR']);
+    roundScript(w, { round: 8, of: 8, home: 'foundry', boss: 'fd_architect' });
+    expect(toasts.at(-1)).toBe('FINAL ROUND: THE ARCHITECT');
+    roundScript(w, { round: 1, of: 8 });
+    expect(toasts.at(-1)).toBe('ROUND 1 OF 8');
   });
 });
 

@@ -159,7 +159,15 @@ function roundStart(r: GauntletRound, n: number, T: number, of: number): Timelin
     {
       t: T + 0.5,
       script: 'gauntlet.round',
-      args: { round: n + 1, of, hp: r.hp, shot: r.shot, tough: r.tough, home: r.home },
+      args: {
+        round: n + 1,
+        of,
+        hp: r.hp,
+        shot: r.shot,
+        tough: r.tough,
+        home: r.home,
+        boss: r.boss,
+      },
     },
   ];
   if (n > 0) {

@@ -32,4 +32,4 @@ Give a fully built hangar a place to fill all six slots at L5 and fight with it:
 
 ## For a human
 - Hand-playtest the whole run (about 11 minutes). Is it too long on a phone? Does full power feel good by round 5?
-- Do the round toasts ("ROUND 3 OF 8" / "FINAL ROUND") need a boss name?
+- The round toasts name the boss ("ROUND 3 OF 8: MAGNETAR", "FINAL ROUND: THE ARCHITECT"); they show at the round start, ~36 s before the boss arrives.
