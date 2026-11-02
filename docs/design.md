@@ -891,18 +891,19 @@ The Sentinel is the Aegis, grown up: you get around it by flanking, through port
 
 The campaign's sectors are too short to fill six slots at level 5, so a fully built hangar never gets to feel its whole arsenal. The Gauntlet is an eleventh stage (its own Sector Select page, `GAUNTLET`), opened by the first Foundry clear. NEXT SECTOR after CAMPAIGN COMPLETE launches it. Its first clear shows **GAUNTLET COMPLETE**.
 
-- **Eight rounds in one run.** Each round is ~36 s of waves (42 s in round 1, 40 s for the Wyrm), then a campaign boss. The level clock freezes while the boss lives. Its defeat pays salvage, clears enemy shots, magnetizes the rewards and resumes the timeline (`{ boss, continue: true }`). Only the last boss wins the run.
-- **Rounds:** Rock Hauler → Shepherd → Magnetar → Heliostat → Wyrm → Janus → Echo → Architect. Perihelion and the Leviathan sit out to keep the run near 11 minutes.
+- **Nine rounds in one run.** Each round is ~36 s of waves (42 s in round 1, 40 s for the Wyrm), then a campaign boss. The level clock freezes while the boss lives. Its defeat pays salvage, clears enemy shots, magnetizes the rewards and resumes the timeline (`{ boss, continue: true }`). Only the last boss wins the run.
+- **Rounds:** Rock Hauler → Shepherd → Perihelion → Magnetar → Heliostat → Wyrm → Janus → Echo → Architect. Perihelion's round mixes Lancers and Buoys into the waves but has no black holes. The Leviathan sits out: a dreadnought hull needs the Armada's own stage.
 - **The Wyrm's round** flies into a short stretch of the Warrens: the mouth, a turret tunnel, then the den. The den brake stops the scroll for the fight. The next round ramps the scroll back to 32 and queues the wall fade, so the den scrolls away. There are no rocks in the tunnels, and bats and borers replace the open-space roster there.
-- **Filling the arsenal:** every round has two carriers (guaranteed capsules) and two upgrade cores, plus an upgrade core and a shield cell after each boss, on top of the usual formation-clear capsules. With an endgame hangar (Nova + Wren, all eight weapons), the typical bot fills six slots at L5 at about 4–7 minutes, around rounds 4–5. The last 3–4 bosses are fought at full power.
+- **Filling the arsenal:** every round has two carriers (guaranteed capsules) and two upgrade cores, plus an upgrade core and a shield cell after each boss, on top of the usual formation-clear capsules. With an endgame hangar (Nova + Wren, all eight weapons), the typical bot fills six slots at L5 at about 4–9 minutes (median ~5.5), around rounds 5–6. The last 3–4 bosses are fought at full power.
 - **Escalation (`gauntlet.round` script):**
   - Each round raises the reused-roster HP multiplier (1.3 → 2.2) and the enemy shot speed (×1.05 → ×1.35).
-  - Each round sets a **boss toughness**: the player's damage on boss parts is divided by 1.0 – 2.6, so a maxed rack doesn't one-shot the mid-game bosses. The stall breaker still ramps on top of it.
+  - Each round sets a **boss toughness**: the player's damage on boss parts is divided by 1.0 – 2.6 (Perihelion 1.25), so a maxed rack doesn't one-shot the mid-game bosses. The stall breaker still ramps on top of it.
 - **Music:** each round plays the next boss's home sector song, and each boss plays its home boss theme.
 - **Rewards:** salvage only. Boss salvage is 80 → 600, and a typical clear banks about 3,600–4,000. There are no pods or schematics.
 
 | Measured (T44, 20 seeds, Nova + Wren, all weapons) | typical | novice |
 |---|---|---|
-| Clear rate | 20/20 | 12/20 (most deaths at Echo, round 7) |
-| Run length | 620–830 s | — |
+| Clear rate | 20/20 | 12/20 (most deaths in rounds 1–2, before the rack builds) |
+| Run length | 685–855 s | — |
+| Perihelion fight (round 3) | 24–49 s | 29–60 s |
 | Wyrm fight in the den | 23–56 s | 28–57 s |

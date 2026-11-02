@@ -1,7 +1,7 @@
 import type { AsteroidFieldSegment, LevelDef, TimelineEvent } from '../types';
 
 // The Gauntlet: a post-campaign stage (opened by the first Foundry clear) where
-// a fully built hangar finally gets to fill all six slots. Seven rounds, each a
+// a fully built hangar finally gets to fill all six slots. Nine rounds, each a
 // short wave block rich in capsules and cores, then a campaign boss that comes
 // back tougher. The timeline freezes while each boss lives and picks up again
 // when it falls (`continue`), so rounds chain without a results screen.
@@ -51,6 +51,17 @@ export const GAUNTLET_ROUNDS: readonly GauntletRound[] = [
     shot: 1.1,
     tough: 1.3,
     salvage: 120,
+  },
+  {
+    boss: 'hz_perihelion',
+    home: 'eventHorizon',
+    waves: 36,
+    a: 'hz_lancer',
+    b: 'hz_buoy',
+    hp: 1.52,
+    shot: 1.12,
+    tough: 1.25,
+    salvage: 140,
   },
   {
     boss: 'pn_magnetar',
