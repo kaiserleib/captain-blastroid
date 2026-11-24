@@ -15,7 +15,7 @@ import {
 import { LEVELS } from '../../content/levels';
 import { DEFAULT_UNLOCKED_WEAPONS, WEAPON_MAX_LEVEL, type WeaponId } from '../../content/weapons';
 import type { Rng } from '../../engine/rng';
-import { getSave } from '../../meta';
+import { getSave, usableWeapons } from '../../meta';
 import { getEnemyDef, spawnPickup } from '../../sim/spawn';
 import type { Asteroid, Pickup, PickupKind, WeaponInstance } from '../../sim/types';
 import type { World } from '../../sim/world';
@@ -92,7 +92,7 @@ export function capsulePool(w: World): readonly string[] {
   let pool = pools.get(w);
   if (pool === undefined) {
     const fieldTest = LEVELS[w.run.levelId]?.fieldTestWeapon;
-    pool = capsuleWeaponPool(CAPSULE_WEAPON_IDS, getSave().weaponsUnlocked, fieldTest);
+    pool = capsuleWeaponPool(CAPSULE_WEAPON_IDS, usableWeapons(getSave()), fieldTest);
     pools.set(w, pool);
   }
   return pool;

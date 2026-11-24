@@ -9,10 +9,15 @@ export type {
   Lifecycle,
   Orientation,
   Platform,
+  PurchaseOutcome,
   StorageAdapter,
+  Store,
+  StoreProduct,
 } from './platform';
 export { MemoryStorage, WebStorage, type KeyValueBacking } from './web/storage';
 export { WebHaptics } from './web/haptics';
+export { DevStore } from './web/devStore';
+export { runtimeOs } from './os';
 export { requestPersistentStorage } from './web/persist';
 export { WebLifecycle, WebOrientation } from './web/lifecycle';
 
@@ -24,6 +29,7 @@ export function createWebPlatform(): Platform {
     haptics: new WebHaptics(),
     lifecycle: new WebLifecycle(),
     orientation: new WebOrientation(),
+    store: null,
   };
 }
 

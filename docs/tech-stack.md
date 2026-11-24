@@ -36,6 +36,8 @@ Phaser is the strongest full framework in this group. Phaser 4 went stable in Ap
 - **Performance budget:** no allocations in per-frame hot paths (pools, reused scratch vectors). Target 60 fps on a 2021 mid-range Android phone with 300 bullets, 40 enemies and 60 particles on screen.
 - **Persistence:** everything goes through a `StorageAdapter`. Web uses `localStorage`; Capacitor uses `@capacitor/preferences`, because iOS can evict WebView localStorage.
 - **Platform services** (`src/platform/`): haptics, storage, lifecycle and orientation sit behind small interfaces with web implementations now and Capacitor implementations in T19.
+- **Store** (`Platform.store`, T45): in-app purchases behind the same kind of interface. It is null on the web, where every content pack is simply present. Which content a pack holds is in `src/content/packs.ts`; whether it is owned is `src/meta/entitlements.ts`, and never part of the save.
+- **Milestone counts** (`src/meta/telemetry.ts`, T46): `milestone(name)` reports an anonymous, once-per-install event to the endpoint in `VITE_TELEMETRY_URL`; off when that is unset. No identifiers, and nothing else in the game talks to a server.
 
 ## Display & resolution
 

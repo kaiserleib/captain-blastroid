@@ -1,4 +1,4 @@
-package com.captainblastroid.game;
+package com.comedy302.captainblastroid;
 
 import com.getcapacitor.BridgeActivity;
 

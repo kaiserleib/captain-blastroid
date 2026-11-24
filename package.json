@@ -1,7 +1,7 @@
 {
   "name": "captain-blastroid",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "engines": {
     "node": ">=22.12"
@@ -36,6 +36,7 @@
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.5.3",
     "@capacitor/preferences": "^8.0.1",
-    "@capacitor/screen-orientation": "^8.0.2"
+    "@capacitor/screen-orientation": "^8.0.2",
+    "@capgo/native-purchases": "^8.9.17"
   }
 }

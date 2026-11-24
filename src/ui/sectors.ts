@@ -1,5 +1,5 @@
-import { getLevel, LEVEL_ORDER, SHIPS } from '../content';
-import { isLevelUnlocked, nextRescuablePilot, type SaveData } from '../meta';
+import { getLevel, LEVEL_ORDER, packOf, SHIPS, type PackId } from '../content';
+import { isLevelUnlocked, nextRescuablePilot, ownsPack, type SaveData } from '../meta';
 
 /** What a sector card shows. */
 export interface SectorInfo {
@@ -8,6 +8,8 @@ export interface SectorInfo {
   number: number;
   name: string;
   unlocked: boolean;
+  /** The content pack this sector needs and the install doesn't own, else null. */
+  needsPack: PackId | null;
   clears: number;
   best: number;
   /** An unrescued pilot still rides this sector's escape pod. */
@@ -37,11 +39,13 @@ export function sectorInfo(
   order: readonly string[] = LEVEL_ORDER,
 ): SectorInfo {
   const rec = save.levels[id];
+  const pack = packOf('levels', id);
   return {
     id,
     number: order.indexOf(id) + 1,
     name: getLevel(id).name,
     unlocked: isLevelUnlocked(save, id, order),
+    needsPack: pack !== null && !ownsPack(pack) ? pack : null,
     clears: rec?.clears ?? 0,
     best: rec?.best ?? 0,
     pod: nextRescuablePilot(save, id) !== null,

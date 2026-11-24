@@ -438,6 +438,8 @@ The Syndicate fleet at anchor around a gas giant. It's UN Squadron's capital-shi
 
 # Campaign: Act II, Sectors 6–10 *(tickets T32–T43)*
 
+> **A separate expansion (T45).** In the store apps the base game is Act I (sectors 1–5). Act II, the Gauntlet and everything earned there (five ships, five pilots, three weapons) are the **Act II expansion**, free at launch: locked cards read "EXPANSION" and open its page, where GET FREE unlocks it. Later packs will be paid. The web build is the base game only.
+
 The Leviathan's escape core got away through a wormhole. Act II follows its trail to the **Foundry**, the Syndicate shipyard that built the fleet. Everything in "Campaign structure" still applies: each sector is its own 3–4 minute run from a fresh loadout, and only meta carries between them. Act II adds five sectors. Each one is built around one new mechanic, and the finale remixes all of them.
 
 ## Act II structure

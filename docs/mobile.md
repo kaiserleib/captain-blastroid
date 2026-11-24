@@ -60,7 +60,7 @@ The escape hatch is **Settings → Export / Import save** (Hangar only, not the 
 ## Capacitor (iOS + Android)
 
 `capacitor.config.ts`:
-- `appId: com.captainblastroid.game` is a **placeholder**; pick the real bundle id before any store submission.
+- `appId: com.comedy302.captainblastroid` is a **placeholder**; pick the real bundle id before any store submission.
 - `webDir: dist`
 - SystemBars `hidden: true`, `insetsHandling: 'css'`
 - iOS `contentInset: 'never'`
@@ -103,8 +103,8 @@ The output is deterministic, so re-running it doesn't churn git.
 | | Present | Result |
 |---|---|---|
 | Xcode | 27.1, iOS 27 simulators | **Builds and runs.** The command was `xcodebuild -project ios/App/App.xcodeproj -scheme App -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath ios/DerivedData build`. It installed and launched on the iPhone 17 simulator with fullscreen portrait title art, the status bar hidden, and no letterbox under the Dynamic Island. |
-| Android SDK | **missing** (no `ANDROID_HOME`, no platform-tools; Homebrew `sdkmanager` exists but no SDK is installed) | `npx cap add android` worked; it doesn't need the SDK. Building needs the steps below. |
-| JDK | 17 (Homebrew) | Capacitor 8 / AGP 8.13 need **JDK 21**. |
+| Android SDK | `/opt/homebrew/share/android-commandlinetools` (platform 36, build-tools 36.0.0, emulator), installed with Homebrew `sdkmanager`. `ANDROID_HOME` is not set in the shell. | **Builds** (checked 2026-11-22, T45): `ANDROID_HOME=/opt/homebrew/share/android-commandlinetools JAVA_HOME=$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home ./gradlew assembleDebug` in `android/`. The debug APK carries `com.android.vending.BILLING`. Not run on an emulator or device yet. |
+| JDK | Homebrew `openjdk` (24) and `openjdk@17` | Capacitor 8 / AGP 8.13 need **JDK 21 or newer**; the default `java` is 17, so set `JAVA_HOME` as above. |
 
 **Verified on the iOS simulator** (Capacitor console via `xcrun simctl launch --console-pty`):
 - Boot calls `Preferences get` for the migration marker, then `SystemBars hide`, the `App` listeners and `ScreenOrientation lock`. The UserDefaults plist gets `CapacitorStorage.captain-blastroid.migratedFromLocalStorage`.
@@ -115,7 +115,8 @@ The output is deterministic, so re-running it doesn't churn git.
 - Haptics: the simulator has no Taptic engine.
 - The in-run pause menu on backgrounding: it needs a touch to start a run, and simctl can't tap. It is the same hook the web build uses, and that was verified in Chrome.
 
-### To build Android (user's machine)
+### To build Android
+On the dev Mac the SDK and JDK are already installed (see the table above); steps 1–2 are for another machine.
 1. Install Android Studio (bundles JDK 21 and the SDK manager), or a JDK 21 plus `sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "emulator" "system-images;android-36;google_apis;arm64-v8a"`.
 2. `export ANDROID_HOME=~/Library/Android/sdk` (or put `sdk.dir=…` in `android/local.properties`, which is gitignored). If Gradle picks the wrong JDK, set `JAVA_HOME` to the JDK 21.
 3. Create an emulator (Device Manager → Pixel 7, API 36), then run `npm run build && npx cap sync android && npx cap run android`.
@@ -181,9 +182,41 @@ Every beat holds 60 fps and 60 TPS at 4× with a frame cost of 3–4.3 ms agains
 2. Batch the HUD band redraw: it is static between changes and could be cached to an offscreen canvas.
 3. Only then try a PixiJS `Renderer` behind `gfx/renderer.ts`.
 
+## Store release (T45)
+
+Version 1.0.0 is free with no in-app purchases: the base game is Act I, and the **Act II expansion is free**, claimed inside the app (EXPANSION → GET FREE) with no store transaction. The purchase code (`@capgo/native-purchases`, `Platform.store`) ships dormant for the next, paid pack: give a pack a `productId` in `src/content/packs.ts` and it is sold through the store instead.
+
+Publisher: 302 Comedy LLC (Apple team `V9498DP3CU`). Bundle id / application id: `com.comedy302.captainblastroid`, permanent once a build is uploaded.
+
+**Builds**
+- Android: `tools/release/android.sh` → `android/app/build/outputs/bundle/release/app-release.aab`, signed with the upload key at `~/keystores/captain-blastroid-upload.jks`. Its passwords are in `android/local.properties` (gitignored) as `RELEASE_*`. **Back up both**; enrol in Play App Signing so a lost upload key can be reset.
+- iOS: `ASC_KEY_ID=… ASC_ISSUER_ID=… tools/release/ios.sh` archives, signs and uploads to TestFlight with the App Store Connect API key in `~/.appstoreconnect/private_keys`. The Issuer ID is on App Store Connect → Users and Access → Integrations. The app record has to exist first.
+- Bump `versionCode` (Android) and `CURRENT_PROJECT_VERSION` (iOS) for every upload.
+
+**Listing:** copy, category, rating answers and review notes are in `store/listing.md`. `node tools/release/screenshots.mjs` (against `npx vite --port 5133`) regenerates `store/screenshots/` for both stores. The privacy policy is `public/privacy.html`, served at `/privacy.html` on GitHub Pages.
+
+**Store-side steps (need the accounts)**
+- App Store Connect: New App with the bundle id above, fill the listing, App Privacy as in `store/listing.md` (anonymous usage data, not linked, no tracking), age rating, upload, add to a TestFlight group, submit.
+- Play Console: create the app, Data safety as in `store/listing.md` (app interactions, not shared), content rating, target audience, upload the `.aab` to internal testing, then promote. A 1024×500 feature graphic is still needed.
+
+**Check on a device**
+- A fresh install shows Act II as EXPANSION; GET FREE opens it at once and it stays open after a relaunch and offline.
+- Sector 6 still needs sector 5 cleared.
+
+**The web build** (GitHub Pages) is the base game only: the workflow builds with `VITE_WEB_DLC=locked`, and Act II screens read "AVAILABLE IN THE IOS AND ANDROID APP".
+
+**Milestone counts (T46):** the game reports five anonymous once-per-install milestones (`first_open`, `act1_clear`, `offer_seen_act2`, `pack_get_act2`, `pack_play_act2`) so there is a number for how many players take the free expansion.
+- Backend: run `tools/telemetry/supabase.sql` once in a Supabase project. It makes one table of daily totals and one function the game may call; the file ends with the queries for reading the numbers.
+- Build config: put `VITE_TELEMETRY_URL=https://<project>.supabase.co/rest/v1/rpc/blastroid_count` and `VITE_TELEMETRY_KEY=<publishable key>` in `.env.production` (both are public values). Without the URL nothing is sent. The Pages build and both app builds read the same file.
+- Never sent from dev servers, `?save=` / `?dlc=store` sessions, or automated browsers. Milestones reached offline are queued and sent on a later launch or resume.
+- A reinstall counts again, and a claim made while offline is counted when the device is next online with the game open.
+
+**In a browser (dev):** `?dlc=0` shows the locked web build, `?dlc=store` behaves like the apps (GET FREE works).
+
+**When a paid pack arrives:** create a non-consumable with its `productId` on both stores, sign the Paid Apps agreement, and test buy / cancel / restore / refund with sandbox accounts. The paid path is covered by `src/meta/entitlements.paid.test.ts`.
+
 ## Known issues / follow-ups
-- Android not built here (no SDK / JDK 21); see the steps above.
-- Bundle id `com.captainblastroid.game` is a placeholder. No signing or store work was done (out of scope).
+- Android builds here (`assembleDebug`) but has not been run on an emulator or device; see the checklist above.
 - **iOS PWA:**
   - Safari has no Screen Orientation lock, so landscape shows the letterboxed game. The manifest `orientation` is honoured by Android only.
   - No `navigator.vibrate` on iOS web, so haptics there need the native app.

@@ -1,5 +1,6 @@
 import {
   MAX_WEAPON_SLOTS,
+  packOf,
   SHIPS,
   SHIP_ORDER,
   WEAPONS,
@@ -178,6 +179,11 @@ export class ShipSelectScene extends MenuScene {
       setSave(selectShip(save, ship.id));
       sfx('ui_confirm');
       this.flashT = 0.2;
+    } else if (status === 'pack') {
+      const pack = packOf('ships', ship.id);
+      if (!pack) return;
+      sfx('ui_confirm');
+      this.later(() => flow.expansion(pack, () => flow.ships()));
     } else if (status === 'buildable' && canBuildShip(save, ship.id)) {
       // Building a ship also puts it on the launch pad.
       setSave(selectShip(buildShip(save, ship.id), ship.id));
@@ -207,7 +213,7 @@ export class ShipSelectScene extends MenuScene {
     const bayH = 72;
     r.rect(46, cy + 8, w - 92, bayH, '#081030');
     for (let gy = cy + 16; gy < cy + 8 + bayH; gy += 12) r.rect(48, gy, w - 96, 1, '#102050');
-    const known = status !== 'unknown';
+    const known = status !== 'unknown' && status !== 'pack';
     const bob = Math.round(Math.sin(this.t * 2) * 2);
     drawSpriteScaled(
       r,
@@ -216,7 +222,7 @@ export class ShipSelectScene extends MenuScene {
       cy + 40 + bob,
       2,
       Math.floor(this.t * 12) % 3,
-      status === 'built' ? undefined : status === 'unknown' ? UNKNOWN_TINT : SCHEMATIC_TINT,
+      shipTint(status),
     );
     if (this.flashT > 0) {
       r.ctx.globalAlpha = Math.min(1, this.flashT * 3);
@@ -303,15 +309,7 @@ export class ShipSelectScene extends MenuScene {
       const p = pressed ? 1 : 0;
       const status = shipStatus(save, it.id);
       drawWindow(r, it.x, it.y + p, it.w, it.h);
-      drawSpriteScaled(
-        r,
-        it.id,
-        it.x + it.w / 2,
-        it.y + it.h / 2 - 1 + p,
-        1,
-        0,
-        status === 'built' ? undefined : status === 'unknown' ? UNKNOWN_TINT : SCHEMATIC_TINT,
-      );
+      drawSpriteScaled(r, it.id, it.x + it.w / 2, it.y + it.h / 2 - 1 + p, 1, 0, shipTint(status));
       if (save.selectedShip === it.id) {
         outline(r, it.x - 1, it.y - 1 + p, it.w + 2, it.h + 2, GOLD);
         outline(r, it.x - 2, it.y - 2 + p, it.w + 4, it.h + 4, '#100818');
@@ -349,7 +347,13 @@ export class ShipSelectScene extends MenuScene {
   }
 }
 
+function shipTint(s: ShipStatus): string | undefined {
+  if (s === 'built') return undefined;
+  return s === 'unknown' || s === 'pack' ? UNKNOWN_TINT : SCHEMATIC_TINT;
+}
+
 function statusLine(s: ShipStatus, ship: ShipDef, selected: boolean): string {
+  if (s === 'pack') return 'ACT II EXPANSION';
   if (s === 'built') return selected ? 'ON THE LAUNCH PAD' : 'IN THE HANGAR';
   if (s === 'unknown') return `SCHEMATIC: ${schematicSector(ship.id)}`;
   const cost = ship.unlock.kind === 'schematic' ? ship.unlock.cost : 0;
@@ -358,7 +362,7 @@ function statusLine(s: ShipStatus, ship: ShipDef, selected: boolean): string {
 
 function statusColor(s: ShipStatus): string {
   if (s === 'built') return OK_GREEN;
-  if (s === 'buildable') return GOLD;
+  if (s === 'buildable' || s === 'pack') return GOLD;
   return LOCK_RED;
 }
 
@@ -374,5 +378,6 @@ function actionLabel(
       : { label: 'SELECT', disabled: false };
   if (s === 'buildable') return { label: `BUILD  ${cost}`, disabled: false, color: GOLD };
   if (s === 'schematic') return { label: `BUILD  ${cost}`, disabled: true };
+  if (s === 'pack') return { label: 'EXPANSION', disabled: false, color: GOLD };
   return { label: 'LOCKED', disabled: true };
 }

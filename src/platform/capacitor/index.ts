@@ -1,10 +1,12 @@
 import { App } from '@capacitor/app';
 import { SystemBars } from '@capacitor/core';
+import { NativePurchases } from '@capgo/native-purchases';
 import { Haptics } from '@capacitor/haptics';
 import { Preferences } from '@capacitor/preferences';
 import { ScreenOrientation } from '@capacitor/screen-orientation';
 import type { Platform } from '../platform';
 import { NativeHaptics, NativeLifecycle, NativeOrientation, type HapticsApi } from './services';
+import { NativeStore, type PurchasesApi } from './store';
 import { defaultLocalStorage, migrateFromLocalStorage, PreferencesStorage } from './storage';
 
 /**
@@ -34,5 +36,6 @@ export async function createCapacitorPlatform(): Promise<Platform> {
     haptics: new NativeHaptics(Haptics as unknown as HapticsApi),
     lifecycle: new NativeLifecycle(App),
     orientation: new NativeOrientation(ScreenOrientation),
+    store: new NativeStore(NativePurchases as unknown as PurchasesApi),
   };
 }

@@ -1,7 +1,9 @@
 // Scene routing for the out-of-run loop. Scenes call these instead of importing each
 // other, and main.ts hands over the SceneManager once at boot.
 import type { SceneManager } from '../engine/scene';
+import type { PackId } from '../content';
 import type { RunState } from '../sim/world';
+import { ExpansionScene } from './ExpansionScene';
 import { GameScene, type GameSceneData } from './GameScene';
 import { HangarScene } from './HangarScene';
 import { PauseOverlay } from './PauseOverlay';
@@ -38,9 +40,12 @@ export const flow = {
   hangar: (focus?: string): void => scenes().replace(new HangarScene(), focus),
   pilots: (): void => scenes().replace(new PilotSelectScene()),
   ships: (): void => scenes().replace(new ShipSelectScene()),
-  sectors: (): void => scenes().replace(new SectorSelectScene()),
+  sectors: (focus?: string): void => scenes().replace(new SectorSelectScene(), focus),
   upgrades: (): void => scenes().replace(new UpgradesScene()),
   records: (): void => scenes().replace(new RecordsScene()),
+  /** The store page for `pack`; `back` returns to the screen that opened it. */
+  expansion: (pack: PackId, back: () => void): void =>
+    scenes().replace(new ExpansionScene(), { pack, back }),
   launch: (data: GameSceneData): void => scenes().replace(new GameScene(), data),
   results: (data: ResultsData): void => scenes().replace(new ResultsScene(), data),
   /** Overlays push over the current scene, which keeps rendering underneath, frozen. */

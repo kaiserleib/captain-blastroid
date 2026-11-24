@@ -27,6 +27,9 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: npm run build
+        env:
+          # The web is the free base game; Act II is in the iOS and Android apps.
+          VITE_WEB_DLC: locked
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

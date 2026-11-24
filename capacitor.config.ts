@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  // Placeholder bundle id; pick the real one before any store submission (it can't change after).
-  appId: 'com.captainblastroid.game',
+  // Published under 302 Comedy LLC. This id is permanent once a build is uploaded.
+  appId: 'com.comedy302.captainblastroid',
   appName: 'Captain Blastroid',
   webDir: 'dist',
   backgroundColor: '#000000',

@@ -81,11 +81,13 @@ export class SectorSelectScene extends MenuScene {
   private focusId: string | null = null;
   private swipe = { id: -1, x: 0, y: 0 };
 
-  override enter(): void {
+  /** Opens on the page holding `data` (a level id; the store page comes back this way), else the selected sector. */
+  override enter(data?: unknown): void {
     const save = getSave();
     this.infos = ACTS.flatMap((a) => a.levels).map((id) => sectorInfo(save, id));
-    this.page = actIndexOf(save.selectedLevel);
-    this.focusId = PREFIX + save.selectedLevel;
+    const at = typeof data === 'string' ? data : save.selectedLevel;
+    this.page = actIndexOf(at);
+    this.focusId = PREFIX + at;
   }
 
   private get act(): ActDef {
@@ -168,6 +170,12 @@ export class SectorSelectScene extends MenuScene {
       return;
     }
     const info = this.infos.find((s) => PREFIX + s.id === it.id);
+    const pack = info?.needsPack;
+    if (pack) {
+      sfx('ui_confirm');
+      this.later(() => flow.expansion(pack, () => flow.sectors(info.id)));
+      return;
+    }
     if (!info?.unlocked) {
       sfx('ui_back');
       return;
@@ -269,6 +277,11 @@ export class SectorSelectScene extends MenuScene {
     r.text(s.name, tx, ty + 8 + (fits ? 0 : 1), { color: nameColor, font: fits ? 'ui' : 'small' });
     if (focused) drawCursor(r, tx - 2, ty + 12, this.t);
 
+    if (s.needsPack) {
+      r.text('EXPANSION', tx, ty + 22, { color: GOLD });
+      r.text('TAP FOR DETAILS', tx, ty + 37, { color: DIM, font: 'small' });
+      return;
+    }
     if (!s.unlocked) {
       // A locked act asks for the sector that opens it, on every card.
       const need = actLocked ? this.firstOfAct() - 1 : s.number - 1;

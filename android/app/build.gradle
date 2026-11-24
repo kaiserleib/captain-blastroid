@@ -1,14 +1,14 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.captainblastroid.game"
+    namespace = "com.comedy302.captainblastroid"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.captainblastroid.game"
+        applicationId "com.comedy302.captainblastroid"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +16,26 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Upload key for Play (Google re-signs with the app-signing key via Play App Signing).
+    // RELEASE_* come from android/local.properties (gitignored) or the environment;
+    // without them release builds are unsigned, so other machines still build.
+    def localProps = new Properties()
+    def localFile = rootProject.file('local.properties')
+    if (localFile.exists()) localFile.withInputStream { localProps.load(it) }
+    def secret = { String k -> localProps.getProperty(k) ?: System.getenv(k) ?: '' }
+    signingConfigs {
+        if (secret('RELEASE_STORE_FILE')) {
+            release {
+                storeFile file(secret('RELEASE_STORE_FILE'))
+                storePassword secret('RELEASE_STORE_PASSWORD')
+                keyAlias secret('RELEASE_KEY_ALIAS')
+                keyPassword secret('RELEASE_KEY_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.findByName('release')
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

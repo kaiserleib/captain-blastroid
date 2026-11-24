@@ -1,7 +1,7 @@
-import { PILOTS, PILOT_ORDER } from '../content';
+import { packOf, PILOTS, PILOT_ORDER, type PackId } from '../content';
 import type { Renderer } from '../gfx/renderer';
 import { drawWindow } from '../gfx/ui';
-import { getSave, selectPilot, setSave } from '../meta';
+import { getSave, ownsPack, pilotAvailable, selectPilot, setSave } from '../meta';
 import { PORTRAIT_H, PORTRAIT_W } from '../portraits';
 import {
   DIM,
@@ -133,7 +133,13 @@ export class PilotSelectScene extends MenuScene {
     }
     const save = getSave();
     this.shown = it.id;
-    if (!save.pilotsRescued.includes(it.id)) {
+    const pack = neededPack(it.id);
+    if (pack) {
+      sfx('ui_confirm');
+      this.later(() => flow.expansion(pack, () => flow.pilots()));
+      return;
+    }
+    if (!pilotAvailable(save, it.id)) {
       sfx('ui_back');
       return;
     }
@@ -173,7 +179,7 @@ export class PilotSelectScene extends MenuScene {
         drawArrowButton(r, it, dir, { focused, pressed, enabled });
         continue;
       }
-      const locked = !save.pilotsRescued.includes(it.id);
+      const locked = !pilotAvailable(save, it.id);
       const p = pressed ? 1 : 0;
       drawWindow(r, it.x, it.y + p, it.w, it.h);
       drawPortrait(r, it.id, it.x + 2, it.y + 2 + p, 1, locked);
@@ -194,10 +200,19 @@ export class PilotSelectScene extends MenuScene {
     const w = r.width;
     drawWindow(r, 6, y, w - 12, CARD_H);
     if (!pilot) return;
-    const locked = !save.pilotsRescued.includes(id);
+    const locked = !pilotAvailable(save, id);
     drawPortrait(r, id, 11, y + 5, BIG, locked);
     const tx = 11 + PORTRAIT_W * BIG + 8;
     const tw = w - 12 - tx;
+    if (neededPack(id)) {
+      r.text('???', tx, y + 8, { color: DIM });
+      r.text('ACT II', tx, y + 24, { color: GOLD });
+      r.text('EXPANSION', tx, y + 36, { color: GOLD });
+      const hint = wrapText('Select for details.', tw);
+      for (let i = 0; i < hint.length && i < 2; i++)
+        r.text(hint[i] as string, tx, y + 72 + i * 10, { color: DIM });
+      return;
+    }
     if (locked) {
       r.text('???', tx, y + 8, { color: DIM });
       r.text('RESCUE:', tx, y + 24, { color: LOCK_RED });
@@ -233,4 +248,10 @@ export class PilotSelectScene extends MenuScene {
       ty += 10;
     }
   }
+}
+
+/** The content pack `pilotId` needs and this install doesn't own, else null. */
+function neededPack(pilotId: string): PackId | null {
+  const pack = packOf('pilots', pilotId);
+  return pack !== null && !ownsPack(pack) ? pack : null;
 }

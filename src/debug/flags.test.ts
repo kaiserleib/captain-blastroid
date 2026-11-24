@@ -4,7 +4,7 @@ import { parseFlags } from './flags';
 describe('parseFlags', () => {
   it('parses every flag in dev', () => {
     const f = parseFlags(
-      '?debug&god&sandbox&seed=ABCD2345&level=1&t=120&h=520&save=mid&mute',
+      '?debug&god&sandbox&seed=ABCD2345&level=1&t=120&h=520&save=mid&mute&dlc=0',
       true,
     );
     expect(f).toEqual({
@@ -17,6 +17,8 @@ describe('parseFlags', () => {
       h: 520,
       save: 'mid',
       mute: true,
+      lockPacks: true,
+      fakeStore: false,
     });
     expect(Object.isFrozen(f)).toBe(true);
   });
@@ -32,6 +34,8 @@ describe('parseFlags', () => {
       h: null,
       save: null,
       mute: false,
+      lockPacks: false,
+      fakeStore: false,
     });
   });
 
@@ -40,6 +44,11 @@ describe('parseFlags', () => {
     expect(f.debug || f.god || f.level !== null).toBe(false);
     expect(f.seed).toBe('XY');
     expect(parseFlags('?save=all&mute', false).save).toBeNull();
+    expect(parseFlags('?dlc=0', false).lockPacks).toBe(false);
+    expect(parseFlags('?dlc=store', true).fakeStore).toBe(true);
+    expect(parseFlags('?dlc=store', false).fakeStore).toBe(false);
+    // A web build made with VITE_WEB_DLC=locked ships without the packs.
+    expect(parseFlags('', false, true).lockPacks).toBe(true);
   });
 
   it('rejects unknown crafted saves', () => {

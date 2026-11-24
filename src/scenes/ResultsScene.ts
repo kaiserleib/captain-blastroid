@@ -6,7 +6,17 @@ import { drawWindow } from '../gfx/ui';
 import '../game/hud';
 import '../game/player';
 import { finishRunRecord } from '../game/runlog';
-import { appendRunLog, getSave, isLevelUnlocked, saveNow, selectLevel, setSave } from '../meta';
+import { packOf, type PackId } from '../content';
+import {
+  appendRunLog,
+  getSave,
+  isLevelUnlocked,
+  milestone,
+  ownsPack,
+  saveNow,
+  selectLevel,
+  setSave,
+} from '../meta';
 import {
   bankFinishedRun,
   DIM,
@@ -36,6 +46,7 @@ const LINE_H = 30;
 const BUTTON_H = 26;
 const LABELS: Readonly<Record<string, string>> = {
   next: 'NEXT SECTOR',
+  expansion: 'ACT II EXPANSION',
   retry: 'RETRY',
   hangar: 'HANGAR',
 };
@@ -57,6 +68,9 @@ export class ResultsScene extends MenuScene {
   private shipId = '';
   private pilotId = '';
   private nextLevel: string | null = null;
+  /** The next sector is in a content pack this install doesn't own: offer its store page. */
+  private nextPack: PackId | null = null;
+  private nextLevelInPack: string | undefined;
   /** CAMPAIGN / ACT I COMPLETE and NEW WEAPON lines under the title. */
   private banners: ResultBanner[] = [];
 
@@ -85,6 +99,12 @@ export class ResultsScene extends MenuScene {
       d.victory && banked.nextLevel && isLevelUnlocked(banked.save, banked.nextLevel)
         ? banked.nextLevel
         : null;
+    const pack = d.victory && banked.nextLevel ? packOf('levels', banked.nextLevel) : null;
+    this.nextPack = pack !== null && !ownsPack(pack) ? pack : null;
+    const played = packOf('levels', this.levelId);
+    if (played !== null) milestone(`pack_play_${played}`);
+    else if (pack !== null) milestone('act1_clear');
+    this.nextLevelInPack = banked.nextLevel ?? undefined;
     // On a clear, T04 is already playing the `clear` jingle.
     if (!d.victory) stopMusic(1.5);
   }
@@ -102,7 +122,9 @@ export class ResultsScene extends MenuScene {
     const ids = this.victory
       ? this.nextLevel
         ? ['next', 'hangar']
-        : ['hangar']
+        : this.nextPack
+          ? ['expansion', 'hangar']
+          : ['hangar']
       : ['retry', 'hangar'];
     const buttonsH = ids.length * (BUTTON_H + 6) - 6;
     const total = this.titleH + 84 + 8 + listH + 8 + buttonsH;
@@ -134,6 +156,12 @@ export class ResultsScene extends MenuScene {
     sfx('ui_confirm');
     if (it.id === 'hangar') {
       this.later(() => flow.hangar());
+      return;
+    }
+    const pack = this.nextPack;
+    if (it.id === 'expansion' && pack) {
+      const next = this.nextLevelInPack;
+      this.later(() => flow.expansion(pack, () => flow.sectors(next)));
       return;
     }
     const levelId = it.id === 'next' && this.nextLevel ? this.nextLevel : this.levelId;

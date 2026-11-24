@@ -17,7 +17,15 @@ import {
 } from '../content';
 import { createPlayerStats, type RunState } from '../sim/world';
 import type { PlayerStats } from '../sim/types';
-import { HIGH_SCORE_LIMIT, type HighScore, type SaveData } from './schema';
+import { owns } from './entitlements';
+import {
+  DEFAULT_LEVEL,
+  DEFAULT_PILOT,
+  DEFAULT_SHIP,
+  HIGH_SCORE_LIMIT,
+  type HighScore,
+  type SaveData,
+} from './schema';
 import { applyStatMods, applyUpgrades, startWeaponBonus } from './upgrades';
 
 /** What a finished (or abandoned) run hands to the meta layer. */
@@ -136,7 +144,7 @@ export function bankRun(save: SaveData, result: RunResult, now: Date = new Date(
     clears > 0 || best > 0 ? { ...save.levels, [result.levelId]: { clears, best } } : save.levels;
   // The first clear points LAUNCH at the next sector, so the campaign carries on.
   const next = prevClears === 0 && clears > 0 ? nextLevelId(result.levelId) : null;
-  const selectedLevel = next ?? save.selectedLevel;
+  const selectedLevel = next !== null && owns('levels', next) ? next : save.selectedLevel;
 
   return {
     salvageEarned,
@@ -221,14 +229,17 @@ export function nextLevelId(id: string, order: readonly string[] = LEVEL_ORDER):
   return i >= 0 ? (order[i + 1] ?? null) : null;
 }
 
-/** Sector 1 is always open; every later one needs the sector before it cleared once. */
+/**
+ * Sector 1 is always open; every later one needs the sector before it cleared once,
+ * and a sector from a content pack also needs the pack.
+ */
 export function isLevelUnlocked(
   save: SaveData,
   id: string,
   order: readonly string[] = LEVEL_ORDER,
 ): boolean {
   const i = order.indexOf(id);
-  if (i < 0) return false;
+  if (i < 0 || !owns('levels', id)) return false;
   if (i === 0) return true;
   return (save.levels[order[i - 1] as string]?.clears ?? 0) > 0;
 }
@@ -247,11 +258,15 @@ export function selectLevel(
   return { ...save, selectedLevel: id };
 }
 
-export type ShipStatus = 'built' | 'buildable' | 'schematic' | 'unknown';
+export type ShipStatus = 'built' | 'buildable' | 'schematic' | 'unknown' | 'pack';
 
-/** Hangar state of a ship: built, schematic owned (affordable or not), or not yet found. */
+/**
+ * Hangar state of a ship: built, schematic owned (affordable or not), or not yet found.
+ * `pack` wins over all of them: the ship belongs to a content pack this install doesn't own.
+ */
 export function shipStatus(save: SaveData, shipId: string): ShipStatus {
   const ship = getDef(SHIPS, shipId, 'ship');
+  if (!owns('ships', shipId)) return 'pack';
   if (save.shipsBuilt.includes(shipId) || ship.unlock.kind === 'start') return 'built';
   if (!save.schematics.includes(ship.unlock.schematicId)) return 'unknown';
   return save.salvage >= ship.unlock.cost ? 'buildable' : 'schematic';
@@ -275,12 +290,19 @@ export function buildShip(save: SaveData, shipId: string): SaveData {
 }
 
 export function selectShip(save: SaveData, shipId: string): SaveData {
-  if (!save.shipsBuilt.includes(shipId)) throw new Error(`Ship "${shipId}" not built`);
+  if (!save.shipsBuilt.includes(shipId) || !owns('ships', shipId)) {
+    throw new Error(`Ship "${shipId}" not built`);
+  }
   return { ...save, selectedShip: shipId };
 }
 
+/** Rescued, and not from a content pack this install doesn't own. */
+export function pilotAvailable(save: SaveData, pilotId: string): boolean {
+  return save.pilotsRescued.includes(pilotId) && owns('pilots', pilotId);
+}
+
 export function selectPilot(save: SaveData, pilotId: string): SaveData {
-  if (!save.pilotsRescued.includes(pilotId)) throw new Error(`Pilot "${pilotId}" not rescued`);
+  if (!pilotAvailable(save, pilotId)) throw new Error(`Pilot "${pilotId}" not rescued`);
   return { ...save, selectedPilot: pilotId };
 }
 
@@ -340,4 +362,32 @@ export function nextRescuablePilot(save: SaveData, levelId: string): string | nu
     if (!save.pilotsRescued.includes(id)) return id;
   }
   return null;
+}
+
+/** The weapons capsules may carry: unlocked ones, minus any from a pack this install doesn't own. */
+export function usableWeapons(save: SaveData): WeaponId[] {
+  return save.weaponsUnlocked.filter((id) => owns('weapons', id));
+}
+
+/**
+ * Moves the launch selections off content this install doesn't own (a save code from
+ * another device, a refunded pack). Progress itself is kept, so owning the pack again
+ * brings everything back. Returns `save` unchanged when there is nothing to move.
+ */
+export function enforceOwnership(save: SaveData): SaveData {
+  const level = owns('levels', save.selectedLevel);
+  const ship = owns('ships', save.selectedShip);
+  const pilot = owns('pilots', save.selectedPilot);
+  if (level && ship && pilot) return save;
+  return {
+    ...save,
+    selectedLevel: level ? save.selectedLevel : lastOpenLevel(save),
+    selectedShip: ship ? save.selectedShip : DEFAULT_SHIP,
+    selectedPilot: pilot ? save.selectedPilot : DEFAULT_PILOT,
+  };
+}
+
+function lastOpenLevel(save: SaveData): string {
+  const open = unlockedLevels(save);
+  return open[open.length - 1] ?? DEFAULT_LEVEL;
 }

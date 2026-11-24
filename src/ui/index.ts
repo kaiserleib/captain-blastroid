@@ -16,7 +16,7 @@ export { bindWasdNav, wasdNav } from './keys';
 export { applyAudioSettings } from './audioSettings';
 
 /** Shown on the title screen. */
-export const GAME_VERSION = '0.1.0';
+export const GAME_VERSION = '1.0.0';
 export {
   bankFinishedRun,
   discoveryLines,

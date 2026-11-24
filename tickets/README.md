@@ -83,6 +83,8 @@ Wave 10 T43 act II integration + bots + balance                              │
 | [T42](T42-foundry.md) | Level 10: The Foundry + The Architect + escape | wave 8 | done |
 | [T43](T43-act2-balance.md) | Act II integration, bots, balance | T32–T42 | done |
 | [T44](T44-gauntlet.md) | The Gauntlet: eight-boss endgame stage | T43 | done |
+| [T45](T45-store-expansion.md) | Store release split: base game + Act II expansion | T44 | done |
+| [T46](T46-milestone-counts.md) | Anonymous milestone counts for the free expansion | T45 | in progress |
 
 Wave 2 tickets can start as soon as their listed dependencies merge, without waiting for the whole of Wave 1.
 
