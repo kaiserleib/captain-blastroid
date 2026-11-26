@@ -1,5 +1,6 @@
 // Minimal App Store Connect API client for the release scripts.
 // Reads ASC_KEY_ID and ASC_ISSUER_ID from the environment (they are in .env.local).
+import { Buffer } from 'node:buffer';
 import { createPrivateKey, sign } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
