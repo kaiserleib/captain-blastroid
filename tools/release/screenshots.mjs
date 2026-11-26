@@ -2,7 +2,7 @@
 // `node tools/release/screenshots.mjs [outDir]`. Dev flags (?level, ?t, ?god, ?save)
 // only exist in dev builds, which is why this doesn't run against `dist/`.
 import { chromium } from '@playwright/test';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, statSync, writeFileSync } from 'node:fs';
 import process from 'node:process';
 
 const BASE = process.env.SHOT_URL ?? 'http://localhost:5133';
@@ -38,6 +38,8 @@ const browser = await chromium.launch();
 for (const [platform, viewport] of Object.entries(SIZES)) {
   mkdirSync(`${OUT}/${platform}`, { recursive: true });
   for (const [name, query, keys, wait] of SHOTS) {
+    // SHOT_ONLY=title retakes just the shots whose name contains it.
+    if (process.env.SHOT_ONLY && !name.includes(process.env.SHOT_ONLY)) continue;
     const ctx = await browser.newContext({
       viewport,
       deviceScaleFactor: 3,
@@ -63,7 +65,14 @@ for (const [platform, viewport] of Object.entries(SIZES)) {
     } else {
       await page.waitForTimeout(wait * 1000);
     }
-    await page.screenshot({ path: `${OUT}/${platform}/${name}.png` });
+    const path = `${OUT}/${platform}/${name}.png`;
+    await page.screenshot({ path });
+    if (name.endsWith('title')) {
+      // TAP TO START blinks: of two frames half a blink apart, the one with the prompt is larger.
+      await page.waitForTimeout(500);
+      const other = await page.screenshot();
+      if (other.length > statSync(path).size) writeFileSync(path, other);
+    }
     console.log(platform, name);
     await ctx.close();
   }

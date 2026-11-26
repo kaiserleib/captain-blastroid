@@ -17,6 +17,8 @@ export { applyAudioSettings } from './audioSettings';
 
 /** Shown on the title screen. */
 export const GAME_VERSION = '1.0.0';
+/** Linked from Settings; both stores require the policy to be reachable inside the app. */
+export const PRIVACY_URL = 'https://kaiserleib.github.io/captain-blastroid/privacy.html';
 export {
   bankFinishedRun,
   discoveryLines,

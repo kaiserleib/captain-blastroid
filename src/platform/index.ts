@@ -18,6 +18,7 @@ export { MemoryStorage, WebStorage, type KeyValueBacking } from './web/storage';
 export { WebHaptics } from './web/haptics';
 export { DevStore } from './web/devStore';
 export { runtimeOs } from './os';
+export { likelyHasKeyboard, openExternal } from './web/external';
 export { requestPersistentStorage } from './web/persist';
 export { WebLifecycle, WebOrientation } from './web/lifecycle';
 

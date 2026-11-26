@@ -1,6 +1,7 @@
 import { playSong } from '../audio';
 import type { Renderer } from '../gfx/renderer';
 import '../game/player';
+import { likelyHasKeyboard, platform } from '../platform';
 import { drawSpriteScaled, GAME_VERSION, logoCanvases, MenuScene, sfx, type MenuItem } from '../ui';
 import { flow } from './flow';
 
@@ -8,6 +9,8 @@ const SHEEN_PERIOD = 4.5;
 const SHEEN_W = 10;
 
 export class TitleScene extends MenuScene {
+  /** Phones and the store apps don't get the keyboard hint. */
+  private readonly keyboard = likelyHasKeyboard(platform.kind === 'native');
   private logoY = 0;
   private shipY = 0;
   private promptY = 0;
@@ -59,7 +62,8 @@ export class TitleScene extends MenuScene {
     if (this.leaving || Math.floor(this.t * 2) % 2 === 0) {
       r.text('TAP TO START', cw / 2, this.promptY, { align: 'center', color: '#f8d850' });
     }
-    r.text('or press Enter', cw / 2, this.promptY + 14, { align: 'center', color: '#a0a8c0' });
+    if (this.keyboard)
+      r.text('or press Enter', cw / 2, this.promptY + 14, { align: 'center', color: '#a0a8c0' });
     r.text(`v${GAME_VERSION}`, 4, r.height - 9, { font: 'small', color: '#606878' });
   }
 
