@@ -206,8 +206,8 @@ Publisher: 302 Comedy LLC (Apple team `V9498DP3CU`). Bundle id / application id:
 **The web build** (GitHub Pages) is the base game only: the workflow builds with `VITE_WEB_DLC=locked`, and Act II screens read "AVAILABLE IN THE IOS AND ANDROID APP".
 
 **Milestone counts (T46):** the game reports five anonymous once-per-install milestones (`first_open`, `act1_clear`, `offer_seen_act2`, `pack_get_act2`, `pack_play_act2`) so there is a number for how many players take the free expansion.
-- Backend: run `tools/telemetry/supabase.sql` once in a Supabase project. It makes one table of daily totals and one function the game may call; the file ends with the queries for reading the numbers.
-- Build config: put `VITE_TELEMETRY_URL=https://<project>.supabase.co/rest/v1/rpc/blastroid_count` and `VITE_TELEMETRY_KEY=<publishable key>` in `.env.production` (both are public values). Without the URL nothing is sent. The Pages build and both app builds read the same file.
+- Backend: the `captain-blastroid` Supabase project (`kqytwkbobpsluolruqse`, its own project, apart from the 302 Comedy ones), set up by `tools/telemetry/supabase.sql`. Read the numbers with `supabase db query --linked --project-ref kqytwkbobpsluolruqse "<query>"` or in the dashboard's SQL editor. It makes one table of daily totals and one function the game may call; the file ends with the queries for reading the numbers.
+- Build config: `.env.production` holds `VITE_TELEMETRY_URL` and `VITE_TELEMETRY_KEY` (the publishable key; both are public values). Without the URL nothing is sent. The Pages build and both app builds read the same file.
 - Never sent from dev servers, `?save=` / `?dlc=store` sessions, or automated browsers. Milestones reached offline are queued and sent on a later launch or resume.
 - A reinstall counts again, and a claim made while offline is counted when the device is next online with the game open.
 

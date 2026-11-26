@@ -12,9 +12,11 @@ npm run build
 npx cap sync ios
 cd ios/App
 AUTH="-allowProvisioningUpdates -authenticationKeyPath $KEY -authenticationKeyID $ASC_KEY_ID -authenticationKeyIssuerID $ASC_ISSUER_ID"
-# shellcheck disable=SC2086
+# Archived unsigned: a signed archive wants a development profile, which needs a registered
+# device. The export below signs for distribution, which doesn't.
 xcodebuild -project App.xcodeproj -scheme App -configuration Release \
-  -destination 'generic/platform=iOS' -archivePath build/CaptainBlastroid.xcarchive $AUTH archive
+  -destination 'generic/platform=iOS' -archivePath build/CaptainBlastroid.xcarchive \
+  CODE_SIGNING_ALLOWED=NO archive
 DEST=upload
 [ "${1:-}" = "--no-upload" ] && DEST=export
 cat > build/ExportOptions.plist <<PLIST

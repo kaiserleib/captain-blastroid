@@ -1,5 +1,5 @@
 # T46 — Anonymous milestone counts for the free expansion
-Status: in progress (code done; backend not deployed)
+Status: in progress (live; not yet seen from a device)
 Wave: — (release) · Depends on: T45 · Blocks: deciding when to charge for the next pack
 
 ## Goal
@@ -15,7 +15,8 @@ Act II is free and claimed inside the app, so neither store can say how many pla
 - [x] Off unless the build sets `VITE_TELEMETRY_URL`; never sent from dev, `?save=` / `?dlc=store` sessions or automated browsers.
 - [x] Backend SQL: a daily-totals table closed to the API and one whitelisting function callable with the publishable key. Checked against an in-process Postgres (PGlite), not against Supabase.
 - [x] Privacy policy and the store data-safety answers describe the counts.
-- [ ] Backend deployed, `.env.production` written, and a real device seen to add to the totals.
+- [x] Backend deployed to the `captain-blastroid` Supabase project (`kqytwkbobpsluolruqse`) and `.env.production` written. Checked over the API with the publishable key: a valid event adds one, junk is dropped, and the table can't be read or written directly.
+- [ ] A real device seen to add to the totals.
 - [x] build / test / lint pass.
 
 ## Contract changes (additive)

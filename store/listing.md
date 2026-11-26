@@ -7,7 +7,7 @@ Copy for App Store Connect and the Play Console. Limits are in brackets.
 | Publisher | 302 Comedy LLC |
 | Bundle id / application id | `com.comedy302.captainblastroid` |
 | Price | Free. No in-app purchases in 1.0.0 (the Act II expansion is free and claimed inside the app). |
-| Category | Games → Action (secondary: Arcade) |
+| Category | Games → Action (the App Store has no Arcade subcategory; on Play: Arcade) |
 | Privacy policy URL | `https://kaiserleib.github.io/captain-blastroid/privacy.html` |
 | Data collected | Anonymous milestone counts only (T46). App Privacy: Usage Data → Product Interaction, used for Analytics, not linked to the user, not used for tracking. Play Data safety: App activity → App interactions, collected, not shared, purpose Analytics, encrypted in transit; no deletion mechanism applies because nothing is tied to a user. |
 | Ads | No |
