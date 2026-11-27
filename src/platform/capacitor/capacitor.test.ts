@@ -3,6 +3,7 @@ import { isNativeRuntime } from '../select';
 import {
   NativeHaptics,
   NativeLifecycle,
+  isTabletSized,
   NativeOrientation,
   type AppApi,
   type HapticsApi,
@@ -115,6 +116,12 @@ describe('native services', () => {
   it('orientation lock resolves even when refused', async () => {
     const o = new NativeOrientation({ lock: async () => Promise.reject(new Error('no')) });
     await expect(o.lockPortrait()).resolves.toBeUndefined();
+  });
+
+  it('leaves tablets free to rotate', async () => {
+    expect(isTabletSized({ screen: { width: 820, height: 1180 } })).toBe(true);
+    expect(isTabletSized({ screen: { width: 430, height: 932 } })).toBe(false);
+    expect(isTabletSized({})).toBe(false);
   });
 });
 

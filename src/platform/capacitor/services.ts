@@ -57,10 +57,21 @@ export interface ScreenOrientationApi {
   lock(o: { orientation: 'portrait' }): Promise<void>;
 }
 
+/** Shorter screen side of 600 CSS px or more: an iPad or Android tablet, not a phone. */
+export function isTabletSized(g: unknown = globalThis): boolean {
+  const s = (g as { screen?: { width?: number; height?: number } }).screen;
+  const w = s?.width ?? 0;
+  const h = s?.height ?? 0;
+  return Math.min(w, h) >= 600;
+}
+
 export class NativeOrientation implements Orientation {
   constructor(private readonly api: ScreenOrientationApi) {}
 
   async lockPortrait(): Promise<void> {
+    // Tablets rotate freely and the game letterboxes itself: a portrait lock inside an
+    // iPad window draws the game sideways when the iPad is held in landscape.
+    if (isTabletSized()) return;
     try {
       await this.api.lock({ orientation: 'portrait' });
     } catch {

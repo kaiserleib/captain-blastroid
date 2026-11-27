@@ -12,6 +12,8 @@ const OUT = process.argv[2] ?? 'store/screenshots';
 const SIZES = {
   ios: { width: 430, height: 932 },
   android: { width: 360, height: 640 },
+  // App Store 13" iPad (2048x2732).
+  ipad: { width: 1024, height: 1366, scale: 2 },
 };
 
 // Title, then the hangar's LAUNCH. (`?sandbox` would skip the menus, but it has no enemy waves.)
@@ -35,14 +37,16 @@ const SHOTS = [
 ];
 
 const browser = await chromium.launch();
-for (const [platform, viewport] of Object.entries(SIZES)) {
+for (const [platform, { scale = 3, ...viewport }] of Object.entries(SIZES)) {
+  // SHOT_PLATFORM=ipad retakes one platform's set.
+  if (process.env.SHOT_PLATFORM && platform !== process.env.SHOT_PLATFORM) continue;
   mkdirSync(`${OUT}/${platform}`, { recursive: true });
   for (const [name, query, keys, wait] of SHOTS) {
     // SHOT_ONLY=title retakes just the shots whose name contains it.
     if (process.env.SHOT_ONLY && !name.includes(process.env.SHOT_ONLY)) continue;
     const ctx = await browser.newContext({
       viewport,
-      deviceScaleFactor: 3,
+      deviceScaleFactor: scale,
       hasTouch: true,
       isMobile: true,
     });
