@@ -54,7 +54,17 @@ NO NONSENSE
 First release.
 
 ## Review notes (App Store)
-No login is needed. The Act II expansion is free and unlocks inside the app with no purchase: Hangar → SECTOR → swipe to ACT II → tap a card → GET FREE. Its sectors then open one at a time as the one before is cleared.
+Screen recording: attached to our reply in App Review (captain-blastroid-app-review.mp4). It was captured in the iOS Simulator (iPhone 17, iOS 27.1) because we do not have an iPhone to record on; the build has been run on physical devices by our TestFlight testers. It shows launch, the title screen, the hangar, a run in sector 1, claiming the free Act II expansion, and the settings screen.
+
+Purpose and audience: Captain Blastroid is a single-player arcade shoot-'em-up for phones and tablets, for players who enjoy classic vertical shooters. It is entertainment only. The player flies through sectors, collects salvage, buys upgrades, and unlocks ships and pilots.
+
+Access: No account, login or setup. Launch the app and tap to start; sectors 1-5 open one at a time. The Act II expansion is free and unlocks inside the app with no purchase: Hangar → SECTOR → swipe to ACT II → tap a card → GET FREE. Its sectors then open one at a time as the one before is cleared. The app currently sells nothing.
+
+External services: one. The app sends anonymous milestone counts (for example "first open") to a database we host on Supabase. No identifiers, accounts or personal data are sent. There are no ads, no third-party analytics SDKs, no authentication, no payment processing and no AI services.
+
+Regions: the app works the same in every region.
+
+Regulated or third-party material: none. All art and audio are original and generated in code.
 
 ## Age rating answers
 Cartoon or fantasy violence: infrequent/mild (spaceships shooting spaceships; no blood, no people harmed on screen). Everything else: none. No user-generated content, no web access, no gambling.
